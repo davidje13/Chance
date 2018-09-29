@@ -1,0 +1,5 @@
+#content.dice {
+	background:
+		url(background-overlay.png),
+		linear-gradient(to bottom right, #66CC00, #006633);
+}
