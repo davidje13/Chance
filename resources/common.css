@@ -1,7 +1,20 @@
 html, body {
 	margin: 0;
 	padding: 0;
+}
+
+body {
 	overflow: hidden;
+}
+
+@media screen and (orientation: landscape) {
+	body {
+		/* disable landscape orientation */
+		width: 100vh;
+		height: 100vw;
+		transform-origin: 0 0;
+		transform: rotate(90deg) translateY(-100%);
+	}
 }
 
 #content {

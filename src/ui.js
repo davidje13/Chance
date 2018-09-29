@@ -94,3 +94,8 @@ if (!setTabFromHash()) {
 }
 
 window.addEventListener('hashchange', setTabFromHash);
+window.addEventListener('scroll', (e) => {
+	if (document.body.scrollTop > 0 || document.body.scrollLeft > 0) {
+		document.body.scrollTo(0, 0);
+	}
+});
