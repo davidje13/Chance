@@ -11,6 +11,7 @@ html, body {
 	right: 0;
 	bottom: 50px;
 	overflow: hidden;
+	background: #666666;
 }
 
 h1 {
