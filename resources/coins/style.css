@@ -1,0 +1,6 @@
+#content.coins {
+	background:
+		radial-gradient(circle, rgba(113, 47, 144, 0.4), rgba(113, 47, 144, 0) 60%),
+		url(background-overlay.png),
+		radial-gradient(circle, #999999 10%, #777777 30%, #333333);
+}

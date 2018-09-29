@@ -16,9 +16,14 @@ function makeShadow(dist, angle, blur, expand, c) {
 }
 
 export default class Dice {
-	constructor(hold) {
-		this.hold = hold;
-		hold.className = 'dice';
+	constructor() {
+		this.inner = document.createElement('div');
+
+		this.die = [];
+		for (let i = 0; i < 12; ++ i) {
+			this.die.push(this.makeDie());
+			this.inner.appendChild(this.die[i]);
+		}
 	}
 
 	makeDie() {
@@ -63,20 +68,30 @@ export default class Dice {
 		);
 	}
 
-	begin() {
-		const die = [];
-		for (let i = 0; i < 12; ++ i) {
-			die.push(this.makeDie());
-			this.hold.appendChild(die[i]);
-		}
+	start() {
 		let r = 0;
-		setInterval(() => {
+		this.loop = setInterval(() => {
 			for (let i = 0; i < 12; ++ i) {
 				const x = (i % 3) * 120 + 120;
 				const y = Math.floor(i / 3) * 120 + 120;
-				this.updateDie(die[i], {x, y, r, size: 80, value: (i % 6) + 1, theme: Math.floor(i / 6)});
+				this.updateDie(this.die[i], {
+					x,
+					y,
+					r,
+					size: 80,
+					value: (i % 6) + 1,
+					theme: Math.floor(i / 6),
+				});
 			}
 			r += Math.PI * 0.002;
 		}, 200);
+	}
+
+	stop() {
+		clearInterval(this.loop);
+	}
+
+	dom() {
+		return this.inner;
 	}
 };

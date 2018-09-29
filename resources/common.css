@@ -4,19 +4,100 @@ html, body {
 	overflow: hidden;
 }
 
-#tabs {
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	height: 50px;
-	background: #000000;
-}
-
 #content {
 	position: absolute;
 	top: 0;
 	left: 0;
 	right: 0;
 	bottom: 50px;
+	overflow: hidden;
+}
+
+nav {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 50px;
+	box-shadow: inset 0 1px #000000, inset 0 2px #444444;
+	background: linear-gradient(to bottom, #2E2E2E, #151515 50%, #000000 50%);
+	text-align: center;
+	font: 10px helvetica, sans-serif;
+	overflow: hidden;
+}
+
+nav ul {
+	margin: 0;
+	padding: 0;
+}
+
+nav li {
+	margin: 0;
+	padding: 0;
+	display: inline-block;
+	position: relative;
+	width: 20%;
+	height: 50px;
+}
+
+nav li a {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	display: block;
+	text-decoration: none;
+}
+
+nav .highlight {
+	position: absolute;
+	top: 3px;
+	left: 2px;
+	right: 2px;
+	bottom: 2px;
+	border-radius: 2px;
+}
+
+nav li:target .highlight {
+	background: rgba(255, 255, 255, 0.15);
+}
+
+nav .icon {
+	display: inline-block;
+	margin: 1px 0;
+	width: 30px;
+	height: 30px;
+	filter: drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.3));
+}
+
+nav .icon div {
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(to bottom, #AAAAAA, #555555);
+	mask-size: contain;
+	-webkit-mask-size: contain;
+}
+
+nav li:target .icon {
+	filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.5));
+}
+
+nav li:target .icon div {
+	background: radial-gradient(
+		circle at 35px 75px,
+		#49CBF8 60%,
+		#3181DA 75%,
+		#77ABE6 75%,
+		#DBE7F8
+	);
+}
+
+nav .label {
+	display: block;
+	color: #999999;
+}
+
+nav li:target .label {
+	color: #FFFFFF
 }
