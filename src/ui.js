@@ -80,6 +80,7 @@ function setTab(id) {
 	container.className = id;
 	current.runner.start();
 	faviconLink.setAttribute('href', 'resources/' + id + '/favicon.png');
+	document.title = current.title + ' \u2014 Chance';
 	return true;
 }
 
