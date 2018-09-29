@@ -3,7 +3,11 @@ import Coins from './coins/coins.js';
 
 const nav = document.getElementById('tabs');
 const container = document.getElementById('content');
-const faviconLink = document.getElementById('favicon');
+const title = document.getElementById('title');
+
+const faviconLink = document.createElement('link');
+faviconLink.setAttribute('rel', 'icon');
+document.head.appendChild(faviconLink);
 
 class TabBar {
 	constructor() {
@@ -48,26 +52,27 @@ class TabBar {
 
 const tabs = new TabBar();
 
-tabs.add('dice', 'Dice', 'resources/dice/tab.png', new Dice());
-tabs.add('coins', 'Coins', 'resources/coins/tab.png', new Coins());
+tabs.add('dice', 'Dice', 'resources/dice/tab.png', {title: 'Dice', runner: new Dice()});
+tabs.add('coins', 'Coins', 'resources/coins/tab.png', {title: 'Coin Toss', runner: new Coins()});
 
 nav.appendChild(tabs.dom());
 
-let currentRunner = null;
+let current = null;
 function setTab(id) {
-	const tabRunner = tabs.find(id);
-	if (!tabRunner || tabRunner === currentRunner) {
+	const next = tabs.find(id);
+	if (!next || next === current) {
 		return false;
 	}
 	window.location.hash = 'tab-' + id;
-	if (currentRunner !== null) {
-		currentRunner.stop();
-		container.removeChild(currentRunner.dom());
+	if (current !== null) {
+		current.runner.stop();
+		container.removeChild(current.runner.dom());
 	}
-	currentRunner = tabRunner;
-	currentRunner.start();
-	container.appendChild(currentRunner.dom());
+	current = next;
+	title.innerText = current.title;
+	container.appendChild(current.runner.dom());
 	container.className = id;
+	current.runner.start();
 	faviconLink.setAttribute('href', 'resources/' + id + '/favicon.png');
 	return true;
 }
