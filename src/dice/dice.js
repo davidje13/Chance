@@ -68,12 +68,22 @@ export default class Dice {
 		);
 	}
 
+	title() {
+		return 'Dice';
+	}
+
+	info() {
+		return (
+			'Tap or shake to roll the dice'
+		);
+	}
+
 	start() {
 		let r = 0;
 		this.loop = setInterval(() => {
 			for (let i = 0; i < 12; ++ i) {
-				const x = (i % 3) * 120 + 120;
-				const y = Math.floor(i / 3) * 120 + 120;
+				const x = (i % 3) * 120 + 80;
+				const y = Math.floor(i / 3) * 120 + 160;
 				this.updateDie(this.die[i], {
 					x,
 					y,

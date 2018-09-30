@@ -7,6 +7,7 @@ import Answers from './answers/answers.js';
 const nav = document.getElementById('tabs');
 const container = document.getElementById('content');
 const title = document.getElementById('title');
+const info = document.getElementById('info');
 
 const faviconLink = document.createElement('link');
 faviconLink.setAttribute('rel', 'icon');
@@ -55,11 +56,11 @@ class TabBar {
 
 const tabs = new TabBar();
 
-tabs.add('dice', 'Dice', 'resources/dice/tab.png', {title: 'Dice', runner: new Dice()});
-tabs.add('coins', 'Coins', 'resources/coins/tab.png', {title: 'Coin Toss', runner: new Coins()});
-tabs.add('numbers', 'Numbers', 'resources/numbers/tab.png', {title: 'Numbers', runner: new Numbers()});
-tabs.add('contortion', 'Contortion', 'resources/contortion/tab.png', {title: 'Contortion', runner: new Contortion()});
-tabs.add('answers', 'Answers', 'resources/answers/tab.png', {title: 'Answers Ball', runner: new Answers()});
+tabs.add('dice', 'Dice', 'resources/dice/tab.png', {runner: new Dice()});
+tabs.add('coins', 'Coins', 'resources/coins/tab.png', {runner: new Coins()});
+tabs.add('numbers', 'Numbers', 'resources/numbers/tab.png', {runner: new Numbers()});
+tabs.add('contortion', 'Contortion', 'resources/contortion/tab.png', {runner: new Contortion()});
+tabs.add('answers', 'Answers', 'resources/answers/tab.png', {runner: new Answers()});
 
 nav.appendChild(tabs.dom());
 
@@ -75,12 +76,13 @@ function setTab(id) {
 		container.removeChild(current.runner.dom());
 	}
 	current = next;
-	title.innerText = current.title;
+	title.innerText = current.runner.title();
+	info.innerText = current.runner.info();
 	container.appendChild(current.runner.dom());
 	container.className = id;
 	current.runner.start();
 	faviconLink.setAttribute('href', 'resources/' + id + '/favicon.png');
-	document.title = current.title + ' \u2014 Chance';
+	document.title = current.runner.title() + ' \u2014 Chance';
 	return true;
 }
 

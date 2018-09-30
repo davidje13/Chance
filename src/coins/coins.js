@@ -3,6 +3,16 @@ export default class Coins {
 		this.inner = document.createElement('div');
 	}
 
+	title() {
+		return 'Coin Toss';
+	}
+
+	info() {
+		return (
+			'Tap or shake to flip the coin'
+		);
+	}
+
 	start() {
 	}
 
