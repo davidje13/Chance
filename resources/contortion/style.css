@@ -147,26 +147,25 @@
 	background-position: -100% -100%;
 }
 
-.contortion .needle {
+.contortion .shadow-hold {
+	opacity: 0.65;
+}
+
+.contortion .needle, .contortion .needle-shadow {
 	position: absolute;
 	top: 50%;
 	left: 50%;
 	width: 24px;
 	height: 196px;
 	margin: -98px -12px;
+}
+
+.contortion .needle {
 	background: 0 0 / contain url(needle.png);
-	transform: rotate(20deg);
 }
 
 .contortion .needle-shadow {
-	position: absolute;
-	top: calc(50% + 2px);
-	left: 50%;
-	width: 24px;
-	height: 196px;
-	margin: -98px -12px;
 	background: 0 0 / contain url(needle-shadow.png);
-	transform: rotate(20deg);
 }
 
 .contortion .pin {
