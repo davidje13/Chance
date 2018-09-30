@@ -37,28 +37,48 @@
 	top: 50%;
 	left: 50%;
 	border-radius: 100%;
+	background: #009933;
+	overflow: hidden;
+}
+
+.contortion .outline {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	border-radius: 100%;
 	border: 3px solid #FFFFFF;
 	box-sizing: border-box;
-	background: conic-gradient(
-		#BC2D00,
-		#BC2D00  6.25%, #FFCC00  6.25%,
-		#FFCC00 12.50%, #009933 12.50%,
-		#009933 18.75%, #003399 18.75%,
-		#003399 25.00%, #BC2D00 25.00%,
-		#BC2D00 31.25%, #FFCC00 31.25%,
-		#FFCC00 37.50%, #009933 37.50%,
-		#009933 43.75%, #003399 43.75%,
-		#003399 50.00%, #BC2D00 50.00%,
-		#BC2D00 56.25%, #FFCC00 56.25%,
-		#FFCC00 62.50%, #009933 62.50%,
-		#009933 68.75%, #003399 68.75%,
-		#003399 75.00%, #BC2D00 75.00%,
-		#BC2D00 81.25%, #FFCC00 81.25%,
-		#FFCC00 87.50%, #009933 87.50%,
-		#009933 93.75%, #003399 93.75%,
-		#003399
-	);
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.contortion .wedge,
+.contortion .wedge-dbl {
+	border-style: solid;
+	border-color: transparent;
+	border-width: 300px 124.264px 0 0;
+	margin: -300px 0;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 0;
+	height: 0;
+	transform-origin: bottom left;
+}
+
+.contortion .wedge-dbl {
+	border-width: 300px 300px 0 0;
+}
+
+.contortion .red {
+	border-top-color: #BC2D00;
+}
+
+.contortion .yellow {
+	border-top-color: #FFCC00;
+}
+
+.contortion .blue {
+	border-top-color: #003399;
 }
 
 .contortion .core {

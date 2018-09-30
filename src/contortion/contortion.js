@@ -9,29 +9,49 @@ function make(tag, className) {
 	return o;
 }
 
+function setSize(o, width, height = null) {
+	if (height === null) {
+		height = width;
+	}
+	o.style.width = `${width}px`;
+	o.style.height = `${height}px`;
+	o.style.marginLeft = `${-width / 2}px`;
+	o.style.marginTop = `${-height / 2}px`;
+}
+
 export default class Contortion {
 	constructor() {
 		this.inner = document.createElement('div');
 
 		this.board = make('div', 'board');
-		this.board.style.width = `${BOARD_WIDTH}px`;
-		this.board.style.height = `${BOARD_HEIGHT}px`;
-		this.board.style.marginLeft = `${-BOARD_WIDTH / 2}px`;
-		this.board.style.marginTop = `${-BOARD_HEIGHT / 2}px`;
+		setSize(this.board, BOARD_WIDTH, BOARD_HEIGHT);
 		const boardB1 = make('div', 'b1');
 		const boardB2 = make('div', 'b2');
 
 		const segments = make('div', 'segments');
-		segments.style.width = `${SPINNER_SIZE}px`;
-		segments.style.height = `${SPINNER_SIZE}px`;
-		segments.style.marginLeft = `${-SPINNER_SIZE / 2}px`;
-		segments.style.marginTop = `${-SPINNER_SIZE / 2}px`;
+		setSize(segments, SPINNER_SIZE);
+
+		const outline = make('div', 'outline');
+		setSize(outline, SPINNER_SIZE + 1);
+
+		for (let i = 0; i < 4; ++ i) {
+			const wedge = make('div', 'wedge-dbl yellow');
+			wedge.style.transform = `rotate(${i * 90}deg)`;
+			segments.appendChild(wedge);
+		}
+		for (let i = 0; i < 4; ++ i) {
+			const wedge = make('div', 'wedge red');
+			wedge.style.transform = `rotate(${i * 90}deg)`;
+			segments.appendChild(wedge);
+		}
+		for (let i = 0; i < 4; ++ i) {
+			const wedge = make('div', 'wedge blue');
+			wedge.style.transform = `rotate(${i * 90 + 67.5}deg)`;
+			segments.appendChild(wedge);
+		}
 
 		const segmentsCore = make('div', 'core');
-		segmentsCore.style.width = `${SPINNER_CORE_SIZE}px`;
-		segmentsCore.style.height = `${SPINNER_CORE_SIZE}px`;
-		segmentsCore.style.marginLeft = `${-SPINNER_CORE_SIZE / 2}px`;
-		segmentsCore.style.marginTop = `${-SPINNER_CORE_SIZE / 2}px`;
+		setSize(segmentsCore, SPINNER_CORE_SIZE);
 
 		const needle = make('div', 'needle');
 		const needleShadow = make('div', 'needle-shadow');
@@ -43,6 +63,7 @@ export default class Contortion {
 		this.board.appendChild(boardB1);
 		this.board.appendChild(boardB2);
 		this.board.appendChild(segments);
+		this.board.appendChild(outline);
 		this.board.appendChild(make('div', 'left-hand'));
 		this.board.appendChild(make('div', 'right-hand'));
 		this.board.appendChild(make('div', 'left-foot'));
