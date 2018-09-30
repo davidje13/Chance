@@ -1,3 +1,4 @@
+import TabBar from './TabBar.js';
 import Dice from './dice/dice.js';
 import Coins from './coins/coins.js';
 import Numbers from './numbers/numbers.js';
@@ -13,91 +14,43 @@ const faviconLink = document.createElement('link');
 faviconLink.setAttribute('rel', 'icon');
 document.head.appendChild(faviconLink);
 
-class TabBar {
-	constructor() {
-		this.ul = document.createElement('ul');
-		this.tabs = new Map();
-	}
-
-	add(id, label, iconUrl, data) {
-		const li = document.createElement('li');
-		li.setAttribute('id', 'tab-' + id);
-		const link = document.createElement('a');
-		link.setAttribute('href', '#tab-' + id);
-		const highlight = document.createElement('div');
-		highlight.className = 'highlight';
-		const iconHold = document.createElement('div');
-		iconHold.className = 'icon';
-		const icon = document.createElement('div');
-		icon.style.maskImage = 'url(' + iconUrl + ')';
-		icon.style.webkitMaskImage = 'url(' + iconUrl + ')';
-		const spanLabel = document.createElement('div');
-		spanLabel.className = 'label';
-		spanLabel.innerText = label;
-
-		link.appendChild(highlight);
-		iconHold.appendChild(icon);
-		highlight.appendChild(iconHold);
-		highlight.appendChild(spanLabel);
-		li.appendChild(link);
-
-		this.ul.appendChild(li);
-		this.tabs.set(id, data);
-	}
-
-	find(id) {
-		return this.tabs.get(id);
-	}
-
-	dom() {
-		return this.ul;
-	}
-}
-
 const tabs = new TabBar();
 
-tabs.add('dice', 'Dice', 'resources/dice/tab.png', {runner: new Dice()});
-tabs.add('coins', 'Coins', 'resources/coins/tab.png', {runner: new Coins()});
-tabs.add('numbers', 'Numbers', 'resources/numbers/tab.png', {runner: new Numbers()});
-tabs.add('contortion', 'Contortion', 'resources/contortion/tab.png', {runner: new Contortion()});
-tabs.add('answers', 'Answers', 'resources/answers/tab.png', {runner: new Answers()});
+tabs.addEventListener('leave', (tabs, id, {runner}) => {
+	runner.stop();
+	container.removeChild(runner.dom());
+});
 
-nav.appendChild(tabs.dom());
-
-let current = null;
-function setTab(id) {
-	const next = tabs.find(id);
-	if (!next || next === current) {
-		return false;
-	}
-	window.location.hash = 'tab-' + id;
-	if (current !== null) {
-		current.runner.stop();
-		container.removeChild(current.runner.dom());
-	}
-	current = next;
-	title.innerText = current.runner.title();
-	info.innerText = current.runner.info();
-	container.appendChild(current.runner.dom());
+tabs.addEventListener('enter', (tabs, id, {runner}) => {
+	title.innerText = runner.title();
+	info.innerText = runner.info();
 	container.className = id;
-	current.runner.start();
 	faviconLink.setAttribute('href', 'resources/' + id + '/favicon.png');
-	document.title = current.runner.title() + ' \u2014 Chance';
-	return true;
-}
+	document.title = runner.title() + ' \u2014 Chance';
+	container.appendChild(runner.dom());
+	runner.start();
+	window.location.hash = 'tab-' + id;
+});
 
 function setTabFromHash() {
 	const hashID = window.location.hash.substr(5);
-	return setTab(hashID);
+	return tabs.set(hashID);
 }
 
+function addTab(id, label, runner) {
+	tabs.add(id, label, `resources/${id}/tab.png`, {runner});
+}
+
+addTab('dice', 'Dice', new Dice());
+addTab('coins', 'Coins', new Coins());
+addTab('numbers', 'Numbers', new Numbers());
+addTab('contortion', 'Contortion', new Contortion());
+addTab('answers', 'Answers', new Answers());
+
+nav.appendChild(tabs.dom());
+
 if (!setTabFromHash()) {
-	setTab('dice');
+	tabs.set('dice');
 }
 
 window.addEventListener('hashchange', setTabFromHash);
-window.addEventListener('scroll', (e) => {
-	if (document.body.scrollTop > 0 || document.body.scrollLeft > 0) {
-		document.body.scrollTo(0, 0);
-	}
-});

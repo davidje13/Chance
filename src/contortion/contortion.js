@@ -4,7 +4,7 @@ const SPINNER_SIZE = 250;
 const SPINNER_CORE_SIZE = 160;
 
 function make(tag, className) {
-	const o = document.createElement('div');
+	const o = document.createElement(tag);
 	o.className = className;
 	return o;
 }
