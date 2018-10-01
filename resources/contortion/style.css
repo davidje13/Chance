@@ -165,6 +165,7 @@
 }
 
 .contortion .needle-shadow {
+	top: calc(50% + 1px);
 	background: 0 0 / contain url(needle-shadow.png);
 }
 

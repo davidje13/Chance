@@ -2,8 +2,7 @@ const BOARD_WIDTH = 310;
 const BOARD_HEIGHT = 310;
 const SPINNER_SIZE = 250;
 const SPINNER_CORE_SIZE = 160;
-const NEEDLES_PER_RAD = 60;
-const MAX_NEEDLES = 16;
+const NEEDLE_COUNT = 15;
 const FRAMES_PER_UPDATE = 1;
 const IMPULSE = 8 * Math.PI;
 
@@ -223,54 +222,31 @@ export default class Contortion {
 		this.needles = [];
 		this.lastAngle = null;
 
+		this.prepareNeedles();
 		this.animate = this.animate.bind(this);
 	}
 
-	addNeedle() {
-		const needle = make('div', 'needle');
-		const shadow = make('div', 'needle-shadow');
-		this.needles.push({needle, shadow});
-		this.needleHold.appendChild(needle);
-		this.shadowHold.appendChild(shadow);
-	}
-
-	removeNeedle() {
-		const dat = this.needles[this.needles.length - 1];
-		this.needleHold.removeChild(dat.needle);
-		this.shadowHold.removeChild(dat.shadow);
-		-- this.needles.length;
-	}
-
-	setNeedleCount(n) {
-		while (this.needles.length < n) {
-			this.addNeedle();
-		}
-		while (this.needles.length > n) {
-			this.removeNeedle();
+	prepareNeedles() {
+		const needleOpacity = Math.pow(1 / NEEDLE_COUNT, 0.9);
+		for (let i = 0; i < NEEDLE_COUNT; ++ i) {
+			const needle = make('div', 'needle');
+			const shadow = make('div', 'needle-shadow');
+			needle.style.opacity = needleOpacity;
+			shadow.style.opacity = needleOpacity;
+			this.needles.push({needle, shadow});
+			this.needleHold.appendChild(needle);
+			this.shadowHold.appendChild(shadow);
 		}
 	}
 
-	updateIndividualNeedle(index, angle, opacity) {
-		const {needle, shadow} = this.needles[index];
-		const transform = `rotate(${angle}rad)`;
-		needle.style.transform = transform;
-		shadow.style.transform = transform;
-		needle.style.opacity = opacity;
-		shadow.style.opacity = opacity;
-	}
-
-	updateNeedle(angle, trailingAngle) {
-		const ideal = Math.abs(trailingAngle) * NEEDLES_PER_RAD;
-		this.setNeedleCount(Math.min(Math.round(ideal) + 1, MAX_NEEDLES));
-
+	updateNeedle(primaryAngle, trailingAngle) {
 		const n = this.needles.length;
-		const opacity = Math.pow(1 / n, 0.8);
 		for (let i = 0; i < n; ++ i) {
-			this.updateIndividualNeedle(
-				i,
-				angle + ((i + 1) / n - 1) * trailingAngle,
-				opacity
-			);
+			const angle = primaryAngle + ((i + 1) / n - 1) * trailingAngle;
+			const {needle, shadow} = this.needles[i];
+			const transform = `rotate(${angle}rad)`;
+			needle.style.transform = transform;
+			shadow.style.transform = transform;
 		}
 	}
 
@@ -319,7 +295,7 @@ export default class Contortion {
 	spinTo(segment) {
 		const tm = performance.now();
 		const spins = 2 + Math.floor(Math.random() * 3);
-		const innerAngle = Math.random();
+		const innerAngle = Math.random() * 0.9 + 0.05;
 		const target = (((segment + 8) % 16) - 8 + innerAngle) * 0.125;
 		this.pointer.setTarget(tm * 0.001, Math.PI * (spins * 2 + target));
 	}
