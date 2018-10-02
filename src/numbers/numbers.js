@@ -1,5 +1,5 @@
 export default class Numbers {
-	constructor() {
+	constructor(randomSource) {
 		this.inner = document.createElement('div');
 	}
 

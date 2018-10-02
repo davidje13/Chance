@@ -1,5 +1,5 @@
 export default class Coins {
-	constructor() {
+	constructor(randomSource) {
 		this.inner = document.createElement('div');
 	}
 

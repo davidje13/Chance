@@ -16,7 +16,7 @@ function setSize(o, size) {
 }
 
 export default class Answers {
-	constructor() {
+	constructor(randomSource) {
 		this.inner = document.createElement('div');
 
 		const ball = make('div', 'ball');

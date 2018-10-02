@@ -1,4 +1,5 @@
 import TabBar from './TabBar.js';
+import RandomSource from './RandomSource.js';
 import Dice from './dice/dice.js';
 import Coins from './coins/coins.js';
 import Numbers from './numbers/numbers.js';
@@ -41,11 +42,13 @@ function addTab(id, label, runner) {
 	tabs.add(id, label, `resources/${id}/tab.png`, {runner});
 }
 
-addTab('dice', 'Dice', new Dice());
-addTab('coins', 'Coins', new Coins());
-addTab('numbers', 'Numbers', new Numbers());
-addTab('contortion', 'Contortion', new Contortion());
-addTab('answers', 'Answers', new Answers());
+const random = new RandomSource();
+
+addTab('dice', 'Dice', new Dice(random));
+addTab('coins', 'Coins', new Coins(random));
+addTab('numbers', 'Numbers', new Numbers(random));
+addTab('contortion', 'Contortion', new Contortion(random));
+addTab('answers', 'Answers', new Answers(random));
 
 nav.appendChild(tabs.dom());
 

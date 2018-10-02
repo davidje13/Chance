@@ -210,7 +210,9 @@ class Pointer {
 }
 
 export default class Contortion {
-	constructor() {
+	constructor(randomSource) {
+		this.randomSource = randomSource;
+
 		this.inner = document.createElement('div');
 
 		this.needleHold = make('div', 'needle-hold');
@@ -221,6 +223,10 @@ export default class Contortion {
 		this.pointer = new Pointer(new FrictionSimulator(0.1, Math.PI * 2.0));
 		this.needles = [];
 		this.lastAngle = null;
+		this.latest = [-1, -1, -1, -1];
+
+		this.skipCurrent = true;
+		this.autoSpin = true;
 
 		this.prepareNeedles();
 		this.animate = this.animate.bind(this);
@@ -277,7 +283,13 @@ export default class Contortion {
 		}
 		this.framesToNext = FRAMES_PER_UPDATE;
 
-		this.pointer.update(tm * 0.001);
+		if (this.pointer.velocity() != 0) {
+			this.pointer.update(tm * 0.001);
+
+			if (this.pointer.velocity() === 0) {
+				this.announceResult();
+			}
+		}
 
 		const pos = this.pointer.position();
 		if (pos > Math.PI) {
@@ -292,24 +304,54 @@ export default class Contortion {
 		this.nextFrame = requestAnimationFrame(this.animate);
 	}
 
+	announceResult() {
+		let segment = this.pointer.position() * 8 / Math.PI;
+		segment = Math.floor(((segment % 16) + 16) % 16);
+
+		this.latest[Math.floor(segment / 4)] = segment % 4;
+		if (this.autoSpin) {
+			clearTimeout(this.nextFlick);
+			this.nextFlick = setTimeout(() => {
+				this.spinTo(this.pickSegment());
+			}, 2000);
+		}
+	}
+
 	spinTo(segment) {
+		clearTimeout(this.nextFlick);
 		const tm = performance.now();
-		const spins = 2 + Math.floor(Math.random() * 3);
-		const innerAngle = Math.random() * 0.9 + 0.05;
+		const spins = 2 + this.randomSource.nextInt(3);
+		const innerAngle = this.randomSource.nextFloat() * 0.9 + 0.05;
 		const target = (((segment + 8) % 16) - 8 + innerAngle) * 0.125;
 		this.pointer.setTarget(tm * 0.001, Math.PI * (spins * 2 + target));
+	}
+
+	pickSegment() {
+		if (!this.skipCurrent) {
+			return this.randomSource.nextInt(16);
+		}
+		let limit = 16;
+		for (const v of this.latest) {
+			if (v !== -1) {
+				-- limit;
+			}
+		}
+		let rand = this.randomSource.nextInt(limit);
+		for (let i = 0; i < this.latest.length; ++ i) {
+			if (this.latest[i] !== -1 && rand >= i * 4 + this.latest[i]) {
+				++ rand;
+			}
+		}
+		return rand;
 	}
 
 	beginAnimate() {
 		this.framesToNext = 1;
 		this.pointer.reset(0);
 		this.animate(performance.now());
-
-		let n = 0;
-		this.nextFlick = setInterval(() => {
-			this.spinTo(n);
-			++ n;
-		}, 3000);
+		if (this.autoSpin) {
+			this.spinTo(this.pickSegment());
+		}
 	}
 
 	start() {
