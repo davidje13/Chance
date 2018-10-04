@@ -94,12 +94,7 @@ class ShapeSimulator {
 	}
 
 	randomise(randomSource, speed) {
-		this.vel = Quaternion.fromRotation({
-			x: randomSource.nextFloat() * 2 - 1,
-			y: randomSource.nextFloat() * 2 - 1,
-			z: randomSource.nextFloat() * 2 - 1,
-			angle: randomSource.nextFloat() * speed * 2 - speed,
-		});
+		this.vel = Quaternion.random(randomSource).multAngle(speed / Math.PI);
 	}
 
 	step() {

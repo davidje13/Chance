@@ -33,6 +33,23 @@ export default class Quaternion {
 		return this;
 	}
 
+	multAngle(angle) {
+		const l2 = (
+			this.data[0] * this.data[0] +
+			this.data[1] * this.data[1] +
+			this.data[2] * this.data[2]
+		);
+		if (!l2) {
+			return this;
+		}
+		this.data[3] = Math.cos(Math.acos(this.data[3]) * angle);
+		const m = Math.sqrt((1 - this.data[3] * this.data[3]) / l2);
+		this.data[0] *= m;
+		this.data[1] *= m;
+		this.data[2] *= m;
+		return this;
+	}
+
 	lengthSquared() {
 		let v = 0;
 		for(let i = 0; i < 4; ++ i) {
@@ -101,6 +118,21 @@ export default class Quaternion {
 
 	static identity() {
 		return Quaternion.of([0, 0, 0, 1]);
+	}
+
+	static random(randomSource) {
+		// Thanks, http://planning.cs.uiuc.edu/node198.html
+		const u1 = randomSource.nextFloat();
+		const u2 = randomSource.nextFloat() * Math.PI * 2;
+		const u3 = randomSource.nextFloat() * Math.PI * 2;
+		const sqrtIU1 = Math.sqrt(1 - u1);
+		const sqrtU1 = Math.sqrt(u1);
+		return Quaternion.of([
+			sqrtIU1 * Math.sin(u2),
+			sqrtIU1 * Math.cos(u2),
+			sqrtU1 * Math.sin(u3),
+			sqrtU1 * Math.cos(u3),
+		]);
 	}
 
 	static fromRotation({x, y, z, angle}) {
