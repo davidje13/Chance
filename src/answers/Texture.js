@@ -22,6 +22,7 @@ export default class Texture {
 			const img = new Image();
 			img.addEventListener('load', () => {
 				this.bind();
+				gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 				gl.texImage2D(this.type, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
 				accept(this);
 			});

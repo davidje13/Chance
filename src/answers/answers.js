@@ -2,6 +2,7 @@ import Program from './Program.js';
 import {VertexShader, FragmentShader} from './Shader.js';
 import {Texture2D} from './Texture.js';
 import Icosahedron from './Icosahedron.js';
+import ScreenQuad from './ScreenQuad.js';
 import {M4} from './Matrix.js';
 import Quaternion from './Quaternion.js';
 
@@ -154,6 +155,12 @@ export default class Answers {
 		]);
 
 		this.ico = new Icosahedron();
+		this.quad = new ScreenQuad({uv: {
+			left: 0,
+			right: 0.75,
+			top: 0,
+			bottom: 0.75,
+		}});
 
 		this.atlas = new Texture2D(gl, {
 			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
@@ -203,6 +210,19 @@ export default class Answers {
 			'tex': {size: 4, type: gl.FLOAT, stride: this.ico.stride * 4, offset: 3 * 4},
 		});
 		this.ico.render(gl);
+
+		this.quad.bind(gl);
+		this.coverProg.use({
+			'atlas': this.atlas.bind(0),
+		});
+		this.icosahedronProg.vertexAttribPointer({
+			'pos': {size: 2, type: gl.FLOAT, stride: this.quad.stride * 4, offset: 0 * 4},
+			'tex': {size: 2, type: gl.FLOAT, stride: this.quad.stride * 4, offset: 2 * 4},
+		});
+		gl.enable(gl.BLEND);
+		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+		this.quad.render(gl);
+		gl.disable(gl.BLEND);
 	}
 
 	title() {
