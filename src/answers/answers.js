@@ -1,14 +1,16 @@
-import Program from './Program.js';
-import {VertexShader, FragmentShader} from './Shader.js';
-import {Texture2D} from './Texture.js';
 import Icosahedron from './Icosahedron.js';
-import ScreenQuad from './ScreenQuad.js';
-import {M4} from './Matrix.js';
-import Quaternion from './Quaternion.js';
+import ShapeSimulator from './ShapeSimulator.js';
+import Answers3DRenderer from './Answers3DRenderer.js';
 
 const BALL_SIZE = 350;
 const HOLE_SIZE = 180;
 const CHAMFER_SIZE = 3;
+
+const LETTER_DEPTH = 0.03;
+const MAX_DEPTH = 2.5;
+const RAND_DEPTH = 2.4;
+const FLOAT_SPEED = -0.1;
+const PHYSICS_STEPS = 8;
 
 function make(tag, className) {
 	const o = document.createElement(tag);
@@ -23,206 +25,52 @@ function setSize(o, size) {
 	o.style.marginTop = `${-size / 2}px`;
 }
 
-const LETTER_DEPTH = 0.03;
+function buildBackground() {
+	const ball = make('div', 'ball');
+	setSize(ball, BALL_SIZE);
 
-const PROG_ICO_VERT = `
-	uniform mat4 projview;
-	attribute vec4 pos;
-	attribute vec4 tex;
-	varying highp vec2 t1;
-	varying highp vec2 t2;
-	varying lowp float dp;
-	void main() {
-		gl_Position = projview * pos;
-		dp = gl_Position.z;
-		t1 = tex.xy;
-		t2 = tex.zw;
-	}
-`;
+	const chamfer = make('div', 'chamfer');
+	setSize(chamfer, HOLE_SIZE + CHAMFER_SIZE * 2);
 
-const PROG_ICO_FRAG = `
-	uniform sampler2D atlas;
-	uniform sampler2D tiles;
-	varying highp vec2 t1;
-	varying highp vec2 t2;
-	varying lowp float dp;
-	void main() {
-		if(dp > 0.5) {
-			discard;
-		}
-		gl_FragColor = vec4(
-			mix(
-				texture2D(atlas, t1).xyz,
-				mix(
-					vec3(0.0, 0.3, 0.9),
-					vec3(0.0, 0.0, 0.0),
-					max(dp, 0.0) * 2.0
-				),
-				smoothstep(
-					max(dp - texture2D(tiles, t2).x * ${LETTER_DEPTH * 1.6}, 0.0),
-					0.0,
-					${LETTER_DEPTH}
-				)
-			),
-			1.0
-		);
-	}
-`;
+	const hole = make('div', 'hole');
+	setSize(hole, HOLE_SIZE);
 
-const PROG_COVER_VERT = `
-	attribute vec4 pos;
-	attribute vec2 tex;
-	varying lowp vec2 t;
-	void main() {
-		gl_Position = pos;
-		t = tex;
-	}
-`;
+	ball.appendChild(make('div', 'shine'));
+	ball.appendChild(chamfer);
+	ball.appendChild(hole);
 
-const PROG_COVER_FRAG = `
-	uniform sampler2D atlas;
-	varying lowp vec2 t;
-	void main() {
-		gl_FragColor = texture2D(atlas, t);
-	}
-`;
-
-class ShapeSimulator {
-	constructor() {
-		this.ang = Quaternion.identity();
-		this.vel = Quaternion.identity();
-		this.dep = -2;
-	}
-
-	randomise(randomSource, speed) {
-		this.vel = Quaternion.random(randomSource).multAngle(speed / Math.PI);
-	}
-
-	step() {
-		this.ang = this.ang.mult(this.vel);
-		this.vel.damp(0.05);
-	}
-
-	angle() {
-		return this.ang;
-	}
-
-	depth() {
-		return this.dep;
-	}
+	return ball;
 }
 
 export default class Answers {
 	constructor(randomSource) {
 		this.randomSource = randomSource;
 
+		this.simulator = new ShapeSimulator(
+			[
+				...new Icosahedron().points(),
+				...new Icosahedron({inset: 0.2, inflate: LETTER_DEPTH}).points(),
+			],
+			MAX_DEPTH
+		);
+
+		this.renderer = new Answers3DRenderer(
+			new Icosahedron(),
+			HOLE_SIZE
+		);
+
 		this.inner = document.createElement('div');
-
-		const ball = make('div', 'ball');
-		setSize(ball, BALL_SIZE);
-
-		const chamfer = make('div', 'chamfer');
-		setSize(chamfer, HOLE_SIZE + CHAMFER_SIZE * 2);
-
-		const hole = make('div', 'hole');
-		setSize(hole, HOLE_SIZE);
-
-		ball.appendChild(make('div', 'shine'));
-		ball.appendChild(chamfer);
-		ball.appendChild(hole);
-
-		this.simulator = new ShapeSimulator();
-
-		const ratio = window.devicePixelRatio || 1;
-		const canvas = make('canvas', 'render');
-		canvas.width = Math.round(HOLE_SIZE * ratio);
-		canvas.height = Math.round(HOLE_SIZE * ratio);
-		setSize(canvas, HOLE_SIZE);
-		const gl = canvas.getContext('webgl');
-
-		gl.clearColor(0, 0, 0, 0);
-		gl.cullFace(gl.BACK);
-		gl.enable(gl.CULL_FACE);
-
-		this.icosahedronProg = new Program(gl, [
-			new VertexShader(gl, PROG_ICO_VERT),
-			new FragmentShader(gl, PROG_ICO_FRAG),
-		]);
-
-		this.coverProg = new Program(gl, [
-			new VertexShader(gl, PROG_COVER_VERT),
-			new FragmentShader(gl, PROG_COVER_FRAG),
-		]);
-
-		this.ico = new Icosahedron();
-		this.quad = new ScreenQuad({uv: {
-			left: 0,
-			right: 0.75,
-			top: 0,
-			bottom: 0.75,
-		}});
-
-		this.atlas = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
-		this.atlas.setSolid(1, 1, 1, 1);
-		this.atlas.loadImage('resources/answers/atlas.png');
-
-		this.answers = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
-		this.answers.setSolid(0, 0, 0, 0);
-		this.answers.loadImage('resources/answers/MBA.png');
-
-		this.gl = gl;
-
-		ball.appendChild(canvas);
-
+		const ball = buildBackground();
+		ball.appendChild(this.renderer.dom());
 		this.inner.appendChild(ball);
 
+		this.allowClickShake = true;
+		this.latestGravity = -10;
+		this.simGravityChange = 0;
+
 		this.step = this.step.bind(this);
-	}
-
-	render() {
-		const gl = this.gl;
-		gl.clear(gl.COLOR_BUFFER_BIT);
-
-		const mProj = M4.perspective(0.65, 1, 1.0, 100.0);
-		const mView = M4.fromQuaternion(this.simulator.angle());
-
-		// depth range: 1--4
-		mView.translate(0, 0, this.simulator.depth() - this.ico.radius() - LETTER_DEPTH);
-
-		this.ico.bind(gl);
-		this.icosahedronProg.use({
-			'projview': mView.mult(mProj),
-			'atlas': this.atlas.bind(0),
-			'tiles': this.answers.bind(1),
-		});
-		this.icosahedronProg.vertexAttribPointer({
-			'pos': {size: 3, type: gl.FLOAT, stride: this.ico.stride * 4, offset: 0 * 4},
-			'tex': {size: 4, type: gl.FLOAT, stride: this.ico.stride * 4, offset: 3 * 4},
-		});
-		this.ico.render(gl);
-
-		this.quad.bind(gl);
-		this.coverProg.use({
-			'atlas': this.atlas.bind(0),
-		});
-		this.icosahedronProg.vertexAttribPointer({
-			'pos': {size: 2, type: gl.FLOAT, stride: this.quad.stride * 4, offset: 0 * 4},
-			'tex': {size: 2, type: gl.FLOAT, stride: this.quad.stride * 4, offset: 2 * 4},
-		});
-		gl.enable(gl.BLEND);
-		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-		this.quad.render(gl);
-		gl.disable(gl.BLEND);
+		this.motion = this.motion.bind(this);
+		this.click = this.click.bind(this);
 	}
 
 	title() {
@@ -236,19 +84,61 @@ export default class Answers {
 		);
 	}
 
-	step() {
-		this.simulator.step();
-		this.render();
+	motion(e) {
+		this.allowClickShake = false;
+		this.latestGravity = e.accelerationIncludingGravity.z;
+		this.simGravityChange = 0;
+
+		if (e.rotationRate) {
+			this.simulator.applyRotationImpulse({
+				x: -e.rotationRate.alpha * e.interval * Math.PI / 180,
+				y: -e.rotationRate.beta * e.interval * Math.PI / 180,
+				z: -e.rotationRate.gamma * e.interval * Math.PI / 180,
+			});
+		}
+	}
+
+	click() {
+		if (!this.allowClickShake) {
+			return;
+		}
+		this.latestGravity = 25;
+		this.simGravityChange = -20;
+	}
+
+	step(tm) {
+		const deltaTm = Math.min((tm - this.lastTm) * 0.001, 0.1);
+		this.latestGravity += this.simGravityChange * deltaTm;
+		this.latestGravity = Math.max(-10, Math.min(20, this.latestGravity));
+		this.simulator.setGravity(this.latestGravity * FLOAT_SPEED);
+		for (let r = 0; r < PHYSICS_STEPS; ++ r) {
+			this.simulator.step(deltaTm / PHYSICS_STEPS);
+		}
+		this.lastTm = tm;
+		if (this.simulator.depth() > RAND_DEPTH) {
+			this.simulator.randomise(this.randomSource);
+		}
+		this.renderer.render(
+			this.simulator.rotationMatrix(),
+			this.simulator.depth()
+		);
 		this.nextFrame = requestAnimationFrame(this.step);
 	}
 
 	start() {
-		this.simulator.randomise(this.randomSource, 0.5);
-		this.step();
+		const tm = performance.now();
+		this.lastTm = tm;
+		this.simulator.setDepth(MAX_DEPTH);
+		this.simulator.randomise(this.randomSource);
+		window.addEventListener('devicemotion', this.motion);
+		window.addEventListener('click', this.click);
+		this.step(tm);
 	}
 
 	stop() {
 		cancelAnimationFrame(this.nextFrame);
+		window.removeEventListener('devicemotion', this.motion);
+		window.removeEventListener('click', this.click);
 	}
 
 	dom() {

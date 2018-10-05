@@ -69,6 +69,20 @@ export class M4 {
 		return result;
 	}
 
+	apply(v) {
+		const d = this.data;
+		const x = v[0];
+		const y = v[1];
+		const z = v[2];
+		const w = v.length >= 4 ? v[3] : 1;
+		return [
+			x * d[0] + y * d[4] + z * d[8] + w * d[12],
+			x * d[1] + y * d[5] + z * d[9] + w * d[13],
+			x * d[2] + y * d[6] + z * d[10] + w * d[14],
+			x * d[3] + y * d[7] + z * d[11] + w * d[15],
+		];
+	}
+
 	transpose() {
 		for(let i = 0; i < 3; ++ i) {
 			for(let j = i + 1; j < 4; ++ j) {

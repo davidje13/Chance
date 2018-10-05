@@ -57,3 +57,17 @@ if (!setTabFromHash()) {
 }
 
 window.addEventListener('hashchange', setTabFromHash);
+
+// Make page app-like
+// (no scrolling or zooming, since Safari removed ability to do this via meta)
+// Thanks, https://stackoverflow.com/a/38573198/1180785
+window.addEventListener('touchmove', (e) => e.preventDefault(), {passive: false});
+
+let lastTouchEnd = 0;
+window.addEventListener('touchend', (e) => {
+	const now = Date.now();
+	if (now < lastTouchEnd + 300) {
+		e.preventDefault();
+	}
+	lastTouchEnd = now;
+}, {passive: false});

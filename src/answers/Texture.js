@@ -12,7 +12,17 @@ export default class Texture {
 	setSolid(r, g, b, a) {
 		const gl = this.gl;
 		this.bind();
-		gl.texImage2D(this.type, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, Uint8Array.from([r, g, b, a]));
+		gl.texImage2D(
+			this.type,
+			0,
+			gl.RGBA,
+			1,
+			1,
+			0,
+			gl.RGBA,
+			gl.UNSIGNED_BYTE,
+			Uint8Array.from([r, g, b, a])
+		);
 	}
 
 	loadImage(url, mipMap = false) {
