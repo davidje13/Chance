@@ -30,7 +30,10 @@ tabs.addEventListener('enter', (tabs, id, {runner}) => {
 	document.title = runner.title() + ' \u2014 Chance';
 	container.appendChild(runner.dom());
 	runner.start();
-	window.location.hash = 'tab-' + id;
+	// Do not change URL if landscape (else Safari covers content with URL bar)
+	if (window.orientation % 180 === 0) {
+		window.location.hash = 'tab-' + id;
+	}
 });
 
 function setTabFromHash() {
@@ -71,3 +74,19 @@ window.addEventListener('touchend', (e) => {
 	}
 	lastTouchEnd = now;
 }, {passive: false});
+
+window.addEventListener('orientationchange', () => {
+	if (window.orientation === 90) {
+		document.body.className = 'orient-90';
+	} else {
+		document.body.className = '';
+	}
+});
+
+// Lock portrait on devices which support it
+(
+	screen.lockOrientation ||
+	screen.mozLockOrientation ||
+	screen.msLockOrientation ||
+	(() => null)
+)('portrait');

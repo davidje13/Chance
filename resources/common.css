@@ -7,13 +7,43 @@ body {
 	overflow: hidden;
 }
 
+#holder1 {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	overflow: hidden;
+}
+
 @media screen and (orientation: landscape) {
-	body {
+	#holder2 {
 		/* disable landscape orientation */
 		width: 100vh;
 		height: 100vw;
 		transform-origin: 0 0;
 		transform: rotate(90deg) translateY(-100%);
+	}
+
+	body.orient-90 #holder2 {
+		transform-origin: 0 0;
+		transform: rotate(-90deg) translateX(-100%);
+	}
+}
+
+@media screen and (min-width: 600px) and (min-height: 600px) {
+	#holder2 {
+		width: 400px !important;
+		height: 600px !important;
+		margin-left: -200px;
+		margin-top: -300px;
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: none !important;
+		overflow: hidden;
+		border-radius: 2px;
+		box-shadow: 0 0 0 5px #000000, 0 10px 50px 10px rgba(0, 0, 0, 0.5);
 	}
 }
 
