@@ -24,7 +24,12 @@ export default class Pointer {
 	}
 
 	reset(position) {
-		this.pos = this.pos0 = position;
+		this.pos = position;
+		this.stop();
+	}
+
+	stop() {
+		this.pos0 = this.pos;
 		this.vel = 0;
 		this.impulse = 0;
 	}
@@ -41,6 +46,10 @@ export default class Pointer {
 			this.vel = this.fs.velocity(this.impulse, deltaTm);
 		}
 		return true;
+	}
+
+	predictFinalPosition(impulse) {
+		return this.pos + this.fs.finalPosition(impulse);
 	}
 
 	_setImpulse(tm, impulse) {

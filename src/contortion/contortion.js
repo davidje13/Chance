@@ -1,5 +1,7 @@
 import FrictionSimulator from './FrictionSimulator.js';
 import Pointer from './Pointer.js';
+import Momentum from './Momentum.js';
+import MouseDrag from './MouseDrag.js';
 
 const BOARD_WIDTH = 310;
 const BOARD_HEIGHT = 310;
@@ -7,9 +9,10 @@ const SPINNER_SIZE = 250;
 const SPINNER_CORE_SIZE = 160;
 const NEEDLE_COUNT = 15;
 const FRAMES_PER_UPDATE = 1;
-const IMPULSE = 8 * Math.PI;
 
 const DELAY_AUTO_RESPIN = 5000;
+const IMPULSE_WINDOW_MILLIS = 100;
+const MAX_IMPULSE = 10 * Math.PI;
 
 function make(tag, className) {
 	const o = document.createElement(tag);
@@ -25,6 +28,14 @@ function setSize(o, width, height = null) {
 	o.style.height = `${height}px`;
 	o.style.marginLeft = `${-width / 2}px`;
 	o.style.marginTop = `${-height / 2}px`;
+}
+
+function posMod(a, b) {
+	return ((a % b) + b) % b;
+}
+
+function smallestAngle(a) {
+	return posMod(a + Math.PI, Math.PI * 2) - Math.PI;
 }
 
 function makeBoard(needleHold, shadowHold) {
@@ -79,6 +90,9 @@ function makeBoard(needleHold, shadowHold) {
 export default class Contortion {
 	constructor(randomSource) {
 		this.randomSource = randomSource;
+		this.skipCurrent = true;
+		this.makeSpinsFair = true;
+		this.autoSpin = false;
 
 		this.inner = make('div', 'contortion');
 
@@ -92,13 +106,19 @@ export default class Contortion {
 		this.lastAngle = null;
 		this.latest = [-1, -1, -1, -1];
 
-		this.skipCurrent = true;
-		this.autoSpin = false;
 		this.nextSpin = 0;
+		this.mouseDrag = new MouseDrag(
+			this.mousemove.bind(this),
+			this.mouseup.bind(this),
+			this.angleFromEvent.bind(this)
+		);
+		this.dragMomentum = new Momentum(IMPULSE_WINDOW_MILLIS);
+		this.wasAutoSpin = false;
 
 		this.prepareNeedles();
 		this.animate = this.animate.bind(this);
-		this.click = this.click.bind(this);
+		this.spinRandomly = this.spinRandomly.bind(this);
+		this.mousedown = this.mousedown.bind(this);
 		this.dblclick = this.dblclick.bind(this);
 	}
 
@@ -175,41 +195,28 @@ export default class Contortion {
 		}
 
 		const pos = this.pointer.position();
+		let change = 0;
 		if (pos > Math.PI) {
-			this.pointer.shiftPosition(-Math.PI * 2);
-			this.lastAngle -= Math.PI * 2;
+			change = -Math.PI * 2;
 		} else if (pos < -Math.PI) {
-			this.pointer.shiftPosition(Math.PI * 2);
-			this.lastAngle += Math.PI * 2;
+			change = Math.PI * 2;
 		}
+		this.pointer.shiftPosition(change);
+		this.dragMomentum.shiftPosition(change);
+		this.lastAngle += change;
+
 		this.pointNeedle(this.pointer.position());
 
 		this.nextFrame = requestAnimationFrame(this.animate);
 	}
 
 	announceResult() {
-		let segment = this.pointer.position() * 8 / Math.PI;
-		segment = Math.floor(((segment % 16) + 16) % 16);
+		const segment = this.segmentForAngle(this.pointer.position());
 
 		this.latest[Math.floor(segment / 4)] = segment % 4;
 		if (this.autoSpin) {
-			clearTimeout(this.nextFlick);
-			this.nextSpin = Date.now() + DELAY_AUTO_RESPIN;
-			this.nextFlick = setTimeout(() => {
-				if (this.autoSpin) {
-					this.spinTo(this.pickSegment());
-				}
-			}, DELAY_AUTO_RESPIN);
+			this.spinRandomlyAfterDelay(DELAY_AUTO_RESPIN);
 		}
-	}
-
-	spinTo(segment) {
-		clearTimeout(this.nextFlick);
-		const tm = performance.now();
-		const spins = 2 + this.randomSource.nextInt(3);
-		const innerAngle = this.randomSource.nextFloat() * 0.9 + 0.05;
-		const target = (((segment + 8) % 16) - 8 + innerAngle) * 0.125;
-		this.pointer.setTarget(tm * 0.001, Math.PI * (spins * 2 + target));
 	}
 
 	pickSegment() {
@@ -231,34 +238,119 @@ export default class Contortion {
 		return rand;
 	}
 
-	click() {
+	segmentForAngle(angle) {
+		return Math.floor(posMod(angle * 8 / Math.PI, 16));
+	}
+
+	spinTo(angle) {
+		clearTimeout(this.nextFlick);
+		this.pointer.setTarget(performance.now() * 0.001, angle);
+	}
+
+	randomAngleWithinSegment(segment) {
+		const innerAngle = this.randomSource.nextFloat() * 0.9 + 0.05;
+		return (((segment + 8) % 16) - 8 + innerAngle) * 0.125 * Math.PI;
+	}
+
+	spinRandomly() {
+		const pos = this.pointer.position();
+		const spins = 2 + this.randomSource.nextInt(2);
+		const angle = this.randomAngleWithinSegment(this.pickSegment());
+		this.spinTo(Math.PI * 2 * spins + smallestAngle(angle - pos) + pos);
+	}
+
+	spinRandomlyAfterDelay(delay) {
+		clearTimeout(this.nextFlick);
+		this.nextSpin = Date.now() + delay;
+		this.nextFlick = setTimeout(this.spinRandomly, delay);
+	}
+
+	spinWithImpulse(impulse, fair) {
+		const raw = this.pointer.predictFinalPosition(impulse);
+		if (!fair) {
+			this.spinTo(raw);
+			return;
+		}
+
+		const pos = this.pointer.position();
+		const target = this.randomAngleWithinSegment(this.pickSegment());
+		let angle = smallestAngle(target - raw) + raw;
+		if (raw - pos > 0 && angle - pos < Math.PI * 0.5) {
+			angle += Math.PI * 2;
+		}
+		if (raw - pos < 0 && angle - pos > -Math.PI * 0.5) {
+			angle -= Math.PI * 2;
+		}
+		this.spinTo(angle);
+	}
+
+	startAutospin() {
+		this.autoSpin = true;
+		if (this.pointer.velocity() === 0) {
+			this.spinRandomly();
+		}
+	}
+
+	stopAutospin() {
+		this.autoSpin = false;
+		clearTimeout(this.nextFlick);
+	}
+
+	angleFromEvent(e) {
+		const bound = this.board.getBoundingClientRect();
+		return Math.atan2(
+			e.pageY - (bound.top + bound.bottom) / 2,
+			e.pageX - (bound.left + bound.right) / 2
+		);
+	}
+
+	mousedown(e) {
+		this.wasAutoSpin = this.autoSpin;
 		if (this.autoSpin) {
-			this.autoSpin = false;
-		} else {
-			this.spinTo(this.pickSegment());
+			this.stopAutospin();
+		}
+
+		this.dragMomentum.reset();
+		this.mouseDrag.begin(e);
+	}
+
+	mousemove(oldAngle, newAngle) {
+		this.pointer.stop();
+		this.pointer.shiftPosition(smallestAngle(newAngle - oldAngle));
+		this.dragMomentum.accumulate(this.pointer.position());
+	}
+
+	mouseup() {
+		const impulse = this.dragMomentum.momentum();
+
+		if (Math.abs(impulse) > Math.PI * 0.2) {
+			this.spinWithImpulse(
+				Math.max(-MAX_IMPULSE, Math.min(MAX_IMPULSE, impulse)),
+				this.makeSpinsFair
+			);
+		} else if (!this.wasAutoSpin) {
+			this.spinRandomly();
 		}
 	}
 
 	dblclick() {
-		this.autoSpin = true;
-		if (this.pointer.velocity() === 0) {
-			this.spinTo(this.pickSegment());
-		}
+		this.startAutospin();
 	}
 
 	start() {
-		this.inner.addEventListener('click', this.click);
+		this.inner.addEventListener('mousedown', this.mousedown);
 		this.inner.addEventListener('dblclick', this.dblclick);
 		this.framesToNext = 1;
 		this.animate(performance.now());
 		if (this.autoSpin) {
-			this.spinTo(this.pickSegment());
+			this.spinRandomly();
 		}
 	}
 
 	stop() {
-		this.inner.removeEventListener('click', this.click);
+		this.inner.removeEventListener('mousedown', this.mousedown);
 		this.inner.removeEventListener('dblclick', this.dblclick);
+		this.mouseDrag.abort();
 		cancelAnimationFrame(this.nextFrame);
 		clearTimeout(this.nextFlick);
 	}
