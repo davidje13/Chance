@@ -109,6 +109,7 @@ export default class Contortion {
 
 		this.nextSpin = 0;
 		this.mouseDrag = new MouseDrag(
+			this.mousedown.bind(this),
 			this.mousemove.bind(this),
 			this.mouseup.bind(this),
 			this.angleFromEvent.bind(this)
@@ -119,7 +120,6 @@ export default class Contortion {
 		this.prepareNeedles();
 		this.animate = this.animate.bind(this);
 		this.spinRandomly = this.spinRandomly.bind(this);
-		this.mousedown = this.mousedown.bind(this);
 		this.dblclick = this.dblclick.bind(this);
 
 		this.shake = new ShakeGesture(this.spinRandomly);
@@ -307,19 +307,20 @@ export default class Contortion {
 		);
 	}
 
-	mousedown(e) {
+	mousedown() {
 		this.wasAutoSpin = this.autoSpin;
 		if (this.autoSpin) {
 			this.stopAutospin();
 		}
 
 		this.dragMomentum.reset();
-		this.mouseDrag.begin(e);
 	}
 
 	mousemove(oldAngle, newAngle) {
-		this.pointer.stop();
-		this.pointer.shiftPosition(smallestAngle(newAngle - oldAngle));
+		if (newAngle !== oldAngle) {
+			this.pointer.stop();
+			this.pointer.shiftPosition(smallestAngle(newAngle - oldAngle));
+		}
 		this.dragMomentum.accumulate(this.pointer.position());
 	}
 
@@ -341,8 +342,8 @@ export default class Contortion {
 	}
 
 	start() {
-		this.inner.addEventListener('mousedown', this.mousedown);
 		this.inner.addEventListener('dblclick', this.dblclick);
+		this.mouseDrag.register(this.inner);
 		this.framesToNext = 1;
 		this.shake.start();
 		this.animate(performance.now());
@@ -352,8 +353,8 @@ export default class Contortion {
 	}
 
 	stop() {
-		this.inner.removeEventListener('mousedown', this.mousedown);
 		this.inner.removeEventListener('dblclick', this.dblclick);
+		this.mouseDrag.unregister(this.inner);
 		this.mouseDrag.abort();
 		this.shake.stop();
 		cancelAnimationFrame(this.nextFrame);

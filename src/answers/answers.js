@@ -92,7 +92,10 @@ export default class Answers {
 	}
 
 	motion(e) {
-		this.allowClickShake = false;
+		if (this.allowClickShake) {
+			this.allowClickShake = false;
+			this.inner.removeEventListener('click', this.click);
+		}
 		this.latestGravity = e.accelerationIncludingGravity.z;
 		this.simGravityChange = 0;
 

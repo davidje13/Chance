@@ -27,16 +27,22 @@ function updateOrientation() {
 export function lockPortrait() {
 	// No scrolling or zooming, since Safari removed ability to do this via meta
 	// Thanks, https://stackoverflow.com/a/38573198/1180785
-	window.addEventListener('touchmove', (e) => e.preventDefault(), {passive: false});
+	window.addEventListener('touchmove', (e) => e.preventDefault(), {passive: false, capture: true});
 
 	let lastTouchEnd = 0;
 	window.addEventListener('touchend', (e) => {
 		const now = Date.now();
-		if (now < lastTouchEnd + 300) {
+		if (now < lastTouchEnd + 500) {
 			e.preventDefault();
+			const event = new MouseEvent('dblclick');
+			let o = e.target;
+			while (o && o !== document.body) {
+				o.dispatchEvent(event);
+				o = o.parentNode;
+			}
 		}
 		lastTouchEnd = now;
-	}, {passive: false});
+	}, {passive: false, capture: true});
 
 	if (supportsOrientation()) {
 		window.addEventListener('orientationchange', updateOrientation);
