@@ -18,6 +18,7 @@ function makeShadow(dist, angle, blur, expand, c) {
 export default class Dice {
 	constructor(randomSource) {
 		this.inner = document.createElement('div');
+		this.inner.className = 'dice';
 
 		this.die = [];
 		for (let i = 0; i < 12; ++ i) {

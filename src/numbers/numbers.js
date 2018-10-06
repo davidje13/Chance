@@ -1,6 +1,7 @@
 export default class Numbers {
 	constructor(randomSource) {
 		this.inner = document.createElement('div');
+		this.inner.className = 'numbers';
 	}
 
 	title() {

@@ -1,4 +1,4 @@
-import ModelData from './ModelData.js';
+import ModelData from '../3d/ModelData.js';
 
 const GOLD_RTO = 1.61803398874989484820458683436563812;
 

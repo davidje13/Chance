@@ -1,4 +1,4 @@
-#content.answers {
+.answers {
 	background:
 		url(background-overlay.png),
 		radial-gradient(circle at 50% 48%, #DB0000 185px, #A90000 205px, #660000 240px, #110000 280px, #000000);

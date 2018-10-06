@@ -1,8 +1,8 @@
-import Program from './Program.js';
-import {VertexShader, FragmentShader} from './Shader.js';
-import {Texture2D} from './Texture.js';
-import ScreenQuad from './ScreenQuad.js';
-import {M4} from './Matrix.js';
+import Program from '../3d/Program.js';
+import {VertexShader, FragmentShader} from '../3d/Shader.js';
+import {Texture2D} from '../3d/Texture.js';
+import ScreenQuad from '../3d/ScreenQuad.js';
+import {M4} from '../math/Matrix.js';
 
 const LETTER_DEPTH = 0.03;
 

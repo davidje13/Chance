@@ -9,6 +9,8 @@ const NEEDLE_COUNT = 15;
 const FRAMES_PER_UPDATE = 1;
 const IMPULSE = 8 * Math.PI;
 
+const DELAY_AUTO_RESPIN = 5000;
+
 function make(tag, className) {
 	const o = document.createElement(tag);
 	o.className = className;
@@ -78,7 +80,7 @@ export default class Contortion {
 	constructor(randomSource) {
 		this.randomSource = randomSource;
 
-		this.inner = document.createElement('div');
+		this.inner = make('div', 'contortion');
 
 		this.needleHold = make('div', 'needle-hold');
 		this.shadowHold = make('div', 'shadow-hold');
@@ -91,10 +93,13 @@ export default class Contortion {
 		this.latest = [-1, -1, -1, -1];
 
 		this.skipCurrent = true;
-		this.autoSpin = true;
+		this.autoSpin = false;
+		this.nextSpin = 0;
 
 		this.prepareNeedles();
 		this.animate = this.animate.bind(this);
+		this.click = this.click.bind(this);
+		this.dblclick = this.dblclick.bind(this);
 	}
 
 	prepareNeedles() {
@@ -134,9 +139,22 @@ export default class Contortion {
 	}
 
 	info() {
+		if (!this.autoSpin) {
+			return (
+				'Flick or shake to spin\n' +
+				'Double-tap to spin repeatedly'
+			);
+		}
+		if (this.pointer.velocity() !== 0) {
+			return (
+				'Spinning automatically\u2026\n' +
+				'Tap to stop'
+			);
+		}
+		const seconds = Math.max(Math.ceil((this.nextSpin - Date.now()) / 1000), 1);
 		return (
-			'Flick or shake to spin\n' +
-			'Double-tap to spin repeatedly'
+			`Spinning automatically (${seconds})\n` +
+			'Tap to stop'
 		);
 	}
 
@@ -148,7 +166,7 @@ export default class Contortion {
 		}
 		this.framesToNext = FRAMES_PER_UPDATE;
 
-		if (this.pointer.velocity() != 0) {
+		if (this.pointer.velocity() !== 0) {
 			this.pointer.update(tm * 0.001);
 
 			if (this.pointer.velocity() === 0) {
@@ -176,9 +194,12 @@ export default class Contortion {
 		this.latest[Math.floor(segment / 4)] = segment % 4;
 		if (this.autoSpin) {
 			clearTimeout(this.nextFlick);
+			this.nextSpin = Date.now() + DELAY_AUTO_RESPIN;
 			this.nextFlick = setTimeout(() => {
-				this.spinTo(this.pickSegment());
-			}, 2000);
+				if (this.autoSpin) {
+					this.spinTo(this.pickSegment());
+				}
+			}, DELAY_AUTO_RESPIN);
 		}
 	}
 
@@ -210,20 +231,34 @@ export default class Contortion {
 		return rand;
 	}
 
-	beginAnimate() {
+	click() {
+		if (this.autoSpin) {
+			this.autoSpin = false;
+		} else {
+			this.spinTo(this.pickSegment());
+		}
+	}
+
+	dblclick() {
+		this.autoSpin = true;
+		if (this.pointer.velocity() === 0) {
+			this.spinTo(this.pickSegment());
+		}
+	}
+
+	start() {
+		this.inner.addEventListener('click', this.click);
+		this.inner.addEventListener('dblclick', this.dblclick);
 		this.framesToNext = 1;
-		this.pointer.reset(0);
 		this.animate(performance.now());
 		if (this.autoSpin) {
 			this.spinTo(this.pickSegment());
 		}
 	}
 
-	start() {
-		this.beginAnimate();
-	}
-
 	stop() {
+		this.inner.removeEventListener('click', this.click);
+		this.inner.removeEventListener('dblclick', this.dblclick);
 		cancelAnimationFrame(this.nextFrame);
 		clearTimeout(this.nextFlick);
 	}

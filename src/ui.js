@@ -1,3 +1,9 @@
+import {
+	addFavicon,
+	isPortrait,
+	supportsOrientation,
+	lockPortrait,
+} from './deviceManagement.js';
 import TabBar from './TabBar.js';
 import RandomSource from './RandomSource.js';
 import Dice from './dice/dice.js';
@@ -8,12 +14,37 @@ import Answers from './answers/answers.js';
 
 const nav = document.getElementById('tabs');
 const container = document.getElementById('content');
-const title = document.getElementById('title');
-const info = document.getElementById('info');
+const titleSpan = document.getElementById('title');
+const infoSpan = document.getElementById('info');
+const faviconLink = addFavicon();
 
-const faviconLink = document.createElement('link');
-faviconLink.setAttribute('rel', 'icon');
-document.head.appendChild(faviconLink);
+let currentTabRunner = null;
+let currentInfoLabel = '';
+let currentTitle = '';
+
+function updateLabels() {
+	if (currentTabRunner === null) {
+		return;
+	}
+	const title = currentTabRunner.title();
+	if (title !== currentTitle) {
+		titleSpan.innerText = title;
+		document.title = title + ' \u2014 Chance';
+		currentTitle = title;
+	}
+	const info = currentTabRunner.info();
+	if (info !== currentInfoLabel) {
+		infoSpan.innerText = info;
+		currentInfoLabel = info;
+	}
+}
+
+function frame() {
+	updateLabels();
+	window.requestAnimationFrame(frame);
+}
+
+frame();
 
 const tabs = new TabBar();
 
@@ -23,17 +54,15 @@ tabs.addEventListener('leave', (tabs, id, {runner}) => {
 });
 
 tabs.addEventListener('enter', (tabs, id, {runner}) => {
-	title.innerText = runner.title();
-	info.innerText = runner.info();
-	container.className = id;
 	faviconLink.setAttribute('href', 'resources/' + id + '/favicon.png');
-	document.title = runner.title() + ' \u2014 Chance';
 	container.appendChild(runner.dom());
 	runner.start();
 	// Do not change URL if landscape (else Safari covers content with URL bar)
-	if (window.orientation % 180 === 0) {
+	if (isPortrait()) {
 		window.location.hash = 'tab-' + id;
 	}
+	currentTabRunner = runner;
+	updateLabels();
 });
 
 function setTabFromHash() {
@@ -61,32 +90,4 @@ if (!setTabFromHash()) {
 
 window.addEventListener('hashchange', setTabFromHash);
 
-// Make page app-like
-// (no scrolling or zooming, since Safari removed ability to do this via meta)
-// Thanks, https://stackoverflow.com/a/38573198/1180785
-window.addEventListener('touchmove', (e) => e.preventDefault(), {passive: false});
-
-let lastTouchEnd = 0;
-window.addEventListener('touchend', (e) => {
-	const now = Date.now();
-	if (now < lastTouchEnd + 300) {
-		e.preventDefault();
-	}
-	lastTouchEnd = now;
-}, {passive: false});
-
-window.addEventListener('orientationchange', () => {
-	if (window.orientation === 90) {
-		document.body.className = 'orient-90';
-	} else {
-		document.body.className = '';
-	}
-});
-
-// Lock portrait on devices which support it
-(
-	screen.lockOrientation ||
-	screen.mozLockOrientation ||
-	screen.msLockOrientation ||
-	(() => null)
-)('portrait');
+lockPortrait();

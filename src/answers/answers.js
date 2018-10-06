@@ -59,7 +59,7 @@ export default class Answers {
 			HOLE_SIZE
 		);
 
-		this.inner = document.createElement('div');
+		this.inner = make('div', 'answers');
 		const ball = buildBackground();
 		ball.appendChild(this.renderer.dom());
 		this.inner.appendChild(ball);
@@ -78,10 +78,17 @@ export default class Answers {
 	}
 
 	info() {
-		return (
-			'Hold face-down and shake while\n' +
-			'asking or thinking of a question'
-		);
+		if (this.allowClickShake) {
+			return (
+				'Tap while asking or\n' +
+				'thinking of a question'
+			);
+		} else {
+			return (
+				'Hold face-down and shake while\n' +
+				'asking or thinking of a question'
+			);
+		}
 	}
 
 	motion(e) {
@@ -131,14 +138,14 @@ export default class Answers {
 		this.simulator.setDepth(MAX_DEPTH);
 		this.simulator.randomise(this.randomSource);
 		window.addEventListener('devicemotion', this.motion);
-		window.addEventListener('click', this.click);
+		this.inner.addEventListener('click', this.click);
 		this.step(tm);
 	}
 
 	stop() {
 		cancelAnimationFrame(this.nextFrame);
 		window.removeEventListener('devicemotion', this.motion);
-		window.removeEventListener('click', this.click);
+		this.inner.removeEventListener('click', this.click);
 	}
 
 	dom() {

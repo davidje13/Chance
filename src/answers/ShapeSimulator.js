@@ -1,5 +1,5 @@
-import {M4} from './Matrix.js';
-import Quaternion from './Quaternion.js';
+import {M4} from '../math/Matrix.js';
+import Quaternion from '../math/Quaternion.js';
 
 // Simulate a shape which is free to move in 1 dimension and free to rotate in
 // all directions, with a flat surface at z = 0

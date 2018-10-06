@@ -16,19 +16,20 @@ body {
 	overflow: hidden;
 }
 
-@media screen and (orientation: landscape) {
-	#holder2 {
-		/* disable landscape orientation */
-		width: 100vh;
-		height: 100vw;
-		transform-origin: 0 0;
-		transform: rotate(90deg) translateY(-100%);
-	}
+body.orient-270 #holder2 {
+	/* disable landscape orientation */
+	width: 100vh;
+	height: 100vw;
+	transform-origin: 0 0;
+	transform: rotate(90deg) translateY(-100%);
+}
 
-	body.orient-90 #holder2 {
-		transform-origin: 0 0;
-		transform: rotate(-90deg) translateX(-100%);
-	}
+body.orient-90 #holder2 {
+	transform-origin: 0 0;
+	transform: rotate(-90deg) translateX(-100%);
+}
+
+body.nonrotating #holder2 {
 }
 
 @media screen and (min-width: 600px) and (min-height: 600px) {
@@ -58,23 +59,41 @@ body {
 }
 
 h1 {
+	display: block;
+	position: absolute;
+	top: 20px;
+	left: 10px;
+	right: 10px;
+	text-align: center;
 	font: bold 36px Georgia, serif;
 	color: #FFFFFF;
-	margin: 20px 10px 10px;
-	text-align: center;
+	margin: 0;
+	padding: 0;
 	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.75);
+	z-index: 1;
 }
 
 #info {
-	font: 16px helvetica, sans-serif;
-	line-height: 1.3em;
-	color: #FFFFFF;
+	display: block;
 	position: absolute;
 	left: 0;
 	right: 0;
 	bottom: 20px;
 	text-align: center;
+	font: 16px helvetica, sans-serif;
+	line-height: 1.3em;
+	color: #FFFFFF;
 	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.75);
+	z-index: 1;
+}
+
+#content > div {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	overflow: hidden;
 }
 
 nav {
