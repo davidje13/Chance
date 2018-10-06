@@ -49,6 +49,9 @@ ul.tabbar .icon {
 	width: 30px;
 	height: 30px;
 	filter: drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.3));
+
+	/* force hardware rendering to avoid glitches in Safari */
+	-webkit-transform: translate3d(0, 0, 0);
 }
 
 ul.tabbar .icon div {
@@ -61,6 +64,9 @@ ul.tabbar .icon div {
 
 ul.tabbar li.selected .icon {
 	filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.5));
+
+	/* force hardware rendering to avoid glitches in Safari */
+	-webkit-transform: translate3d(0, 0, 0);
 }
 
 ul.tabbar li.selected .icon div {

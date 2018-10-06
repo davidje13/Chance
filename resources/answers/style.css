@@ -30,6 +30,9 @@
 	border-radius: 100%;
 	transform: rotate(-15deg);
 	filter: blur(5px);
+
+	/* force hardware rendering to avoid glitches in Safari */
+	-webkit-transform: translate3d(0, 0, 0);
 }
 
 .answers .chamfer {
@@ -39,6 +42,9 @@
 	border-radius: 100%;
 	background: linear-gradient(-15deg, #4B4B4B, #000000);
 	filter: blur(1px);
+
+	/* force hardware rendering to avoid glitches in Safari */
+	-webkit-transform: translate3d(0, 0, 0);
 }
 
 .answers .hole {
@@ -48,6 +54,9 @@
 	border-radius: 100%;
 	background: #000000;
 	filter: blur(1px);
+
+	/* force hardware rendering to avoid glitches in Safari */
+	-webkit-transform: translate3d(0, 0, 0);
 }
 
 .answers .render {
