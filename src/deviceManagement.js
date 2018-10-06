@@ -17,14 +17,11 @@ export function supportsOrientation() {
 	return window.orientation !== undefined;
 }
 
+const ORIENTATION_CLASSNAMES = ['', 'orient-90', '', 'orient-270'];
+
 function updateOrientation() {
-	if (window.orientation === 90) {
-		document.body.className = 'orient-90';
-	} else if (window.orientation === 270) {
-		document.body.className = 'orient-270';
-	} else {
-		document.body.className = '';
-	}
+	const angle = Math.round(((window.orientation + 360) % 360) / 90);
+	document.body.className = ORIENTATION_CLASSNAMES[angle];
 }
 
 export function lockPortrait() {

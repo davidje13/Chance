@@ -1,6 +1,7 @@
 html, body {
 	margin: 0;
 	padding: 0;
+	-webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -25,6 +26,8 @@ body.orient-270 #holder2 {
 }
 
 body.orient-90 #holder2 {
+	width: 100vh;
+	height: 100vw;
 	transform-origin: 0 0;
 	transform: rotate(-90deg) translateX(-100%);
 }
