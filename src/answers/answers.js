@@ -8,10 +8,12 @@ const HOLE_SIZE = 180;
 const CHAMFER_SIZE = 3;
 
 const LETTER_DEPTH = 0.03;
+const FOG_DEPTH = 0.02;
 const MAX_DEPTH = 2.5;
 const RAND_DEPTH = 2.4;
 const FLOAT_SPEED = -0.1;
 const PHYSICS_STEPS = 8;
+const DEPTH_LAYERS = 5;
 
 function make(tag, className) {
 	const o = document.createElement(tag);
@@ -55,10 +57,13 @@ export default class Answers {
 			MAX_DEPTH
 		);
 
-		this.renderer = new Answers3DRenderer(
-			new Icosahedron(),
-			HOLE_SIZE
-		);
+		const shapeLayers = [];
+		for (let i = 0; i < DEPTH_LAYERS; ++ i) {
+			shapeLayers.push(new Icosahedron({
+				inflate: i * LETTER_DEPTH / (DEPTH_LAYERS - 1),
+			}));
+		}
+		this.renderer = new Answers3DRenderer(shapeLayers, FOG_DEPTH, HOLE_SIZE);
 
 		this.inner = make('div', 'answers');
 		const ball = buildBackground();

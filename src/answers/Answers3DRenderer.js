@@ -4,8 +4,6 @@ import {Texture2D} from '../3d/Texture.js';
 import ScreenQuad from '../3d/ScreenQuad.js';
 import {M4} from '../math/Matrix.js';
 
-const LETTER_DEPTH = 0.03;
-
 function setSize(o, size) {
 	o.style.width = `${size}px`;
 	o.style.height = `${size}px`;
@@ -29,6 +27,9 @@ const PROG_SHAPE_VERT = `
 `;
 
 const PROG_SHAPE_FRAG = `
+	uniform lowp float bumpSteps;
+	uniform lowp float bumpPos;
+	uniform lowp float fogDepth;
 	uniform sampler2D atlas;
 	uniform sampler2D tiles;
 	varying highp vec2 t1;
@@ -46,14 +47,10 @@ const PROG_SHAPE_FRAG = `
 					vec3(0.0, 0.0, 0.0),
 					max(dp, 0.0) * 2.0
 				),
-				smoothstep(
-					max(dp - texture2D(tiles, t2).x * ${LETTER_DEPTH * 1.6}, 0.0),
-					0.0,
-					${LETTER_DEPTH}
-				)
+				smoothstep(dp, 0.0, fogDepth)
 			),
 			1.0
-		);
+		) * min(texture2D(tiles, t2).r * bumpSteps - bumpPos, 1.0);
 	}
 `;
 
@@ -76,7 +73,7 @@ const PROG_COVER_FRAG = `
 `;
 
 export default class Answers3DRenderer {
-	constructor(shape, size) {
+	constructor(shapeSlices, fogDepth, size) {
 		const ratio = window.devicePixelRatio || 1;
 		const canvas = document.createElement('canvas')
 		canvas.className = 'render';
@@ -96,6 +93,8 @@ export default class Answers3DRenderer {
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
+		gl.enable(gl.BLEND);
+		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
 		this.shapeProg = new Program(gl, [
 			new VertexShader(gl, PROG_SHAPE_VERT),
@@ -107,7 +106,8 @@ export default class Answers3DRenderer {
 			new FragmentShader(gl, PROG_COVER_FRAG),
 		]);
 
-		this.shape = shape;
+		this.shapeSlices = shapeSlices;
+		this.fogDepth = fogDepth;
 		this.quad = new ScreenQuad({uv: {
 			left: 0,
 			right: 0.75,
@@ -145,17 +145,25 @@ export default class Answers3DRenderer {
 		const mView = rotationMatrix;
 		mView.translate(0, 0, -depth - 2);
 
-		this.shape.bind(gl);
 		this.shapeProg.use({
 			'projview': mView.mult(mProj),
 			'atlas': this.atlas.bind(0),
 			'tiles': this.answers.bind(1),
+			'fogDepth': this.fogDepth,
+			'bumpSteps': Math.max(this.shapeSlices.length - 1, 0),
 		});
-		this.shapeProg.vertexAttribPointer({
-			'pos': {size: 3, type: gl.FLOAT, stride: this.shape.stride * 4, offset: 0 * 4},
-			'tex': {size: 4, type: gl.FLOAT, stride: this.shape.stride * 4, offset: 3 * 4},
-		});
-		this.shape.render(gl);
+		for (let i = 0; i < this.shapeSlices.length; ++ i) {
+			const slice = this.shapeSlices[i];
+			slice.bind(gl);
+			this.shapeProg.vertexAttribPointer({
+				'pos': {size: 3, type: gl.FLOAT, stride: slice.stride * 4, offset: 0 * 4},
+				'tex': {size: 4, type: gl.FLOAT, stride: slice.stride * 4, offset: 3 * 4},
+			});
+			this.shapeProg.uniform({
+				'bumpPos': i - 1,
+			});
+			slice.render(gl);
+		}
 
 		this.quad.bind(gl);
 		this.coverProg.use({
@@ -165,10 +173,7 @@ export default class Answers3DRenderer {
 			'pos': {size: 2, type: gl.FLOAT, stride: this.quad.stride * 4, offset: 0 * 4},
 			'tex': {size: 2, type: gl.FLOAT, stride: this.quad.stride * 4, offset: 2 * 4},
 		});
-		gl.enable(gl.BLEND);
-		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 		this.quad.render(gl);
-		gl.disable(gl.BLEND);
 	}
 
 	dom() {
