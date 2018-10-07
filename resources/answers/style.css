@@ -32,7 +32,7 @@
 	filter: blur(5px);
 
 	/* force hardware rendering to avoid glitches in Safari */
-	-webkit-transform: translate3d(0, 0, 0);
+	-webkit-transform: rotate3d(0, 0, 1, -15deg);
 }
 
 .answers .chamfer {
