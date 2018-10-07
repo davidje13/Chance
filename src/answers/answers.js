@@ -1,5 +1,6 @@
 import Icosahedron from './Icosahedron.js';
 import ShapeSimulator from './ShapeSimulator.js';
+import GravityAssist from './GravityAssist.js';
 import Answers3DRenderer from './Answers3DRenderer.js';
 
 const BALL_SIZE = 350;
@@ -65,8 +66,12 @@ export default class Answers {
 		this.inner.appendChild(ball);
 
 		this.allowClickShake = true;
+		this.allowVertical = true;
 		this.latestGravity = -10;
 		this.simGravityChange = 0;
+		this.gravAssist = this.allowVertical
+			? new GravityAssist(-3, 15)
+			: new GravityAssist(0, 15);
 
 		this.step = this.step.bind(this);
 		this.motion = this.motion.bind(this);
@@ -96,7 +101,7 @@ export default class Answers {
 			this.allowClickShake = false;
 			this.inner.removeEventListener('click', this.click);
 		}
-		this.latestGravity = e.accelerationIncludingGravity.z;
+		this.latestGravity = this.gravAssist.apply(e.accelerationIncludingGravity.z);
 		this.simGravityChange = 0;
 
 		if (e.rotationRate) {
