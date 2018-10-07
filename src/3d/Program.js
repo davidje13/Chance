@@ -85,7 +85,7 @@ export default class Program {
 			throw new Error('Failed to validate program: ' + gl.getProgramInfoLog(prog));
 		}
 		this.prog = prog;
-		this.params = {};
+		this.params = new Map();
 	}
 
 	program() {
@@ -93,17 +93,17 @@ export default class Program {
 	}
 
 	findUniform(name) {
-		return (
-			this.params[name] ||
-			(this.params[name] = this.gl.getUniformLocation(this.prog, name))
-		);
+		if (!this.params.has(name)) {
+			this.params.set(name, this.gl.getUniformLocation(this.prog, name));
+		}
+		return this.params.get(name);
 	}
 
 	findAttribute(name) {
-		return (
-			this.params[name] ||
-			(this.params[name] = this.gl.getAttribLocation(this.prog, name))
-		);
+		if (!this.params.has(name)) {
+			this.params.set(name, this.gl.getAttribLocation(this.prog, name));
+		}
+		return this.params.get(name);
 	}
 
 	uniform(map) {

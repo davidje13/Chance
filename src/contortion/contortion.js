@@ -3,13 +3,16 @@ import Pointer from './Pointer.js';
 import Momentum from './Momentum.js';
 import MouseDrag from './MouseDrag.js';
 import ShakeGesture from './ShakeGesture.js';
+import ContortionGlRenderer from './ContortionGlRenderer.js';
 
 const BOARD_WIDTH = 310;
 const BOARD_HEIGHT = 310;
 const SPINNER_SIZE = 250;
 const SPINNER_CORE_SIZE = 160;
-const NEEDLE_COUNT = 15;
-const FRAMES_PER_UPDATE = 1;
+const RENDER_SIZE = 256;
+const NEEDLE_COUNT = 64;
+const NEEDLE_SIZE = 210;
+const PIN_SIZE = 8;
 
 const DELAY_AUTO_RESPIN = 5000;
 const IMPULSE_WINDOW_MILLIS = 100;
@@ -39,7 +42,7 @@ function smallestAngle(a) {
 	return posMod(a + Math.PI, Math.PI * 2) - Math.PI;
 }
 
-function makeBoard(needleHold, shadowHold) {
+function makeBoard() {
 	const board = make('div', 'board');
 	setSize(board, BOARD_WIDTH, BOARD_HEIGHT);
 	const boardB1 = make('div', 'b1');
@@ -81,9 +84,6 @@ function makeBoard(needleHold, shadowHold) {
 	board.appendChild(make('div', 'right-hand'));
 	board.appendChild(make('div', 'left-foot'));
 	board.appendChild(make('div', 'right-foot'));
-	board.appendChild(shadowHold);
-	board.appendChild(needleHold);
-	board.appendChild(make('div', 'pin'));
 
 	return board;
 }
@@ -97,13 +97,7 @@ export default class Contortion {
 
 		this.inner = make('div', 'contortion');
 
-		this.needleHold = make('div', 'needle-hold');
-		this.shadowHold = make('div', 'shadow-hold');
-		this.board = makeBoard(this.needleHold, this.shadowHold);
-		this.inner.appendChild(this.board);
-
 		this.pointer = new Pointer(new FrictionSimulator(0.1, Math.PI * 2.0));
-		this.needles = [];
 		this.lastAngle = null;
 		this.latest = [-1, -1, -1, -1];
 
@@ -117,43 +111,29 @@ export default class Contortion {
 		this.dragMomentum = new Momentum(IMPULSE_WINDOW_MILLIS);
 		this.wasAutoSpin = false;
 
-		this.prepareNeedles();
-		this.animate = this.animate.bind(this);
+		this.renderer = new ContortionGlRenderer(
+			RENDER_SIZE,
+			NEEDLE_COUNT,
+			NEEDLE_SIZE,
+			PIN_SIZE
+		);
+		this.board = makeBoard();
+		this.board.appendChild(this.renderer.dom());
+		this.inner.appendChild(this.board);
+		this.pointNeedle(0);
+
+		this.step = this.step.bind(this);
 		this.spinRandomly = this.spinRandomly.bind(this);
 		this.dblclick = this.dblclick.bind(this);
 
 		this.shake = new ShakeGesture(this.spinRandomly);
 	}
 
-	prepareNeedles() {
-		const needleOpacity = Math.pow(1 / NEEDLE_COUNT, 0.9);
-		for (let i = 0; i < NEEDLE_COUNT; ++ i) {
-			const needle = make('div', 'needle');
-			const shadow = make('div', 'needle-shadow');
-			needle.style.opacity = needleOpacity;
-			shadow.style.opacity = needleOpacity;
-			this.needles.push({needle, shadow});
-			this.needleHold.appendChild(needle);
-			this.shadowHold.appendChild(shadow);
-		}
-	}
-
-	updateNeedle(primaryAngle, trailingAngle) {
-		const n = this.needles.length;
-		for (let i = 0; i < n; ++ i) {
-			const angle = primaryAngle + ((i + 1) / n - 1) * trailingAngle;
-			const {needle, shadow} = this.needles[i];
-			const transform = `rotate(${angle}rad)`;
-			needle.style.transform = transform;
-			shadow.style.transform = transform;
-		}
-	}
-
 	pointNeedle(angle) {
 		if (this.lastAngle === null) {
 			this.lastAngle = angle;
 		}
-		this.updateNeedle(angle, angle - this.lastAngle);
+		this.renderer.render(this.lastAngle, angle - this.lastAngle);
 		this.lastAngle = angle;
 	}
 
@@ -181,14 +161,7 @@ export default class Contortion {
 		);
 	}
 
-	animate(tm) {
-		-- this.framesToNext;
-		if (this.framesToNext > 0) {
-			this.nextFrame = requestAnimationFrame(this.animate);
-			return;
-		}
-		this.framesToNext = FRAMES_PER_UPDATE;
-
+	step(tm) {
 		if (this.pointer.velocity() !== 0) {
 			this.pointer.update(tm * 0.001);
 
@@ -197,7 +170,7 @@ export default class Contortion {
 			}
 		}
 
-		const pos = this.pointer.position();
+		let pos = this.pointer.position();
 		let change = 0;
 		if (pos > Math.PI) {
 			change = -Math.PI * 2;
@@ -207,10 +180,11 @@ export default class Contortion {
 		this.pointer.shiftPosition(change);
 		this.dragMomentum.shiftPosition(change);
 		this.lastAngle += change;
+		pos += change;
 
-		this.pointNeedle(this.pointer.position());
+		this.pointNeedle(pos);
 
-		this.nextFrame = requestAnimationFrame(this.animate);
+		this.nextFrame = requestAnimationFrame(this.step);
 	}
 
 	announceResult() {
@@ -344,9 +318,8 @@ export default class Contortion {
 	start() {
 		this.inner.addEventListener('dblclick', this.dblclick);
 		this.mouseDrag.register(this.inner);
-		this.framesToNext = 1;
 		this.shake.start();
-		this.animate(performance.now());
+		this.step(performance.now());
 		if (this.autoSpin) {
 			this.spinRandomly();
 		}

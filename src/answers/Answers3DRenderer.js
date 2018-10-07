@@ -83,7 +83,15 @@ export default class Answers3DRenderer {
 		canvas.width = Math.round(size * ratio);
 		canvas.height = Math.round(size * ratio);
 		setSize(canvas, size);
-		const gl = canvas.getContext('webgl');
+		const gl = canvas.getContext('webgl', {
+			alpha: true,
+			antialias: true,
+			depth: false,
+			powerPreference: 'low-power',
+			premultipliedAlpha: true,
+			preserveDrawingBuffer: false,
+			stencil: false,
+		});
 
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
@@ -113,7 +121,7 @@ export default class Answers3DRenderer {
 			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
 			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
 		});
-		this.atlas.setSolid(1, 1, 1, 1);
+		this.atlas.setSolid(1, 1, 1, 0);
 		this.atlas.loadImage('resources/answers/atlas.png');
 
 		this.answers = new Texture2D(gl, {
@@ -153,7 +161,7 @@ export default class Answers3DRenderer {
 		this.coverProg.use({
 			'atlas': this.atlas.bind(0),
 		});
-		this.shapeProg.vertexAttribPointer({
+		this.coverProg.vertexAttribPointer({
 			'pos': {size: 2, type: gl.FLOAT, stride: this.quad.stride * 4, offset: 0 * 4},
 			'tex': {size: 2, type: gl.FLOAT, stride: this.quad.stride * 4, offset: 2 * 4},
 		});
