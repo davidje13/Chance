@@ -141,7 +141,7 @@ export default class Answers3DRenderer {
 		const gl = this.gl;
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
-		const mProj = M4.perspective(0.65, 1, 1.0, 100.0);
+		const mProj = M4.perspective(0.6, 1, 1.0, 100.0);
 		const mView = rotationMatrix;
 		mView.translate(0, 0, -depth - 2);
 
