@@ -40,7 +40,17 @@ function updateLabels() {
 function start(tm) {
 	lastTime = tm;
 	currentTabRunner.start();
-	step(tm);
+	resize();
+}
+
+function resize() {
+	if (currentTabRunner !== null) {
+		const bounds = container.getBoundingClientRect();
+		currentTabRunner.resize(
+			bounds.right - bounds.left,
+			bounds.bottom - bounds.top
+		);
+	}
 }
 
 function step(tm) {
@@ -101,6 +111,7 @@ if (!setTabFromHash()) {
 	tabs.set('dice');
 }
 
+window.addEventListener('resize', resize);
 window.addEventListener('hashchange', setTabFromHash);
 
 lockPortrait();

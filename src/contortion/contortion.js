@@ -329,6 +329,9 @@ export default class Contortion {
 		clearTimeout(this.nextFlick);
 	}
 
+	resize(width, height) {
+	}
+
 	dom() {
 		return this.inner;
 	}

@@ -1,16 +1,10 @@
+import Canvas from '../3d/Canvas.js';
 import Program from '../3d/Program.js';
 import {VertexShader, FragmentShader} from '../3d/Shader.js';
 import {Texture2D} from '../3d/Texture.js';
 import Framebuffer from '../3d/Framebuffer.js';
 import ScreenQuad from '../3d/ScreenQuad.js';
 import QuadStack from './QuadStack.js';
-
-function setSize(o, size) {
-	o.style.width = `${size}px`;
-	o.style.height = `${size}px`;
-	o.style.marginLeft = `${-size / 2}px`;
-	o.style.marginTop = `${-size / 2}px`;
-}
 
 const PROG_NEEDLE_VERT = `
 	uniform lowp float startAngle;
@@ -60,13 +54,7 @@ export default class ContortionGlRenderer {
 		this.needleSize = needleSize * (2 / size);
 		this.shadowDist = -1 * (2 / size);
 
-		const ratio = window.devicePixelRatio || 1;
-		const canvas = document.createElement('canvas')
-		canvas.className = 'render';
-		canvas.width = Math.round(size * ratio);
-		canvas.height = Math.round(size * ratio);
-		setSize(canvas, size);
-		const gl = canvas.getContext('webgl', {
+		const canvas = new Canvas(size, size, {
 			alpha: true,
 			antialias: false,
 			depth: false,
@@ -75,6 +63,10 @@ export default class ContortionGlRenderer {
 			preserveDrawingBuffer: false,
 			stencil: false,
 		});
+		canvas.dom().className = 'render';
+		canvas.dom().style.marginLeft = `${-size / 2}px`;
+		canvas.dom().style.marginTop = `${-size / 2}px`;
+		const gl = canvas.gl;
 
 		gl.clearColor(0, 0, 0, 0);
 		gl.enable(gl.BLEND);
@@ -122,12 +114,11 @@ export default class ContortionGlRenderer {
 			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
 		});
 
-		this.bufferTex.set(canvas.width, canvas.height, {
+		this.bufferTex.set(canvas.width(), canvas.height(), {
 			type: Framebuffer.bestSupportedTargetPrecision(gl),
 		});
 		this.buffer = new Framebuffer(gl, this.bufferTex);
 
-		this.canvas = canvas;
 		this.gl = gl;
 
 		this.lastStartAngle = null;
@@ -211,6 +202,6 @@ export default class ContortionGlRenderer {
 	}
 
 	dom() {
-		return this.canvas;
+		return this.gl.canvas;
 	}
 };

@@ -23,6 +23,9 @@ export default class Coins {
 	stop() {
 	}
 
+	resize(width, height) {
+	}
+
 	dom() {
 		return this.inner;
 	}

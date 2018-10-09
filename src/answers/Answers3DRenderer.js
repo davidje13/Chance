@@ -1,15 +1,9 @@
+import Canvas from '../3d/Canvas.js';
 import Program from '../3d/Program.js';
 import {VertexShader, FragmentShader} from '../3d/Shader.js';
 import {Texture2D} from '../3d/Texture.js';
 import ScreenQuad from '../3d/ScreenQuad.js';
 import {M4} from '../math/Matrix.js';
-
-function setSize(o, size) {
-	o.style.width = `${size}px`;
-	o.style.height = `${size}px`;
-	o.style.marginLeft = `${-size / 2}px`;
-	o.style.marginTop = `${-size / 2}px`;
-}
 
 const PROG_SHAPE_VERT = `
 	uniform mat4 projview;
@@ -74,13 +68,7 @@ const PROG_COVER_FRAG = `
 
 export default class Answers3DRenderer {
 	constructor(shapeSlices, fogDepth, size) {
-		const ratio = window.devicePixelRatio || 1;
-		const canvas = document.createElement('canvas')
-		canvas.className = 'render';
-		canvas.width = Math.round(size * ratio);
-		canvas.height = Math.round(size * ratio);
-		setSize(canvas, size);
-		const gl = canvas.getContext('webgl', {
+		const canvas = new Canvas(size, size, {
 			alpha: true,
 			antialias: true,
 			depth: false,
@@ -89,6 +77,10 @@ export default class Answers3DRenderer {
 			preserveDrawingBuffer: false,
 			stencil: false,
 		});
+		canvas.dom().className = 'render';
+		canvas.dom().style.marginLeft = `${-size / 2}px`;
+		canvas.dom().style.marginTop = `${-size / 2}px`;
+		const gl = canvas.gl;
 
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
@@ -133,7 +125,6 @@ export default class Answers3DRenderer {
 		this.answers.setSolid(0, 0, 0, 0);
 		this.answers.loadImage('resources/answers/MBA.png');
 
-		this.canvas = canvas;
 		this.gl = gl;
 	}
 
@@ -177,6 +168,6 @@ export default class Answers3DRenderer {
 	}
 
 	dom() {
-		return this.canvas;
+		return this.gl.canvas;
 	}
 };

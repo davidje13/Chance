@@ -153,6 +153,9 @@ export default class Answers {
 		this.inner.removeEventListener('click', this.click);
 	}
 
+	resize(width, height) {
+	}
+
 	dom() {
 		return this.inner;
 	}

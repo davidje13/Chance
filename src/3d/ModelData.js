@@ -69,12 +69,15 @@ export default class ModelData {
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufTris);
 	}
 
-	render(gl, wireframe = false) {
+	render(gl, mode = null) {
 		if(!this.indexCount) {
 			return;
 		}
+		if (mode === null) {
+			mode = gl.TRIANGLES;
+		}
 		gl.drawElements(
-			wireframe ? gl.LINES : gl.TRIANGLES,
+			mode,
 			this.indexCount,
 			gl.UNSIGNED_SHORT,
 			0

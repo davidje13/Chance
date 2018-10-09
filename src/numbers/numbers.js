@@ -23,6 +23,9 @@ export default class Numbers {
 	stop() {
 	}
 
+	resize(width, height) {
+	}
+
 	dom() {
 		return this.inner;
 	}
