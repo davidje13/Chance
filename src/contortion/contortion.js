@@ -122,7 +122,6 @@ export default class Contortion {
 		this.inner.appendChild(this.board);
 		this.pointNeedle(0);
 
-		this.step = this.step.bind(this);
 		this.spinRandomly = this.spinRandomly.bind(this);
 		this.dblclick = this.dblclick.bind(this);
 
@@ -161,9 +160,9 @@ export default class Contortion {
 		);
 	}
 
-	step(tm) {
+	step(deltaTm, absTm) {
 		if (this.pointer.velocity() !== 0) {
-			this.pointer.update(tm * 0.001);
+			this.pointer.update(absTm);
 
 			if (this.pointer.velocity() === 0) {
 				this.announceResult();
@@ -183,8 +182,6 @@ export default class Contortion {
 		pos += change;
 
 		this.pointNeedle(pos);
-
-		this.nextFrame = requestAnimationFrame(this.step);
 	}
 
 	announceResult() {
@@ -319,7 +316,6 @@ export default class Contortion {
 		this.inner.addEventListener('dblclick', this.dblclick);
 		this.mouseDrag.register(this.inner);
 		this.shake.start();
-		this.step(performance.now());
 		if (this.autoSpin) {
 			this.spinRandomly();
 		}
@@ -330,7 +326,6 @@ export default class Contortion {
 		this.mouseDrag.unregister(this.inner);
 		this.mouseDrag.abort();
 		this.shake.stop();
-		cancelAnimationFrame(this.nextFrame);
 		clearTimeout(this.nextFlick);
 	}
 

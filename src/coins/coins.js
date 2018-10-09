@@ -14,6 +14,9 @@ export default class Coins {
 		);
 	}
 
+	step(deltaTm, absTm) {
+	}
+
 	start() {
 	}
 

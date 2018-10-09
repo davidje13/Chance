@@ -25,6 +25,8 @@ export default class Dice {
 			this.die.push(this.makeDie());
 			this.inner.appendChild(this.die[i]);
 		}
+
+		this.r = 0;
 	}
 
 	makeDie() {
@@ -79,27 +81,26 @@ export default class Dice {
 		);
 	}
 
+	step(deltaTm, absTm) {
+		for (let i = 0; i < 12; ++ i) {
+			const x = (i % 3) * 120 + 80;
+			const y = Math.floor(i / 3) * 120 + 160;
+			this.updateDie(this.die[i], {
+				x,
+				y,
+				r: this.r,
+				size: 80,
+				value: (i % 6) + 1,
+				theme: Math.floor(i / 6),
+			});
+		}
+		this.r += Math.PI * deltaTm * 0.1;
+	}
+
 	start() {
-		let r = 0;
-		this.loop = setInterval(() => {
-			for (let i = 0; i < 12; ++ i) {
-				const x = (i % 3) * 120 + 80;
-				const y = Math.floor(i / 3) * 120 + 160;
-				this.updateDie(this.die[i], {
-					x,
-					y,
-					r,
-					size: 80,
-					value: (i % 6) + 1,
-					theme: Math.floor(i / 6),
-				});
-			}
-			r += Math.PI * 0.002;
-		}, 200);
 	}
 
 	stop() {
-		clearInterval(this.loop);
 	}
 
 	dom() {

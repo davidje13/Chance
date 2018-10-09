@@ -78,7 +78,6 @@ export default class Answers {
 			? new GravityAssist(-3, 15)
 			: new GravityAssist(0, 15);
 
-		this.step = this.step.bind(this);
 		this.motion = this.motion.bind(this);
 		this.click = this.click.bind(this);
 	}
@@ -126,15 +125,13 @@ export default class Answers {
 		this.simGravityChange = -20;
 	}
 
-	step(tm) {
-		const deltaTm = Math.min((tm - this.lastTm) * 0.001, 0.1);
+	step(deltaTm, absTm) {
 		this.latestGravity += this.simGravityChange * deltaTm;
 		this.latestGravity = Math.max(-10, Math.min(20, this.latestGravity));
 		this.simulator.setGravity(this.latestGravity * FLOAT_SPEED);
 		for (let r = 0; r < PHYSICS_STEPS; ++ r) {
 			this.simulator.step(deltaTm / PHYSICS_STEPS);
 		}
-		this.lastTm = tm;
 		if (this.simulator.depth() > RAND_DEPTH) {
 			this.simulator.randomise(this.randomSource);
 		}
@@ -142,21 +139,16 @@ export default class Answers {
 			this.simulator.rotationMatrix(),
 			this.simulator.depth()
 		);
-		this.nextFrame = requestAnimationFrame(this.step);
 	}
 
 	start() {
-		const tm = performance.now();
-		this.lastTm = tm;
 		this.simulator.setDepth(MAX_DEPTH);
 		this.simulator.randomise(this.randomSource);
 		window.addEventListener('devicemotion', this.motion);
 		this.inner.addEventListener('click', this.click);
-		this.step(tm);
 	}
 
 	stop() {
-		cancelAnimationFrame(this.nextFrame);
 		window.removeEventListener('devicemotion', this.motion);
 		this.inner.removeEventListener('click', this.click);
 	}

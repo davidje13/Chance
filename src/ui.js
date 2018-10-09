@@ -21,11 +21,9 @@ const faviconLink = addFavicon();
 let currentTabRunner = null;
 let currentInfoLabel = '';
 let currentTitle = '';
+let lastTime = 0;
 
 function updateLabels() {
-	if (currentTabRunner === null) {
-		return;
-	}
 	const title = currentTabRunner.title();
 	if (title !== currentTitle) {
 		titleSpan.innerText = title;
@@ -39,12 +37,27 @@ function updateLabels() {
 	}
 }
 
-function frame() {
+function start(tm) {
+	lastTime = tm;
+	currentTabRunner.start();
+	step(tm);
+}
+
+function step(tm) {
+	const deltaMillis = (tm - lastTime);
+	currentTabRunner.step(Math.min(deltaMillis * 0.001, 0.1), tm * 0.001);
+	lastTime = tm;
 	updateLabels();
+}
+
+function frame(tm) {
+	if (currentTabRunner !== null) {
+		step(tm);
+	}
 	window.requestAnimationFrame(frame);
 }
 
-frame();
+frame(performance.now());
 
 const tabs = new TabBar();
 
@@ -56,13 +69,13 @@ tabs.addEventListener('leave', (tabs, id, {runner}) => {
 tabs.addEventListener('enter', (tabs, id, {runner}) => {
 	faviconLink.setAttribute('href', 'resources/' + id + '/favicon.png');
 	container.appendChild(runner.dom());
-	runner.start();
+	currentTabRunner = runner;
+	start(performance.now());
+
 	// Do not change URL if landscape (else Safari covers content with URL bar)
 	if (isPortrait()) {
 		window.location.hash = 'tab-' + id;
 	}
-	currentTabRunner = runner;
-	updateLabels();
 });
 
 function setTabFromHash() {
