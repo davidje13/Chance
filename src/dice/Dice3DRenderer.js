@@ -48,7 +48,7 @@ export default class Dice3DRenderer {
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
 
-		this.shape = new RoundedCube({rounding: 0.15, segmentation: 4});
+		this.shape = new RoundedCube({rounding: 0.15, segmentation: 8});
 
 		this.shapeProg = new Program(gl, [
 			new VertexShader(gl, PROG_SHAPE_VERT),
@@ -81,7 +81,7 @@ export default class Dice3DRenderer {
 				'projview': mView.mult(mProj),
 				'rot': mView.as3(),
 			});
-			this.shape.render(gl, gl.TRIANGLES);
+			this.shape.render(gl);
 		}
 	}
 
