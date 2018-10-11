@@ -36,8 +36,8 @@ const PROG_RAY_VERT = `
 	uniform lowp float near;
 	uniform lowp float far;
 	attribute vec2 pos;
-	varying lowp vec3 o;
-	varying lowp vec3 ray;
+	varying highp vec3 o;
+	varying highp vec3 ray;
 	void main() {
 		gl_Position = vec4(pos, 0.0, 1.0);
 		o = (invprojview * vec4(pos, -1.0, 1.0) * near).xyz;
@@ -47,8 +47,8 @@ const PROG_RAY_VERT = `
 
 const PROG_RAY_BALL_FRAG = `
 	uniform lowp mat3 rot;
-	varying lowp vec3 o;
-	varying lowp vec3 ray;
+	varying highp vec3 o;
+	varying highp vec3 ray;
 
 	const lowp vec3 light = vec3(0.0, 0.0, 1.0);
 	const lowp float ambient = 0.5;
@@ -63,8 +63,8 @@ const PROG_RAY_BALL_FRAG = `
 		if (root < 0.0 || lo > 0.0 || root > lo * lo) {
 			discard;
 		}
-		lowp float d = -lo - sqrt(root);
-		lowp vec3 pos = o + l * d;
+		highp float d = -lo - sqrt(root);
+		mediump vec3 pos = o + l * d;
 		lowp vec3 n;
 		if (pos.x > faceR) {
 			d = (faceR - o.x) / l.x;
