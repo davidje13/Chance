@@ -4,6 +4,7 @@ import {VertexShader, FragmentShader} from '../3d/Shader.js';
 import {Texture2D} from '../3d/Texture.js';
 import ScreenQuad from '../3d/ScreenQuad.js';
 import {M4} from '../math/Matrix.js';
+import Quaternion from '../math/Quaternion.js';
 
 import RoundedCube from './RoundedCube.js';
 
@@ -46,13 +47,15 @@ const PROG_RAY_VERT = `
 `;
 
 const PROG_RAY_BALL_FRAG = `
+	uniform lowp mat4 woodTransform;
+	uniform lowp float woodBanding;
 	uniform lowp mat3 rot;
 	varying highp vec3 o;
 	varying highp vec3 ray;
 
 	const lowp vec3 light = vec3(0.0, 0.0, 1.0);
 	const lowp float ambient = 0.5;
-	const lowp vec3 matt = vec3(0.95, 0.95, 0.95);
+//	const lowp vec3 matt = vec3(0.95, 0.95, 0.95);
 	const lowp float r = 1.37;
 	const lowp float faceR = 1.0;
 
@@ -91,8 +94,10 @@ const PROG_RAY_BALL_FRAG = `
 		if (dot(pos, pos) > r * r + 0.0001) {
 			discard;
 		}
+		lowp vec4 woodPos = woodTransform * vec4(pos, 1.0);
+		lowp float wood = mod(sqrt(dot(woodPos.xy, woodPos.xy)), woodBanding) / woodBanding;
 		n = rot * n;
-		gl_FragColor = vec4(matt * mix(ambient, 1.0, dot(n, light)), 1.0);
+		gl_FragColor = vec4(mix(vec3(0.88, 0.66, 0.48), vec3(0.86, 0.62, 0.44), wood) * mix(ambient, 1.0, dot(n, light)), 1.0);
 	}
 `;
 
@@ -127,6 +132,9 @@ export default class Dice3DRenderer {
 			new VertexShader(gl, PROG_RAY_VERT),
 			new FragmentShader(gl, PROG_RAY_BALL_FRAG),
 		]);
+
+		this.mWood = M4.fromQuaternion(Quaternion.fromRotation({x: 0.2, y: 0.8, z: 0.3, angle: 0.8}));
+		this.mWood.translate(1.0, -2.0, 0.5);
 	}
 
 	resize(width, height) {
@@ -180,6 +188,8 @@ export default class Dice3DRenderer {
 				'invprojview': mView.mult(mProj).invert(),
 				'near': near,
 				'far': far,
+				'woodTransform': this.mWood,
+				'woodBanding': 0.2,
 				'rot': mView.as3(),
 			});
 			this.screenQuad.render(gl);
