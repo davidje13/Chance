@@ -34,12 +34,19 @@ export default class Dice {
 			z: this.vel.z * deltaTm,
 		});
 		this.dice[0].rotation = rvel.mult(this.dice[0].rotation);
+		this.dice[1].rotation = rvel.mult(this.dice[1].rotation);
 	}
 
 	start() {
 		this.dice = [
 			{
-				position: {x: 0, y: 0, z: 0},
+				position: {x: 0, y: 2, z: 0},
+				style: {shape: 'cube'},
+				rotation: Quaternion.random(this.randomSource),
+			},
+			{
+				position: {x: 0, y: -2, z: 0},
+				style: {shape: 'rounded'},
 				rotation: Quaternion.random(this.randomSource),
 			}
 		];
