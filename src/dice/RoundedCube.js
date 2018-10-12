@@ -1,10 +1,12 @@
 import ModelData from '../3d/ModelData.js';
 
+const SIZEOF_FLOAT = 4;
+
 const step = 6;
 
 export default class RoundedCube extends ModelData {
 	constructor({rounding = 0, segmentation = 4} = {}) {
-		super(step);
+		super(step * SIZEOF_FLOAT);
 		this.r = rounding;
 		this.s = ((rounding === 0) ? 0 : segmentation) + 2;
 
@@ -184,5 +186,13 @@ export default class RoundedCube extends ModelData {
 		p += this.writeCornerVertices(vertices.subarray(p),  1,  1,  1);
 
 		this.setData(vertices);
+	}
+
+	boundVertices() {
+		return this.boundData(this.gl.FLOAT, 0 * SIZEOF_FLOAT, 3);
+	}
+
+	boundNormals() {
+		return this.boundData(this.gl.FLOAT, 3 * SIZEOF_FLOAT, 3);
 	}
 };

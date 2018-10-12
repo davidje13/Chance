@@ -83,4 +83,13 @@ export default class ModelData {
 			0
 		);
 	}
+
+	boundData(type, byteOffset, elementCount) {
+		return {
+			type,
+			offset: byteOffset,
+			size: elementCount,
+			stride: this.stride,
+		};
+	}
 };

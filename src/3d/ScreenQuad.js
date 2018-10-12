@@ -9,12 +9,14 @@ const POSITIONS = [
 ];
 const INDICES = Uint16Array.from([2, 1, 0, 1, 2, 3]);
 
+const SIZEOF_FLOAT = 4;
+
 export default class ScreenQuad extends ModelData {
 	constructor({
 		pos = {left: -1, right: 1, top: 1, bottom: -1},
 		uv = {left: 0, right: 1, top: 0, bottom: 1},
 	} = {}) {
-		super(step);
+		super(step * SIZEOF_FLOAT);
 		this.dirtyIndices = true;
 		this.dirtyVertices = true;
 		this.pos = pos;
@@ -43,5 +45,13 @@ export default class ScreenQuad extends ModelData {
 			vs[i * 4 + 3] = POSITIONS[i * 2 + 1] * (v1 - v0) + v0;
 		}
 		this.setData(vs);
+	}
+
+	boundVertices() {
+		return this.boundData(this.gl.FLOAT, 0 * SIZEOF_FLOAT, 2);
+	}
+
+	boundUvs() {
+		return this.boundData(this.gl.FLOAT, 2 * SIZEOF_FLOAT, 2);
 	}
 };

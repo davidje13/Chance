@@ -143,9 +143,7 @@ export default class ContortionGlRenderer {
 			'texSize': [0.25, 1.0],
 			'opacity': 1 / this.needleCount,
 			'atlas': this.atlas.bind(0),
-		});
-		this.needleProg.vertexAttribPointer({
-			'pos': {size: 3, type: gl.FLOAT},
+			'pos': this.needle.boundVertices(),
 		});
 		gl.blendFunc(gl.ONE, gl.ONE);
 		this.needle.render(gl);
@@ -155,10 +153,8 @@ export default class ContortionGlRenderer {
 		this.coverProg.use({
 			'opacity': 1,
 			'atlas': this.bufferTex.bind(0),
-		});
-		this.coverProg.vertexAttribPointer({
-			'pos': {size: 2, type: gl.FLOAT, stride: this.cover.stride * 4, offset: 0 * 4},
-			'tex': {size: 2, type: gl.FLOAT, stride: this.cover.stride * 4, offset: 2 * 4},
+			'pos': this.cover.boundVertices(),
+			'tex': this.cover.boundUvs(),
 		});
 		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 		this.cover.render(gl);
@@ -189,10 +185,8 @@ export default class ContortionGlRenderer {
 		this.coverProg.use({
 			'opacity': 1,
 			'atlas': this.atlas.bind(0),
-		});
-		this.coverProg.vertexAttribPointer({
-			'pos': {size: 2, type: gl.FLOAT, stride: this.pin.stride * 4, offset: 0 * 4},
-			'tex': {size: 2, type: gl.FLOAT, stride: this.pin.stride * 4, offset: 2 * 4},
+			'pos': this.pin.boundVertices(),
+			'tex': this.pin.boundUvs(),
 		});
 		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 		this.pin.render(gl);

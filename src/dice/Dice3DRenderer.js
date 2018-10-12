@@ -151,10 +151,9 @@ export default class Dice3DRenderer {
 		const mProj = M4.perspective(0.6, this.canvas.width() / this.canvas.height(), near, far);
 
 		this.shape.bind(gl);
-		this.shapeProg.use();
-		this.shapeProg.vertexAttribPointer({
-			'pos': {size: 3, type: gl.FLOAT, stride: this.shape.stride * 4, offset: 0 * 4},
-			'norm': {size: 3, type: gl.FLOAT, stride: this.shape.stride * 4, offset: 3 * 4},
+		this.shapeProg.use({
+			'pos': this.shape.boundVertices(),
+			'norm': this.shape.boundNormals(),
 		});
 
 		for (const die of dice) {
@@ -164,7 +163,7 @@ export default class Dice3DRenderer {
 			const mView = M4.fromQuaternion(die.rotation);
 			mView.translate(die.position.x, die.position.y, die.position.z - 10);
 
-			this.shapeProg.uniform({
+			this.shapeProg.input({
 				'projview': mView.mult(mProj),
 				'rot': mView.as3(),
 			});
@@ -172,9 +171,8 @@ export default class Dice3DRenderer {
 		}
 
 		this.screenQuad.bind(gl);
-		this.rayBallProg.use();
-		this.rayBallProg.vertexAttribPointer({
-			'pos': {size: 2, type: gl.FLOAT, stride: this.screenQuad.stride * 4},
+		this.rayBallProg.use({
+			'pos': this.screenQuad.boundVertices(),
 		});
 
 		for (const die of dice) {
@@ -184,7 +182,7 @@ export default class Dice3DRenderer {
 			const mView = M4.fromQuaternion(die.rotation);
 			mView.translate(die.position.x, die.position.y, die.position.z - 10);
 
-			this.rayBallProg.uniform({
+			this.rayBallProg.input({
 				'invprojview': mView.mult(mProj).invert(),
 				'near': near,
 				'far': far,

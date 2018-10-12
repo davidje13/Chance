@@ -1,6 +1,7 @@
 import ModelData from '../3d/ModelData.js';
 
 const GOLD_RTO = 1.61803398874989484820458683436563812;
+const SIZEOF_FLOAT = 4;
 
 const COMMON_TEX_COORDS = [
 	[0.892578125, 0.613281250],
@@ -113,7 +114,7 @@ function generateVertUvs(inset, inflate) {
 
 export default class Icosahedron extends ModelData {
 	constructor({inset = 0, inflate = 0} = {}) {
-		super(step);
+		super(step * SIZEOF_FLOAT);
 		this.dirtyIndices = true;
 		this.dirtyVertices = true;
 
@@ -138,5 +139,17 @@ export default class Icosahedron extends ModelData {
 			]);
 		}
 		return pts;
+	}
+
+	boundVertices() {
+		return this.boundData(this.gl.FLOAT, 0 * SIZEOF_FLOAT, 3);
+	}
+
+	boundUvs() {
+		return this.boundData(this.gl.FLOAT, 3 * SIZEOF_FLOAT, 2);
+	}
+
+	boundNetUvs() {
+		return this.boundData(this.gl.FLOAT, 5 * SIZEOF_FLOAT, 2);
 	}
 };

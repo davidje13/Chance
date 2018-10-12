@@ -9,9 +9,11 @@ const POSITIONS = [
 ];
 const INDICES = [2, 1, 0, 1, 2, 3];
 
+const SIZEOF_FLOAT = 4;
+
 export default class QuadStack extends ModelData {
 	constructor(count) {
-		super(step);
+		super(step * SIZEOF_FLOAT);
 		this.dirtyIndices = true;
 		this.dirtyVertices = true;
 		this.count = count;
@@ -44,5 +46,9 @@ export default class QuadStack extends ModelData {
 			}
 		}
 		this.setData(vs);
+	}
+
+	boundVertices() {
+		return this.boundData(this.gl.FLOAT, 0 * SIZEOF_FLOAT, 3);
 	}
 };

@@ -8,15 +8,16 @@ import {M4} from '../math/Matrix.js';
 const PROG_SHAPE_VERT = `
 	uniform mat4 projview;
 	attribute vec4 pos;
-	attribute vec4 tex;
-	varying highp vec2 t1;
-	varying highp vec2 t2;
+	attribute vec2 faceTex;
+	attribute vec2 netTex;
+	varying highp vec2 faceUV;
+	varying highp vec2 netUV;
 	varying lowp float dp;
 	void main() {
 		gl_Position = projview * pos;
 		dp = gl_Position.z;
-		t1 = tex.xy;
-		t2 = tex.zw;
+		faceUV = faceTex;
+		netUV = netTex;
 	}
 `;
 
@@ -26,8 +27,8 @@ const PROG_SHAPE_FRAG = `
 	uniform lowp float fogDepth;
 	uniform sampler2D atlas;
 	uniform sampler2D tiles;
-	varying highp vec2 t1;
-	varying highp vec2 t2;
+	varying highp vec2 faceUV;
+	varying highp vec2 netUV;
 	varying lowp float dp;
 	void main() {
 		if(dp > 0.5) {
@@ -35,7 +36,7 @@ const PROG_SHAPE_FRAG = `
 		}
 		gl_FragColor = vec4(
 			mix(
-				texture2D(atlas, t1).xyz,
+				texture2D(atlas, faceUV).xyz,
 				mix(
 					vec3(0.0, 0.3, 0.9),
 					vec3(0.0, 0.0, 0.0),
@@ -44,7 +45,7 @@ const PROG_SHAPE_FRAG = `
 				smoothstep(dp, 0.0, fogDepth)
 			),
 			1.0
-		) * min(texture2D(tiles, t2).r * bumpSteps - bumpPos, 1.0);
+		) * min(texture2D(tiles, netUV).r * bumpSteps - bumpPos, 1.0);
 	}
 `;
 
@@ -146,11 +147,10 @@ export default class Answers3DRenderer {
 		for (let i = 0; i < this.shapeSlices.length; ++ i) {
 			const slice = this.shapeSlices[i];
 			slice.bind(gl);
-			this.shapeProg.vertexAttribPointer({
-				'pos': {size: 3, type: gl.FLOAT, stride: slice.stride * 4, offset: 0 * 4},
-				'tex': {size: 4, type: gl.FLOAT, stride: slice.stride * 4, offset: 3 * 4},
-			});
-			this.shapeProg.uniform({
+			this.shapeProg.input({
+				'pos': slice.boundVertices(),
+				'faceTex': slice.boundUvs(),
+				'netTex': slice.boundNetUvs(),
 				'bumpPos': i - 1,
 			});
 			slice.render(gl);
@@ -159,10 +159,8 @@ export default class Answers3DRenderer {
 		this.quad.bind(gl);
 		this.coverProg.use({
 			'atlas': this.atlas.bind(0),
-		});
-		this.coverProg.vertexAttribPointer({
-			'pos': {size: 2, type: gl.FLOAT, stride: this.quad.stride * 4, offset: 0 * 4},
-			'tex': {size: 2, type: gl.FLOAT, stride: this.quad.stride * 4, offset: 2 * 4},
+			'pos': this.quad.boundVertices(),
+			'tex': this.quad.boundUvs(),
 		});
 		this.quad.render(gl);
 	}

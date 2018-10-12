@@ -106,31 +106,33 @@ export default class Program {
 		return this.params.get(name);
 	}
 
-	uniform(map) {
+	vertexAttribute(name, properties) {
+		const locn = this.findAttribute(name);
+		this.gl.enableVertexAttribArray(locn);
+		this.gl.vertexAttribPointer(
+			locn,
+			properties.size,
+			properties.type,
+			properties.normalized || false,
+			properties.stride || 0,
+			properties.offset || 0
+		);
+	}
+
+	input(inputs) {
 		const state = {texIndex: 0};
-		for(const attr of Object.keys(map)) {
-			setUniform(this.gl, this.findUniform(attr), map[attr], state);
+		for(const attr of Object.keys(inputs)) {
+			const value = inputs[attr];
+			if (value && typeof value === 'object' && value.type) {
+				this.vertexAttribute(attr, value);
+			} else {
+				setUniform(this.gl, this.findUniform(attr), value, state);
+			}
 		}
 	}
 
-	use(uniforms = {}) {
+	use(inputs = {}) {
 		this.gl.useProgram(this.prog);
-		this.uniform(uniforms);
-	}
-
-	vertexAttribPointer(map) {
-		for(const attr of Object.keys(map)) {
-			const locn = this.findAttribute(attr);
-			const v = map[attr];
-			this.gl.enableVertexAttribArray(locn);
-			this.gl.vertexAttribPointer(
-				locn,
-				v.size,
-				v.type,
-				v.normalized || false,
-				v.stride || 0,
-				v.offset || 0
-			);
-		}
+		this.input(inputs);
 	}
 };
