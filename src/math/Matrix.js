@@ -41,6 +41,15 @@ export class M4 {
 		return this;
 	}
 
+	scale(s) {
+		for(let i = 0; i < 4; ++ i) {
+			for(let j = 0; j < 3; ++ j) {
+				this.data[i*4+j] *= s;
+			}
+		}
+		return this;
+	}
+
 	translate(x, y, z) {
 		this.data[12] += x;
 		this.data[13] += y;

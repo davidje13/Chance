@@ -33,22 +33,34 @@ export default class Dice {
 			y: this.vel.y * deltaTm,
 			z: this.vel.z * deltaTm,
 		});
-		this.dice[0].rotation = rvel.mult(this.dice[0].rotation);
-		this.dice[1].rotation = rvel.mult(this.dice[1].rotation);
+		for (const die of this.dice) {
+			die.rotation = rvel.mult(die.rotation);
+		}
 	}
 
 	start() {
+		const rotation = Quaternion.random(this.randomSource);
 		this.dice = [
 			{
-				position: {x: 0, y: 2, z: 0},
-				style: {shape: 'cube'},
-				rotation: Quaternion.random(this.randomSource),
+				position: {x: -2, y: 2, z: 0},
+				style: {shape: 'cube', material: 'wood'},
+				rotation,
 			},
 			{
-				position: {x: 0, y: -2, z: 0},
-				style: {shape: 'rounded'},
-				rotation: Quaternion.random(this.randomSource),
-			}
+				position: {x: -2, y: -2, z: 0},
+				style: {shape: 'rounded', material: 'wood'},
+				rotation,
+			},
+			{
+				position: {x: 2, y: 2, z: 0},
+				style: {shape: 'cube', material: 'plastic'},
+				rotation,
+			},
+			{
+				position: {x: 2, y: -2, z: 0},
+				style: {shape: 'rounded', material: 'plastic'},
+				rotation,
+			},
 		];
 		this.vel = {
 			x: this.randomSource.nextFloat() - 0.5,

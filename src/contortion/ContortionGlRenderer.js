@@ -15,13 +15,12 @@ const PROG_NEEDLE_VERT = `
 	uniform lowp vec2 texSize;
 	attribute vec3 pos;
 	varying lowp vec2 t;
+	const lowp vec2 invY = vec2(1.0, -1.0);
 	void main() {
-		float angle = startAngle + pos.z * sweepAngle;
-		float sa = sin(angle);
-		float ca = cos(angle);
-		vec2 shape = (pos.xy - vec2(0.5, 0.5)) * size;
+		lowp float angle = startAngle + pos.z * sweepAngle;
+		lowp vec2 shape = (pos.xy - 0.5) * size;
 		gl_Position = vec4(
-			centre + ca * shape * vec2(1.0, -1.0) - sa * shape.yx,
+			centre + cos(angle) * shape * invY - sin(angle) * shape.yx,
 			0.0,
 			1.0
 		);

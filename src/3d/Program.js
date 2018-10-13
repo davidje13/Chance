@@ -46,6 +46,9 @@ function setUniformM(gl, locn, v) {
 }
 
 function setUniform(gl, locn, v, state) {
+	if(locn === null) {
+		return;
+	}
 	if(typeof v === 'number') {
 		setUniformF(gl, locn, v);
 	} else if(v.tex2D !== undefined) {
@@ -108,6 +111,10 @@ export default class Program {
 
 	vertexAttribute(name, properties) {
 		const locn = this.findAttribute(name);
+		if (locn === null) {
+			this.gl.disableVertexAttribArray(locn);
+			return;
+		}
 		this.gl.enableVertexAttribArray(locn);
 		this.gl.vertexAttribPointer(
 			locn,
@@ -123,7 +130,10 @@ export default class Program {
 		const state = {texIndex: 0};
 		for(const attr of Object.keys(inputs)) {
 			const value = inputs[attr];
-			if (value && typeof value === 'object' && value.type) {
+			if (value === null) {
+				continue;
+			}
+			if (typeof value === 'object' && value.type) {
 				this.vertexAttribute(attr, value);
 			} else {
 				setUniform(this.gl, this.findUniform(attr), value, state);

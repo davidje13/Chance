@@ -51,6 +51,10 @@ export default class ScreenQuad extends ModelData {
 		return this.boundData(this.gl.FLOAT, 0 * SIZEOF_FLOAT, 2);
 	}
 
+	boundNormals() {
+		return null;
+	}
+
 	boundUvs() {
 		return this.boundData(this.gl.FLOAT, 2 * SIZEOF_FLOAT, 2);
 	}

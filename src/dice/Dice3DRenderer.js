@@ -8,27 +8,70 @@ import Quaternion from '../math/Quaternion.js';
 
 import RoundedCube from './RoundedCube.js';
 
+const PROG_WOOD_FRAG_HELPER = `
+	uniform lowp mat4 textureVolumeTransform;
+
+	const lowp vec3 light = normalize(vec3(0.0, 0.5, 1.0));
+	const lowp vec3 shine = normalize(vec3(0.0, 2.0, 1.0));
+	const lowp vec3 ambientCol = vec3(0.5);
+	const lowp vec3 lightCol = vec3(0.5);
+	const lowp vec4 shineCol = vec4(1.0, 1.0, 0.95, 0.1);
+
+	lowp vec4 baseColAt(in lowp vec3 pos, in lowp vec3 norm, in lowp vec3 ref) {
+		lowp vec4 woodPos = textureVolumeTransform * vec4(pos, 1.0);
+		lowp float wood = fract(length(woodPos.xy));
+		lowp vec3 matt = mix(vec3(0.88, 0.66, 0.48), vec3(0.86, 0.62, 0.44), wood);
+		return vec4(
+			mix(
+				matt * (ambientCol + lightCol * dot(norm, light)),
+				shineCol.rgb,
+				smoothstep(0.49, 0.51, dot(ref, shine)) * shineCol.a
+			),
+			1.0
+		);
+	}
+`;
+
+const PROG_PLASTIC_FRAG_HELPER = `
+	const lowp vec3 light = normalize(vec3(0.0, 0.5, 1.0));
+	const lowp vec3 shine = normalize(vec3(0.0, 2.0, 1.0));
+	const lowp vec3 ambientCol = vec3(0.6);
+	const lowp vec3 lightCol = vec3(0.4);
+	const lowp vec4 shineCol = vec4(1.0, 1.0, 1.0, 0.4);
+	const lowp vec3 matt = vec3(0.95, 0.95, 0.97);
+
+	lowp vec4 baseColAt(in lowp vec3 pos, in lowp vec3 norm, in lowp vec3 ref) {
+		return vec4(
+			mix(
+				matt * (ambientCol + lightCol * dot(norm, light)),
+				shineCol.rgb,
+				smoothstep(0.49, 0.51, dot(ref, shine)) * shineCol.a
+			),
+			1.0
+		);
+	}
+`;
+
 const PROG_SHAPE_VERT = `
 	uniform lowp mat4 projview;
 	uniform lowp mat3 rot;
 	attribute vec4 pos;
 	attribute vec3 norm;
+	varying lowp vec3 p;
 	varying lowp vec3 n;
 	void main() {
-		gl_Position = projview * pos;
+		p = pos.xyz;
 		n = rot * norm;
+		gl_Position = projview * pos;
 	}
 `;
 
 const PROG_SHAPE_FRAG = `
+	varying lowp vec3 p;
 	varying lowp vec3 n;
 
-	const lowp vec3 light = vec3(0.0, 0.0, 1.0);
-	const lowp float ambient = 0.5;
-	const lowp vec3 matt = vec3(0.95, 0.95, 0.95);
-
 	void main() {
-		gl_FragColor = vec4(matt * mix(ambient, 1.0, dot(n, light)), 1.0);
+		gl_FragColor = baseColAt(p, n, vec3(0.0));
 	}
 `;
 
@@ -47,57 +90,44 @@ const PROG_RAY_VERT = `
 `;
 
 const PROG_RAY_BALL_FRAG = `
-	uniform lowp mat4 woodTransform;
-	uniform lowp float woodBanding;
 	uniform lowp mat3 rot;
 	varying highp vec3 o;
 	varying highp vec3 ray;
 
-	const lowp vec3 light = vec3(0.0, 0.0, 1.0);
-	const lowp float ambient = 0.5;
-//	const lowp vec3 matt = vec3(0.95, 0.95, 0.95);
-	const lowp float r = 1.37;
+	const lowp float r = 1.4;
 	const lowp float faceR = 1.0;
+	const lowp float rounding = 0.1;
+
+	const lowp float invFaceR = 0.5 / faceR;
+	const lowp float faceRad = sqrt(r * r - faceR * faceR);
 
 	void main() {
 		lowp vec3 l = normalize(ray);
-		lowp float lo = dot(l, o);
+		lowp float lo = -dot(l, o);
 		lowp float root = lo * lo + r * r - dot(o, o);
-		if (root < 0.0 || lo > 0.0 || root > lo * lo) {
+		if (root < 0.0 || lo < 0.0 || root > lo * lo) {
 			discard;
 		}
-		highp float d = -lo - sqrt(root);
+		root = sqrt(root);
+		highp float d = lo - root;
 		mediump vec3 pos = o + l * d;
-		lowp vec3 n;
-		if (pos.x > faceR) {
-			d = (faceR - o.x) / l.x;
-			n = vec3(1.0, 0.0, 0.0);
-		} else if (pos.y > faceR) {
-			d = (faceR - o.y) / l.y;
-			n = vec3(0.0, 1.0, 0.0);
-		} else if (pos.z > faceR) {
-			d = (faceR - o.z) / l.z;
-			n = vec3(0.0, 0.0, 1.0);
-		} else if (pos.x < -faceR) {
-			d = (-faceR - o.x) / l.x;
-			n = vec3(-1.0, 0.0, 0.0);
-		} else if (pos.y < -faceR) {
-			d = (-faceR - o.y) / l.y;
-			n = vec3(0.0, -1.0, 0.0);
-		} else if (pos.z < -faceR) {
-			d = (-faceR - o.z) / l.z;
-			n = vec3(0.0, 0.0, -1.0);
+		lowp vec3 n = sign(floor(pos * invFaceR + 0.5));
+		if (dot(n, n) > 0.0) {
+			lowp float ln = dot(l, n);
+			d = (faceR - dot(o, n)) / ln;
+			if (ln >= 0.0 || d > lo + root) {
+				discard;
+			}
+			pos = o + l * d;
+			n = normalize(mix(
+				n,
+				pos,
+				smoothstep(1.0 - rounding, 1.0, length(pos - n * faceR) / faceRad)
+			));
 		} else {
 			n = pos / r;
 		}
-		pos = o + l * d;
-		if (dot(pos, pos) > r * r + 0.0001) {
-			discard;
-		}
-		lowp vec4 woodPos = woodTransform * vec4(pos, 1.0);
-		lowp float wood = mod(sqrt(dot(woodPos.xy, woodPos.xy)), woodBanding) / woodBanding;
-		n = rot * n;
-		gl_FragColor = vec4(mix(vec3(0.88, 0.66, 0.48), vec3(0.86, 0.62, 0.44), wood) * mix(ambient, 1.0, dot(n, light)), 1.0);
+		gl_FragColor = baseColAt(pos, rot * n, rot * reflect(l, n));
 	}
 `;
 
@@ -120,21 +150,39 @@ export default class Dice3DRenderer {
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
 
-		this.shape = new RoundedCube({rounding: 0.15, segmentation: 8});
-		this.screenQuad = new ScreenQuad();
+		this.roundedCube = new RoundedCube({rounding: 0.15, segmentation: 8});
+		this.raytraceQuad = new ScreenQuad();
 
-		this.shapeProg = new Program(gl, [
+		this.programs = new Map();
+
+		this.programs.set('cube wood', new Program(gl, [
 			new VertexShader(gl, PROG_SHAPE_VERT),
-			new FragmentShader(gl, PROG_SHAPE_FRAG),
-		]);
+			new FragmentShader(gl, PROG_WOOD_FRAG_HELPER + PROG_SHAPE_FRAG),
+		]));
 
-		this.rayBallProg = new Program(gl, [
+		this.programs.set('rounded wood', new Program(gl, [
 			new VertexShader(gl, PROG_RAY_VERT),
-			new FragmentShader(gl, PROG_RAY_BALL_FRAG),
-		]);
+			new FragmentShader(gl, PROG_WOOD_FRAG_HELPER + PROG_RAY_BALL_FRAG),
+		]));
 
-		this.mWood = M4.fromQuaternion(Quaternion.fromRotation({x: 0.2, y: 0.8, z: 0.3, angle: 0.8}));
-		this.mWood.translate(1.0, -2.0, 0.5);
+		this.programs.set('cube plastic', new Program(gl, [
+			new VertexShader(gl, PROG_SHAPE_VERT),
+			new FragmentShader(gl, PROG_PLASTIC_FRAG_HELPER + PROG_SHAPE_FRAG),
+		]));
+
+		this.programs.set('rounded plastic', new Program(gl, [
+			new VertexShader(gl, PROG_RAY_VERT),
+			new FragmentShader(gl, PROG_PLASTIC_FRAG_HELPER + PROG_RAY_BALL_FRAG),
+		]));
+
+		this.texVolumeTransform = M4.fromQuaternion(Quaternion.fromRotation({
+			x: 0.2,
+			y: 0.8,
+			z: 0.3,
+			angle: 0.8,
+		}));
+		this.texVolumeTransform.translate(1.0, -2.0, 0.5);
+		this.texVolumeTransform.scale(5.0);
 	}
 
 	resize(width, height) {
@@ -150,47 +198,26 @@ export default class Dice3DRenderer {
 
 		const mProj = M4.perspective(0.6, this.canvas.width() / this.canvas.height(), near, far);
 
-		this.shape.bind(gl);
-		this.shapeProg.use({
-			'pos': this.shape.boundVertices(),
-			'norm': this.shape.boundNormals(),
-		});
-
 		for (const die of dice) {
-			if (die.style.shape !== 'cube') {
-				continue;
-			}
 			const mView = M4.fromQuaternion(die.rotation);
 			mView.translate(die.position.x, die.position.y, die.position.z - 10);
+			const mProjView = mView.mult(mProj);
 
-			this.shapeProg.input({
-				'projview': mView.mult(mProj),
+			const prog = this.programs.get(die.style.shape + ' ' + die.style.material);
+			const shape = (die.style.shape === 'cube') ? this.roundedCube : this.raytraceQuad;
+
+			shape.bind(gl);
+			prog.use({
+				'textureVolumeTransform': this.texVolumeTransform,
+				'projview': mProjView,
+				'invprojview': mProjView.invert(),
 				'rot': mView.as3(),
-			});
-			this.shape.render(gl);
-		}
-
-		this.screenQuad.bind(gl);
-		this.rayBallProg.use({
-			'pos': this.screenQuad.boundVertices(),
-		});
-
-		for (const die of dice) {
-			if (die.style.shape !== 'rounded') {
-				continue;
-			}
-			const mView = M4.fromQuaternion(die.rotation);
-			mView.translate(die.position.x, die.position.y, die.position.z - 10);
-
-			this.rayBallProg.input({
-				'invprojview': mView.mult(mProj).invert(),
+				'pos': shape.boundVertices(),
+				'norm': shape.boundNormals(),
 				'near': near,
 				'far': far,
-				'woodTransform': this.mWood,
-				'woodBanding': 0.2,
-				'rot': mView.as3(),
 			});
-			this.screenQuad.render(gl);
+			shape.render(gl);
 		}
 	}
 

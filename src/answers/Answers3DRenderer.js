@@ -30,6 +30,8 @@ const PROG_SHAPE_FRAG = `
 	varying highp vec2 faceUV;
 	varying highp vec2 netUV;
 	varying lowp float dp;
+	const lowp vec3 fog = vec3(0.0, 0.3, 0.9);
+	const lowp vec3 abyss = vec3(0.0);
 	void main() {
 		if(dp > 0.5) {
 			discard;
@@ -37,11 +39,7 @@ const PROG_SHAPE_FRAG = `
 		gl_FragColor = vec4(
 			mix(
 				texture2D(atlas, faceUV).xyz,
-				mix(
-					vec3(0.0, 0.3, 0.9),
-					vec3(0.0, 0.0, 0.0),
-					max(dp, 0.0) * 2.0
-				),
+				mix(fog, abyss, max(dp, 0.0) * 2.0),
 				smoothstep(dp, 0.0, fogDepth)
 			),
 			1.0
