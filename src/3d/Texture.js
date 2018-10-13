@@ -1,3 +1,67 @@
+function loadImage(url) {
+	return new Promise((accept, reject) => {
+		const img = new Image();
+		img.addEventListener('load', () => accept(img));
+		img.addEventListener('error', reject);
+		img.src = url;
+	});
+}
+
+function imageToData(img) {
+	const w = img.width;
+	const h = img.height;
+	const canvas = document.createElement('canvas');
+	canvas.width = w;
+	canvas.height = h;
+	const ctx = canvas.getContext('2d');
+	ctx.drawImage(img, 0, 0);
+	return ctx.getImageData(0, 0, w, h);
+}
+
+function depthToNormals(data, heightOverWidth) {
+	const w = data.width;
+	const h = data.height;
+	const d = data.data;
+
+	for (let i = 0; i < w * h; ++ i) {
+		d[i * 4 + 3] = d[i * 4];
+	}
+
+	const dz = 255.0 * 4.0 / (heightOverWidth * w);
+
+	for (let y = 0; y < h; ++ y) {
+		const pN0 = ((y + h - 1) % h) * w;
+		const pC0 = y * w;
+		const pS0 = ((y + 1) % h) * w;
+		for (let x = 0; x < w; ++ x) {
+			const xE = (x + 1) % w;
+			const xW = (x + w - 1) % w;
+
+			const dN  = d[(pN0 + x ) * 4 + 3];
+			const dE  = d[(pC0 + xE) * 4 + 3];
+			const dS  = d[(pS0 + x ) * 4 + 3];
+			const dW  = d[(pC0 + xW) * 4 + 3];
+			const dNE = d[(pN0 + xE) * 4 + 3];
+			const dNW = d[(pN0 + xW) * 4 + 3];
+			const dSE = d[(pS0 + xE) * 4 + 3];
+			const dSW = d[(pS0 + xW) * 4 + 3];
+
+			const dx = (dE - dW + (dNE - dNW + dSE - dSW) * 0.5);
+			const dy = (dS - dN + (dSE - dNE + dSW - dNW) * 0.5);
+			const m = 127 / Math.sqrt(dx * dx + dy * dy + dz * dz);
+			const p = (pC0 + x) * 4;
+			d[p    ] = dx * m + 128;
+			d[p + 1] = dy * m + 128;
+			d[p + 2] = dz * m + 128;
+		}
+	}
+	for (let i = 0; i < w * h; ++ i) {
+		d[i * 4 + 3] = 255;
+	}
+
+	return data;
+}
+
 export default class Texture {
 	constructor(gl, type, params) {
 		this.gl = gl;
@@ -11,7 +75,7 @@ export default class Texture {
 
 	setSolid(r, g, b, a) {
 		this.set(1, 1, {
-			data: Uint8Array.from([r, g, b, a]),
+			data: Uint8Array.from([r * 255, g * 255, b * 255, a * 255]),
 		});
 	}
 
@@ -46,20 +110,35 @@ export default class Texture {
 		);
 	}
 
-	loadImage(url, mipMap = false) {
-		const gl = this.gl;
+	generateMipmap() {
+		this.bind();
+		gl.generateMipmap(this.type);
+	}
 
-		return new Promise((accept, reject) => {
-			const img = new Image();
-			img.addEventListener('load', () => {
+	loadImage(url, {
+		premultiplyAlpha = true,
+	} = {}) {
+		return loadImage(url)
+			.then((img) => {
+				const gl = this.gl;
 				this.bind();
-				gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+				gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiplyAlpha);
 				gl.texImage2D(this.type, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-				accept(this);
+				return this;
 			});
-			img.addEventListener('error', () => reject(this));
-			img.src = url;
-		});
+	}
+
+	generateNormalMap(url, height) {
+		return loadImage(url)
+			.then(imageToData)
+			.then((data) => depthToNormals(data, height))
+			.then((data) => {
+				const gl = this.gl;
+				this.bind();
+				gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+				gl.texImage2D(this.type, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, data);
+				return this;
+			});
 	}
 
 	bind(index = 0) {

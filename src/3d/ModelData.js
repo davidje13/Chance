@@ -85,11 +85,11 @@ export default class ModelData {
 	}
 
 	boundData(type, byteOffset, elementCount) {
-		return {
+		return {vertexData: {
 			type,
 			offset: byteOffset,
 			size: elementCount,
 			stride: this.stride,
-		};
+		}};
 	}
 };

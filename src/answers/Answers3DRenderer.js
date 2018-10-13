@@ -137,8 +137,8 @@ export default class Answers3DRenderer {
 
 		this.shapeProg.use({
 			'projview': mView.mult(mProj),
-			'atlas': this.atlas.bind(0),
-			'tiles': this.answers.bind(1),
+			'atlas': this.atlas,
+			'tiles': this.answers,
 			'fogDepth': this.fogDepth,
 			'bumpSteps': Math.max(this.shapeSlices.length - 1, 0),
 		});
@@ -156,7 +156,7 @@ export default class Answers3DRenderer {
 
 		this.quad.bind(gl);
 		this.coverProg.use({
-			'atlas': this.atlas.bind(0),
+			'atlas': this.atlas,
 			'pos': this.quad.boundVertices(),
 			'tex': this.quad.boundUvs(),
 		});

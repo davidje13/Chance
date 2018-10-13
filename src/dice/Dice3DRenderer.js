@@ -50,28 +50,42 @@ const PROG_FLAT_FRAG_HELPER = `
 
 const PROG_FACE_FRAG_HELPER = `
 	uniform sampler2D atlas;
+	uniform sampler2D normalMap;
+	uniform lowp float dotOpacity;
 
 	const lowp vec2 regionSize = vec2(0.25, 0.25);
 
-	lowp vec4 cubeFaceAt(in lowp vec3 pos) {
+	lowp vec4 cubeFaceAt(in lowp vec3 pos, out lowp vec3 dx) {
 		lowp vec2 region;
 		lowp vec2 uv;
 		lowp vec3 pp = abs(pos);
 		if (pp.x > pp.y && pp.x > pp.z) {
-			region = vec2(0.0, step(0.0, pos.x));
+			region = vec2(0.0, pos.x);
 			uv = pos.yz;
+			dx = vec3(0.0, -1.0, 0.0);
 		} else if (pp.y > pp.z) {
-			region = vec2(1.0, step(0.0, pos.y));
-			uv = pos.xz;
+			region = vec2(1.0, pos.y);
+			uv = pos.zx;
+			dx = vec3(0.0, 0.0, -1.0);
 		} else {
-			region = vec2(2.0, step(0.0, pos.z));
+			region = vec2(2.0, pos.z);
 			uv = pos.xy;
+			dx = vec3(-1.0, 0.0, 0.0);
 		}
-		return vec4(region * regionSize, uv * 0.5 + 0.5);
+		region.y = step(0.0, region.y);
+		return vec4(region * regionSize, uv * vec2(0.5, 0.5 - region.y) + 0.5);
 	}
 
 	lowp vec4 faceColAt(in lowp vec4 face) {
-		return texture2D(atlas, face.xy + face.zw * regionSize);
+		return texture2D(atlas, face.xy + face.zw * regionSize) * dotOpacity;
+	}
+
+	lowp vec3 faceNormAt(in lowp vec4 face, in lowp vec3 dx, in lowp vec3 dz) {
+		lowp vec3 dy = cross(dx, dz);
+		return (
+			mat3(dx, dy, dz) *
+			(texture2D(normalMap, face.xy + face.zw * regionSize).xyz * 2.0 - 1.0)
+		);
 	}
 `;
 
@@ -96,10 +110,12 @@ const PROG_SHAPE_FRAG = `
 
 	void main() {
 		lowp vec3 ray = normalize(p - eye);
-		lowp vec4 face = cubeFaceAt(p);
+		lowp vec3 dx;
+		lowp vec4 face = cubeFaceAt(p, dx);
 		lowp vec4 faceTex = faceColAt(face);
 		lowp vec3 matt = faceTex.rgb + baseColAt(p) * (1.0 - faceTex.a);
-		gl_FragColor = applyLighting(matt, rot * n, rot * reflect(ray, n));
+		lowp vec3 norm = faceNormAt(face, dx, normalize(n));
+		gl_FragColor = applyLighting(matt, rot * norm, rot * reflect(ray, norm));
 	}
 `;
 
@@ -135,14 +151,15 @@ const PROG_TRUNC_BALL_FRAG = `
 				discard;
 			}
 		}
-		lowp vec4 face = cubeFaceAt(pos);
+		lowp vec3 dx;
+		lowp vec4 face = cubeFaceAt(pos, dx);
 		lowp vec4 faceTex = faceColAt(face);
 		lowp vec3 matt = faceTex.rgb + baseColAt(pos) * (1.0 - faceTex.a);
-		lowp vec3 norm = normalize(mix(
+		lowp vec3 norm = faceNormAt(face, dx, normalize(mix(
 			n,
 			pos,
 			smoothstep(1.0 - rounding, 1.0 + rounding, length(pos - n) * invFaceRad)
-		));
+		)));
 		gl_FragColor = applyLighting(matt, rot * norm, rot * reflect(ray, norm));
 	}
 `;
@@ -179,6 +196,15 @@ export default class Dice3DRenderer {
 		});
 		this.atlas.setSolid(0, 0, 0, 0);
 		this.atlas.loadImage('resources/dice/atlas.png');
+
+		this.normalMap = new Texture2D(gl, {
+			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+		});
+		this.normalMap.setSolid(0.5, 0.5, 1.0, 1.0);
+		this.normalMap.generateNormalMap('resources/dice/depth.png', 0.01);
 
 		const texVolumeTransform = M4.fromQuaternion(Quaternion.fromRotation({
 			x: 0.2,
@@ -230,6 +256,7 @@ export default class Dice3DRenderer {
 			'ambientCol': [0.6, 0.6, 0.6],
 			'lightCol': [0.35, 0.35, 0.35],
 			'shineCol': [0, 0, 0, 0],
+			'dotOpacity': 0.9,
 		}});
 
 		this.materials.set('wood-varnished', {prog: 'grain', props: {
@@ -237,20 +264,31 @@ export default class Dice3DRenderer {
 			'ambientCol': [0.5, 0.5, 0.5],
 			'lightCol': [0.5, 0.5, 0.5],
 			'shineCol': [1.0, 1.0, 0.95, 0.1],
+			'dotOpacity': 0.9,
+		}});
+
+		this.materials.set('metal', {prog: 'flat', props: {
+			'matt': [0.96, 0.98, 1.0],
+			'ambientCol': [0.1, 0.1, 0.1],
+			'lightCol': [0.6, 0.6, 0.6],
+			'shineCol': [1.0, 1.0, 1.0, 0.8],
+			'dotOpacity': 0.0,
 		}});
 
 		this.materials.set('plastic', {prog: 'flat', props: {
 			'matt': [0.95, 0.95, 0.97],
 			'ambientCol': [0.6, 0.6, 0.6],
 			'lightCol': [0.4, 0.4, 0.4],
-			'shineCol': [1.0, 1.0, 1.0, 0.4],
+			'shineCol': [1.0, 1.0, 1.0, 0.3],
+			'dotOpacity': 1.0,
 		}});
 
 		this.materials.set('plastic-red', {prog: 'flat', props: {
 			'matt': [0.8, 0.2, 0.1],
 			'ambientCol': [0.6, 0.6, 0.6],
 			'lightCol': [0.4, 0.4, 0.4],
-			'shineCol': [1.0, 0.9, 0.8, 0.3],
+			'shineCol': [1.0, 0.9, 0.8, 0.2],
+			'dotOpacity': 1.0,
 		}});
 
 		const vertShader = new VertexShader(gl, PROG_SHAPE_VERT);
@@ -322,7 +360,8 @@ export default class Dice3DRenderer {
 				'rot': mView.as3(),
 				'pos': shape.geom.boundVertices(),
 				'norm': shape.geom.boundNormals(),
-				'atlas': this.atlas.bind(0),
+				'atlas': this.atlas,
+				'normalMap': this.normalMap,
 			}, this.worldProps, shape.props, material.props));
 			shape.geom.render(gl);
 		}

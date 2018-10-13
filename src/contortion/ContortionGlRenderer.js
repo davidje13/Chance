@@ -141,7 +141,7 @@ export default class ContortionGlRenderer {
 			'texTL': texTL,
 			'texSize': [0.25, 1.0],
 			'opacity': 1 / this.needleCount,
-			'atlas': this.atlas.bind(0),
+			'atlas': this.atlas,
 			'pos': this.needle.boundVertices(),
 		});
 		gl.blendFunc(gl.ONE, gl.ONE);
@@ -151,7 +151,7 @@ export default class ContortionGlRenderer {
 		this.cover.bind(gl);
 		this.coverProg.use({
 			'opacity': 1,
-			'atlas': this.bufferTex.bind(0),
+			'atlas': this.bufferTex,
 			'pos': this.cover.boundVertices(),
 			'tex': this.cover.boundUvs(),
 		});
@@ -183,7 +183,7 @@ export default class ContortionGlRenderer {
 		this.pin.bind(gl);
 		this.coverProg.use({
 			'opacity': 1,
-			'atlas': this.atlas.bind(0),
+			'atlas': this.atlas,
 			'pos': this.pin.boundVertices(),
 			'tex': this.pin.boundUvs(),
 		});

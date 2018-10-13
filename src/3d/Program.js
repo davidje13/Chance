@@ -51,13 +51,9 @@ function setUniform(gl, locn, v, state) {
 	}
 	if(typeof v === 'number') {
 		setUniformF(gl, locn, v);
-	} else if(v.tex2D !== undefined) {
-		let ind = v.i;
-		if(ind === undefined) {
-			ind = state.texIndex ++;
-		}
-		gl.activeTexture(gl.TEXTURE0 + ind);
-		gl.bindTexture(gl.TEXTURE_2D, v.tex2D);
+	} else if(v.tex !== undefined) {
+		const ind = state.texIndex ++;
+		v.bind(ind);
 		gl.uniform1i(locn, ind);
 	} else if(v.i !== undefined) {
 		setUniformI(gl, locn, v.i);
@@ -133,8 +129,8 @@ export default class Program {
 			if (value === null) {
 				continue;
 			}
-			if (typeof value === 'object' && value.type) {
-				this.vertexAttribute(attr, value);
+			if (typeof value === 'object' && value.vertexData) {
+				this.vertexAttribute(attr, value.vertexData);
 			} else {
 				setUniform(this.gl, this.findUniform(attr), value, state);
 			}
