@@ -76,19 +76,16 @@ const PROG_SHAPE_FRAG = `
 const PROG_TRUNC_BALL_FRAG = `
 	uniform lowp mat3 rot;
 	uniform highp vec3 eye;
+	uniform lowp float radius;
+	uniform lowp float invFaceRad;
+	uniform lowp float rounding;
 	varying lowp vec3 p;
 	varying lowp vec3 n;
-
-	const lowp float r = 1.37;
-	const lowp float faceR = 1.0;
-	const lowp float rounding = 0.05;
-
-	const lowp float invFaceRad = inversesqrt(r * r - faceR * faceR);
 
 	void main() {
 		lowp vec3 ray = normalize(p - eye);
 		lowp float lo = -dot(ray, eye);
-		lowp float root = lo * lo + r * r - dot(eye, eye);
+		lowp float root = lo * lo + radius * radius - dot(eye, eye);
 		if (root < 0.0) {
 			discard;
 		}
@@ -104,14 +101,14 @@ const PROG_TRUNC_BALL_FRAG = `
 			pos = p;
 		} else {
 			pos = eye + ray * dSphereNear;
-			if (any(greaterThan(abs(pos - n), vec3(faceR)))) {
+			if (any(greaterThan(pos * sign(ray), vec3(1.0)))) {
 				discard;
 			}
 		}
 		lowp vec3 norm = normalize(mix(
 			n,
 			pos,
-			smoothstep(1.0 - rounding, 1.0 + rounding, length(pos - n * faceR) * invFaceRad)
+			smoothstep(1.0 - rounding, 1.0 + rounding, length(pos - n) * invFaceRad)
 		));
 		gl_FragColor = applyLighting(baseColAt(pos), rot * norm, rot * reflect(ray, norm));
 	}
@@ -161,18 +158,39 @@ export default class Dice3DRenderer {
 
 		this.shapes.set('cube', {
 			prog: 'shape',
-			geom: new Cube({rounding: 0.03, segmentation: 2}),
+			geom: new Cube({rounding: 0.05, segmentation: 2}),
 		});
 		this.shapes.set('cube-fillet', {
 			prog: 'shape',
-			geom: new Cube({rounding: 0.15, segmentation: 8}),
+			geom: new Cube({rounding: 0.2, segmentation: 8}),
+		});
+		this.shapes.set('cube-clipped', {
+			prog: 'rounded',
+			geom: new Cube(),
+			props: {
+				'radius': 1.5,
+				'invFaceRad': 1 / Math.sqrt(1.5 * 1.5 - 1),
+				'rounding': 0.02,
+			},
 		});
 		this.shapes.set('cube-rounded', {
 			prog: 'rounded',
 			geom: new Cube(),
+			props: {
+				'radius': 1.37,
+				'invFaceRad': 1 / Math.sqrt(1.37 * 1.37 - 1),
+				'rounding': 0.05,
+			},
 		});
 
 		this.materials.set('wood', {prog: 'grain', props: {
+			'textureVolumeTransform': texVolumeTransform,
+			'ambientCol': [0.6, 0.6, 0.6],
+			'lightCol': [0.35, 0.35, 0.35],
+			'shineCol': [0, 0, 0, 0],
+		}});
+
+		this.materials.set('wood-varnished', {prog: 'grain', props: {
 			'textureVolumeTransform': texVolumeTransform,
 			'ambientCol': [0.5, 0.5, 0.5],
 			'lightCol': [0.5, 0.5, 0.5],
@@ -190,7 +208,7 @@ export default class Dice3DRenderer {
 			'matt': [0.8, 0.2, 0.1],
 			'ambientCol': [0.6, 0.6, 0.6],
 			'lightCol': [0.4, 0.4, 0.4],
-			'shineCol': [1.0, 0.9, 0.8, 0.4],
+			'shineCol': [1.0, 0.9, 0.8, 0.3],
 		}});
 
 		const vertShader = new VertexShader(gl, PROG_SHAPE_VERT);
@@ -244,7 +262,7 @@ export default class Dice3DRenderer {
 
 		for (const die of dice) {
 			const mView = M4.fromQuaternion(die.rotation);
-			mView.translate(die.position.x, die.position.y, die.position.z - 10);
+			mView.translate(die.position.x, die.position.y, die.position.z - 15);
 
 			const shape = this.shapes.get(die.style.shape);
 			const material = this.materials.get(die.style.material);
@@ -258,7 +276,7 @@ export default class Dice3DRenderer {
 				'rot': mView.as3(),
 				'pos': shape.geom.boundVertices(),
 				'norm': shape.geom.boundNormals(),
-			}, this.worldProps, material.props));
+			}, this.worldProps, shape.props, material.props));
 			shape.geom.render(gl);
 		}
 	}

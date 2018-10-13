@@ -40,8 +40,8 @@ export default class Dice {
 
 	start() {
 		const rotation = Quaternion.random(this.randomSource);
-		const materials = ['wood', 'plastic', 'plastic-red'];
-		const shapes = ['cube', 'cube-fillet', 'cube-rounded'];
+		const materials = ['wood', 'wood-varnished', 'plastic', 'plastic-red'];
+		const shapes = ['cube', 'cube-fillet', 'cube-clipped', 'cube-rounded'];
 		const sep = 3.4;
 		const midX = (materials.length - 1) / 2;
 		const midY = (shapes.length - 1) / 2;
