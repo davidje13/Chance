@@ -48,6 +48,33 @@ const PROG_FLAT_FRAG_HELPER = `
 	}
 `;
 
+const PROG_FACE_FRAG_HELPER = `
+	uniform sampler2D atlas;
+
+	const lowp vec2 regionSize = vec2(0.25, 0.25);
+
+	lowp vec4 cubeFaceAt(in lowp vec3 pos) {
+		lowp vec2 region;
+		lowp vec2 uv;
+		lowp vec3 pp = abs(pos);
+		if (pp.x > pp.y && pp.x > pp.z) {
+			region = vec2(0.0, step(0.0, pos.x));
+			uv = pos.yz;
+		} else if (pp.y > pp.z) {
+			region = vec2(1.0, step(0.0, pos.y));
+			uv = pos.xz;
+		} else {
+			region = vec2(2.0, step(0.0, pos.z));
+			uv = pos.xy;
+		}
+		return vec4(region * regionSize, uv * 0.5 + 0.5);
+	}
+
+	lowp vec4 faceColAt(in lowp vec4 face) {
+		return texture2D(atlas, face.xy + face.zw * regionSize);
+	}
+`;
+
 const PROG_SHAPE_VERT = `
 	uniform lowp mat4 projview;
 	attribute vec4 pos;
@@ -69,7 +96,10 @@ const PROG_SHAPE_FRAG = `
 
 	void main() {
 		lowp vec3 ray = normalize(p - eye);
-		gl_FragColor = applyLighting(baseColAt(p), rot * n, rot * reflect(ray, n));
+		lowp vec4 face = cubeFaceAt(p);
+		lowp vec4 faceTex = faceColAt(face);
+		lowp vec3 matt = faceTex.rgb + baseColAt(p) * (1.0 - faceTex.a);
+		gl_FragColor = applyLighting(matt, rot * n, rot * reflect(ray, n));
 	}
 `;
 
@@ -105,12 +135,15 @@ const PROG_TRUNC_BALL_FRAG = `
 				discard;
 			}
 		}
+		lowp vec4 face = cubeFaceAt(pos);
+		lowp vec4 faceTex = faceColAt(face);
+		lowp vec3 matt = faceTex.rgb + baseColAt(pos) * (1.0 - faceTex.a);
 		lowp vec3 norm = normalize(mix(
 			n,
 			pos,
 			smoothstep(1.0 - rounding, 1.0 + rounding, length(pos - n) * invFaceRad)
 		));
-		gl_FragColor = applyLighting(baseColAt(pos), rot * norm, rot * reflect(ray, norm));
+		gl_FragColor = applyLighting(matt, rot * norm, rot * reflect(ray, norm));
 	}
 `;
 
@@ -137,6 +170,15 @@ export default class Dice3DRenderer {
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
+
+		this.atlas = new Texture2D(gl, {
+			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+		});
+		this.atlas.setSolid(0, 0, 0, 0);
+		this.atlas.loadImage('resources/dice/atlas.png');
 
 		const texVolumeTransform = M4.fromQuaternion(Quaternion.fromRotation({
 			x: 0.2,
@@ -216,6 +258,7 @@ export default class Dice3DRenderer {
 		this.programs.set('shape grain', new Program(gl, [
 			vertShader,
 			new FragmentShader(gl,
+				PROG_FACE_FRAG_HELPER +
 				PROG_GLOSS_FRAG_HELPER +
 				PROG_GRAIN_FRAG_HELPER +
 				PROG_SHAPE_FRAG
@@ -225,6 +268,7 @@ export default class Dice3DRenderer {
 		this.programs.set('rounded grain', new Program(gl, [
 			vertShader,
 			new FragmentShader(gl,
+				PROG_FACE_FRAG_HELPER +
 				PROG_GLOSS_FRAG_HELPER +
 				PROG_GRAIN_FRAG_HELPER +
 				PROG_TRUNC_BALL_FRAG
@@ -234,6 +278,7 @@ export default class Dice3DRenderer {
 		this.programs.set('shape flat', new Program(gl, [
 			vertShader,
 			new FragmentShader(gl,
+				PROG_FACE_FRAG_HELPER +
 				PROG_GLOSS_FRAG_HELPER +
 				PROG_FLAT_FRAG_HELPER +
 				PROG_SHAPE_FRAG
@@ -243,6 +288,7 @@ export default class Dice3DRenderer {
 		this.programs.set('rounded flat', new Program(gl, [
 			vertShader,
 			new FragmentShader(gl,
+				PROG_FACE_FRAG_HELPER +
 				PROG_GLOSS_FRAG_HELPER +
 				PROG_FLAT_FRAG_HELPER +
 				PROG_TRUNC_BALL_FRAG
@@ -276,6 +322,7 @@ export default class Dice3DRenderer {
 				'rot': mView.as3(),
 				'pos': shape.geom.boundVertices(),
 				'norm': shape.geom.boundNormals(),
+				'atlas': this.atlas.bind(0),
 			}, this.worldProps, shape.props, material.props));
 			shape.geom.render(gl);
 		}

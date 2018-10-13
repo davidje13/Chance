@@ -139,17 +139,6 @@ export default class Cube extends ModelData {
 		this.setIndices(indices);
 	}
 
-	writeVertex(target, x, y, z, u, v, w) {
-		target[0] = x;
-		target[1] = y;
-		target[2] = z;
-		const m = 1 / Math.sqrt(u * u + v * v + w * w);
-		target[3] = u * m;
-		target[4] = v * m;
-		target[5] = w * m;
-		return step;
-	}
-
 	writeCornerVertices(target, x, y, z) {
 		const r = this.r;
 		const o = 1 - r;
@@ -163,13 +152,13 @@ export default class Cube extends ModelData {
 				const Z = 1 - yy * m;
 				const n = 1 / Math.sqrt(X * X + Y * Y + Z * Z);
 
-				p += this.writeVertex(
-					target.subarray(p),
-					(o + X * n * r) * x,
-					(o + Y * n * r) * y,
-					(o + Z * n * r) * z,
-					X * n * x, Y * n * y, Z * n * z
-				);
+				target[p + 0] = (o + X * n * r) * x;
+				target[p + 1] = (o + Y * n * r) * y;
+				target[p + 2] = (o + Z * n * r) * z;
+				target[p + 3] = X * n * x;
+				target[p + 4] = Y * n * y;
+				target[p + 5] = Z * n * z;
+				p += step;
 			}
 		}
 
