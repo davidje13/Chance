@@ -4,7 +4,7 @@ const SIZEOF_FLOAT = 4;
 
 const step = 6;
 
-export default class RoundedCube extends ModelData {
+export default class Cube extends ModelData {
 	constructor({rounding = 0, segmentation = 4} = {}) {
 		super(step * SIZEOF_FLOAT);
 		this.r = rounding;
@@ -99,32 +99,36 @@ export default class RoundedCube extends ModelData {
 
 	rebuildIndices() {
 		const indices = new Uint16Array(
-			this.facesPerFace * 6 * 3 +
-			this.facesPerEdge * 12 * 3 +
-			this.facesPerCorner * 8 * 3
+			(this.r > 0 ? (
+				this.facesPerCorner * 8 * 3 +
+				this.facesPerEdge * 12 * 3
+			) : 0) +
+			this.facesPerFace * 6 * 3
 		);
 
 		let p = 0;
-		p += this.writeCornerTris(indices.subarray(p), 0, true);
-		p += this.writeCornerTris(indices.subarray(p), 1, false);
-		p += this.writeCornerTris(indices.subarray(p), 2, false);
-		p += this.writeCornerTris(indices.subarray(p), 3, true);
-		p += this.writeCornerTris(indices.subarray(p), 4, false);
-		p += this.writeCornerTris(indices.subarray(p), 5, true);
-		p += this.writeCornerTris(indices.subarray(p), 6, true);
-		p += this.writeCornerTris(indices.subarray(p), 7, false);
-		p += this.writeEdgeTris(indices.subarray(p), 4, 0, 0);
-		p += this.writeEdgeTris(indices.subarray(p), 1, 5, 0);
-		p += this.writeEdgeTris(indices.subarray(p), 2, 6, 0);
-		p += this.writeEdgeTris(indices.subarray(p), 7, 3, 0);
-		p += this.writeEdgeTris(indices.subarray(p), 2, 0, 1);
-		p += this.writeEdgeTris(indices.subarray(p), 1, 3, 1);
-		p += this.writeEdgeTris(indices.subarray(p), 4, 6, 1);
-		p += this.writeEdgeTris(indices.subarray(p), 7, 5, 1);
-		p += this.writeEdgeTris(indices.subarray(p), 1, 0, 2);
-		p += this.writeEdgeTris(indices.subarray(p), 2, 3, 2);
-		p += this.writeEdgeTris(indices.subarray(p), 4, 5, 2);
-		p += this.writeEdgeTris(indices.subarray(p), 7, 6, 2);
+		if (this.r > 0) {
+			p += this.writeCornerTris(indices.subarray(p), 0, true);
+			p += this.writeCornerTris(indices.subarray(p), 1, false);
+			p += this.writeCornerTris(indices.subarray(p), 2, false);
+			p += this.writeCornerTris(indices.subarray(p), 3, true);
+			p += this.writeCornerTris(indices.subarray(p), 4, false);
+			p += this.writeCornerTris(indices.subarray(p), 5, true);
+			p += this.writeCornerTris(indices.subarray(p), 6, true);
+			p += this.writeCornerTris(indices.subarray(p), 7, false);
+			p += this.writeEdgeTris(indices.subarray(p), 4, 0, 0);
+			p += this.writeEdgeTris(indices.subarray(p), 1, 5, 0);
+			p += this.writeEdgeTris(indices.subarray(p), 2, 6, 0);
+			p += this.writeEdgeTris(indices.subarray(p), 7, 3, 0);
+			p += this.writeEdgeTris(indices.subarray(p), 2, 0, 1);
+			p += this.writeEdgeTris(indices.subarray(p), 1, 3, 1);
+			p += this.writeEdgeTris(indices.subarray(p), 4, 6, 1);
+			p += this.writeEdgeTris(indices.subarray(p), 7, 5, 1);
+			p += this.writeEdgeTris(indices.subarray(p), 1, 0, 2);
+			p += this.writeEdgeTris(indices.subarray(p), 2, 3, 2);
+			p += this.writeEdgeTris(indices.subarray(p), 4, 5, 2);
+			p += this.writeEdgeTris(indices.subarray(p), 7, 6, 2);
+		}
 		p += this.writeFaceTris(indices.subarray(p), 0, 1, 2, 3, 0);
 		p += this.writeFaceTris(indices.subarray(p), 4, 6, 5, 7, 0);
 		p += this.writeFaceTris(indices.subarray(p), 0, 4, 1, 5, 1);

@@ -92,6 +92,11 @@ export class M4 {
 		];
 	}
 
+	apply3(v) {
+		const r = this.apply(v);
+		return [r[0], r[1], r[2]];
+	}
+
 	transpose() {
 		for(let i = 0; i < 3; ++ i) {
 			for(let j = i + 1; j < 4; ++ j) {

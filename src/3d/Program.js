@@ -46,7 +46,7 @@ function setUniformM(gl, locn, v) {
 }
 
 function setUniform(gl, locn, v, state) {
-	if(locn === null) {
+	if(locn === null || locn === -1) {
 		return;
 	}
 	if(typeof v === 'number') {
@@ -80,6 +80,7 @@ export default class Program {
 		const prog = gl.createProgram();
 		shaders.forEach((shader) => gl.attachShader(prog, shader.shader()));
 		gl.linkProgram(prog);
+		shaders.forEach((shader) => gl.detachShader(prog, shader.shader()));
 		if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
 			throw new Error('Failed to link program: ' + gl.getProgramInfoLog(prog));
 		}
@@ -111,8 +112,7 @@ export default class Program {
 
 	vertexAttribute(name, properties) {
 		const locn = this.findAttribute(name);
-		if (locn === null) {
-			this.gl.disableVertexAttribArray(locn);
+		if (locn === null || locn === -1) {
 			return;
 		}
 		this.gl.enableVertexAttribArray(locn);

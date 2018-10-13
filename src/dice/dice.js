@@ -40,28 +40,21 @@ export default class Dice {
 
 	start() {
 		const rotation = Quaternion.random(this.randomSource);
-		this.dice = [
-			{
-				position: {x: -2, y: 2, z: 0},
-				style: {shape: 'cube', material: 'wood'},
-				rotation,
-			},
-			{
-				position: {x: -2, y: -2, z: 0},
-				style: {shape: 'rounded', material: 'wood'},
-				rotation,
-			},
-			{
-				position: {x: 2, y: 2, z: 0},
-				style: {shape: 'cube', material: 'plastic'},
-				rotation,
-			},
-			{
-				position: {x: 2, y: -2, z: 0},
-				style: {shape: 'rounded', material: 'plastic'},
-				rotation,
-			},
-		];
+		const materials = ['wood', 'plastic', 'plastic-red'];
+		const shapes = ['cube', 'cube-fillet', 'cube-rounded'];
+		const sep = 3.4;
+		const midX = (materials.length - 1) / 2;
+		const midY = (shapes.length - 1) / 2;
+		this.dice = [];
+		for (let x = 0; x < materials.length; ++ x) {
+			for (let y = 0; y < shapes.length; ++ y) {
+				this.dice.push({
+					position: {x: (x - midX) * sep, y: -(y - midY) * sep, z: 0},
+					style: {shape: shapes[y], material: materials[x]},
+					rotation,
+				});
+			}
+		}
 		this.vel = {
 			x: this.randomSource.nextFloat() - 0.5,
 			y: this.randomSource.nextFloat() - 0.5,
