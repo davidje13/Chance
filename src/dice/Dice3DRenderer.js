@@ -52,15 +52,66 @@ const PROG_FACE_FRAG_HELPER = `
 	uniform sampler2D atlas;
 	uniform sampler2D normalMap;
 	uniform lowp float dotOpacity;
+	uniform lowp float maxDepth;
 
-	const lowp float maxDepth = 0.2;
 	const lowp int depthSteps = 4;
 	const lowp int depthTuneSteps = 2;
-	const lowp float depthScale = maxDepth / float(depthSteps - 1);
 	const lowp vec2 regionSize = vec2(0.25, 0.25);
 
-	lowp vec4 applyFace(inout lowp vec3 pos, inout lowp vec3 norm, in lowp vec3 ray) {
-		lowp mat3 faceD;
+	lowp float depthAt(in lowp vec2 uv) {
+		return texture2D(normalMap, uv).w * maxDepth;
+	}
+
+	lowp vec3 normalAt(in lowp vec2 uv) {
+		return texture2D(normalMap, uv).xyz * 2.0 - 1.0;
+	}
+
+	lowp vec4 colourAt(in lowp vec2 uv) {
+		return texture2D(atlas, uv);
+	}
+
+	lowp float intersectionX(lowp float x1, lowp float x2, lowp float y1, lowp float y2) {
+		// returns intersection with line y = x
+		return (x2 * y1 - x1 * y2) / (x2 - x1 + y1 - y2);
+	}
+
+	lowp float depthAt(in lowp vec2 uv, in lowp vec2 duv) {
+		// thanks, http://apoorvaj.io/exploring-bump-mapping-with-webgl.html
+		lowp float lastD = 0.0;
+		lowp float nextD;
+		lowp float lastDPos = 0.0;
+		lowp float nextDPos = 0.0;
+		lowp float depthScale = maxDepth / float(depthSteps - 1);
+		for (lowp int i = 0; i < depthSteps; ++ i) {
+			nextD = depthAt(uv + duv * nextDPos);
+			if (nextD <= nextDPos) {
+				break;
+			}
+			lastD = nextD;
+			lastDPos = nextDPos;
+			nextDPos += depthScale;
+		}
+		if (nextDPos == lastDPos) {
+			return nextDPos;
+		}
+		// lastD * (1 - a) + nextD * a = lastDPos * (1 - a) + nextDPos * a
+		// a = (lastD - lastDPos) / (nextDPos - nextD + lastD - lastDPos)
+		// depth = lastDPos + (nextDPos - lastDPos) * a
+		for (lowp int i = 0; i < depthTuneSteps; ++ i) {
+			lowp float d = intersectionX(lastDPos, nextDPos, lastD, nextD);
+			lowp float curD = depthAt(uv + duv * nextDPos);
+			if (curD <= d) {
+				nextDPos = d;
+				nextD = curD;
+			} else {
+				lastDPos = d;
+				lastD = curD;
+			}
+		}
+		return intersectionX(lastDPos, nextDPos, lastD, nextD);
+	}
+
+	lowp vec2 getCubeUV(in lowp vec3 pos, out lowp mat3 faceD) {
 		lowp vec2 region;
 		lowp vec3 pp = abs(pos);
 		if (pp.x > pp.y && pp.x > pp.z) {
@@ -78,51 +129,24 @@ const PROG_FACE_FRAG_HELPER = `
 		}
 		faceD[2] = cross(faceD[0], faceD[1]);
 		region.y = step(0.0, region.y) + 0.5;
-		lowp vec2 uv = (region + (pos * faceD).xy * 0.5) * regionSize;
-		lowp vec3 texSpaceRay = ray * faceD;
-		lowp vec2 duv = texSpaceRay.xy * regionSize * -0.5 / texSpaceRay.z;
+		return (region + (pos * faceD).xy * 0.5) * regionSize;
+	}
 
-		// thanks, http://apoorvaj.io/exploring-bump-mapping-with-webgl.html
-		lowp float lastD = 0.0;
-		lowp float nextD;
-		lowp float lastDPos = 0.0;
-		lowp float nextDPos = 0.0;
-		for (lowp int i = 0; i < depthSteps; ++ i) {
-			nextD = texture2D(normalMap, uv + duv * nextDPos).w * maxDepth;
-			if (nextD <= nextDPos) {
-				break;
-			}
-			lastD = nextD;
-			lastDPos = nextDPos;
-			nextDPos += depthScale;
-		}
-		lowp float depth;
-		if (nextDPos == lastDPos) {
-			depth = nextDPos;
-		} else {
-			// lastD * (1 - a) + nextD * a = lastDPos * (1 - a) + nextDPos * a
-			// a = (lastD - lastDPos) / (nextDPos - nextD + lastD - lastDPos)
-			// depth = lastDPos + (nextDPos - lastDPos) * a
-			for (lowp int i = 0; i < depthTuneSteps; ++ i) {
-				lowp float d = (nextDPos * lastD - lastDPos * nextD) / (nextDPos - lastDPos - nextD + lastD);
-				lowp float curD = texture2D(normalMap, uv + duv * d).w * maxDepth;
-				if (curD <= d) {
-					nextDPos = d;
-					nextD = curD;
-				} else {
-					lastDPos = d;
-					lastD = curD;
-				}
-			}
-			depth = (nextDPos * lastD - lastDPos * nextD) / (nextDPos - lastDPos - nextD + lastD);
-		}
-		pos -= ray * depth / texSpaceRay.z;
+	lowp vec4 applyFace(inout lowp vec3 pos, inout lowp vec3 norm, in lowp vec3 ray) {
+		lowp mat3 faceD;
+		lowp vec2 uv = getCubeUV(pos, faceD);
+		lowp vec3 texSpaceRay = ray * faceD;
+		lowp float zmult = -1.0 / texSpaceRay.z;
+		lowp vec2 duv = texSpaceRay.xy * regionSize * 0.5 * zmult;
+
+		lowp float depth = depthAt(uv, duv);
+		pos += ray * depth * zmult;
 		uv += duv * depth;
 
 		faceD[2] = norm;
-		norm = normalize(faceD * (texture2D(normalMap, uv).xyz * 2.0 - 1.0));
+		norm = faceD * normalAt(uv);
 
-		return texture2D(atlas, uv) * dotOpacity;
+		return colourAt(uv) * dotOpacity;
 	}
 `;
 
@@ -224,6 +248,11 @@ export default class Dice3DRenderer {
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
 
+		const maxDepth = 0.1;
+		const worldFaceWidth = 2.0;
+		const normalMapFaceWidth = 0.25;
+		const normalMapFaceDepth = maxDepth * normalMapFaceWidth / worldFaceWidth;
+
 		this.atlas = new Texture2D(gl, {
 			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
 			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
@@ -240,7 +269,7 @@ export default class Dice3DRenderer {
 			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
 		});
 		this.normalMap.setSolid(0.5, 0.5, 1.0, 1.0);
-		this.normalMap.generateNormalMap('resources/dice/depth.png', 0.01);
+		this.normalMap.generateNormalMap('resources/dice/depth.png', normalMapFaceDepth);
 
 		const texVolumeTransform = M4.fromQuaternion(Quaternion.fromRotation({
 			x: 0.2,
@@ -254,6 +283,7 @@ export default class Dice3DRenderer {
 		this.worldProps = {
 			'lightDir': normalize([0.0, 0.5, 1.0]),
 			'shineDir': normalize([0.0, 2.0, 1.0]),
+			'maxDepth': maxDepth,
 		};
 
 		this.shapes = new Map();
