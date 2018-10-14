@@ -65,8 +65,19 @@ const PROG_COVER_FRAG = `
 	}
 `;
 
+function maxComponent(m) {
+	let max = 0;
+	for (let i = 0; i < 16; ++ i) {
+		const v = Math.abs(m.data[i]);
+		if (v > max) {
+			max = v;
+		}
+	}
+	return max;
+}
+
 export default class Answers3DRenderer {
-	constructor(shapeSlices, fogDepth, size) {
+	constructor(shapeSlices, fogDepth, size, blankDepth) {
 		const canvas = new Canvas(size, size, {
 			alpha: true,
 			antialias: true,
@@ -124,34 +135,54 @@ export default class Answers3DRenderer {
 		this.answers.setSolid(0, 0, 0, 0);
 		this.answers.loadImage('resources/answers/MBA.png');
 
+		this.blankDepth = blankDepth;
+		this.wasBlank = false;
+		this.lastProjView = M4.identity();
+
 		this.gl = gl;
 	}
 
 	render(rotationMatrix, depth) {
 		const gl = this.gl;
-		gl.clear(gl.COLOR_BUFFER_BIT);
+
+		const isBlank = (depth >= this.blankDepth);
+
+		if (isBlank && this.wasBlank) {
+			return;
+		}
 
 		const mProj = M4.perspective(0.6, 1, 1.0, 100.0);
 		const mView = rotationMatrix;
 		mView.translate(0, 0, -depth - 2);
+		const projview = mView.mult(mProj);
+		const diff = this.lastProjView.copy().sub(projview);
+		if (maxComponent(diff) <= 0.001) {
+			return;
+		}
+		this.lastProjView = projview;
+		this.wasBlank = isBlank;
 
-		this.shapeProg.use({
-			'projview': mView.mult(mProj),
-			'atlas': this.atlas,
-			'tiles': this.answers,
-			'fogDepth': this.fogDepth,
-			'bumpSteps': Math.max(this.shapeSlices.length - 1, 0),
-		});
-		for (let i = 0; i < this.shapeSlices.length; ++ i) {
-			const slice = this.shapeSlices[i];
-			slice.bind(gl);
-			this.shapeProg.input({
-				'pos': slice.boundVertices(),
-				'faceTex': slice.boundUvs(),
-				'netTex': slice.boundNetUvs(),
-				'bumpPos': i - 1,
+		gl.clear(gl.COLOR_BUFFER_BIT);
+
+		if (!isBlank) {
+			this.shapeProg.use({
+				'projview': projview,
+				'atlas': this.atlas,
+				'tiles': this.answers,
+				'fogDepth': this.fogDepth,
+				'bumpSteps': Math.max(this.shapeSlices.length - 1, 0),
 			});
-			slice.render(gl);
+			for (let i = 0; i < this.shapeSlices.length; ++ i) {
+				const slice = this.shapeSlices[i];
+				slice.bind(gl);
+				this.shapeProg.input({
+					'pos': slice.boundVertices(),
+					'faceTex': slice.boundUvs(),
+					'netTex': slice.boundNetUvs(),
+					'bumpPos': i - 1,
+				});
+				slice.render(gl);
+			}
 		}
 
 		this.quad.bind(gl);

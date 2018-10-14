@@ -3,6 +3,10 @@ export class M4 {
 		this.data = new Float32Array(16); // col major
 	}
 
+	copy() {
+		return new M4().setCM(this.data);
+	}
+
 	setCM(values) {
 		for(let i = 0; i < 16; ++ i) {
 			this.data[i] = values[i];

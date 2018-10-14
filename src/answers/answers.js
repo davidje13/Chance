@@ -63,7 +63,7 @@ export default class Answers {
 				inflate: i * LETTER_DEPTH / (DEPTH_LAYERS - 1),
 			}));
 		}
-		this.renderer = new Answers3DRenderer(shapeLayers, FOG_DEPTH, HOLE_SIZE);
+		this.renderer = new Answers3DRenderer(shapeLayers, FOG_DEPTH, HOLE_SIZE, MAX_DEPTH);
 
 		this.inner = make('div', 'answers');
 		const ball = buildBackground();
