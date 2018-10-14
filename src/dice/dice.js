@@ -28,18 +28,17 @@ export default class Dice {
 	step(deltaTm, absTm) {
 		this.renderer.render(this.dice);
 
-		const rvel = Quaternion.fromAngularVelocity({
-			x: this.vel.x * deltaTm,
-			y: this.vel.y * deltaTm,
-			z: this.vel.z * deltaTm,
-		});
 		for (const die of this.dice) {
+			const rvel = Quaternion.fromAngularVelocity({
+				x: die.vel.x * deltaTm,
+				y: die.vel.y * deltaTm,
+				z: die.vel.z * deltaTm,
+			});
 			die.rotation = rvel.mult(die.rotation);
 		}
 	}
 
 	start() {
-		const rotation = Quaternion.random(this.randomSource);
 		const materials = ['wood', 'wood-varnished', 'metal', 'plastic', 'plastic-red'];
 		const shapes = ['cube', 'cube-fillet', 'cube-clipped', 'cube-rounded'];
 		const sep = 3.4;
@@ -51,15 +50,15 @@ export default class Dice {
 				this.dice.push({
 					position: {x: (x - midX) * sep, y: -(y - midY) * sep, z: 0},
 					style: {shape: shapes[y], material: materials[x]},
-					rotation,
+					rotation: Quaternion.random(this.randomSource),
+					vel: {
+						x: (this.randomSource.nextFloat() - 0.5) * 2.0,
+						y: (this.randomSource.nextFloat() - 0.5) * 2.0,
+						z: (this.randomSource.nextFloat() - 0.5) * 1.0,
+					},
 				});
 			}
 		}
-		this.vel = {
-			x: this.randomSource.nextFloat() - 0.5,
-			y: this.randomSource.nextFloat() - 0.5,
-			z: 0
-		};
 	}
 
 	stop() {
