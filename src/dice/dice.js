@@ -12,7 +12,6 @@ export default class Dice {
 		this.inner.appendChild(this.renderer.dom());
 
 		this.dice = [];
-		this.vel = null;
 	}
 
 	title() {

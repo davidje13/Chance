@@ -3,6 +3,7 @@ import Program from '../3d/Program.js';
 import {VertexShader, FragmentShader} from '../3d/Shader.js';
 import {Texture2D} from '../3d/Texture.js';
 import Cube from '../3d/Cube.js';
+import DEPTH_FRAG from '../3d/DepthFrag.js';
 import {M4} from '../math/Matrix.js';
 import Quaternion from '../math/Quaternion.js';
 
@@ -48,19 +49,13 @@ const PROG_FLAT_FRAG_HELPER = `
 	}
 `;
 
-const PROG_FACE_FRAG_HELPER = `
+const PROG_FACE_FRAG_HELPER = DEPTH_FRAG + `
 	uniform sampler2D atlas;
 	uniform sampler2D normalMap;
 	uniform lowp float dotOpacity;
 	uniform lowp float maxDepth;
 
-	const lowp int depthSteps = 4;
-	const lowp int depthTuneSteps = 2;
 	const lowp vec2 regionSize = vec2(0.25, 0.25);
-
-	lowp float depthAt(in lowp vec2 uv) {
-		return texture2D(normalMap, uv).w * maxDepth;
-	}
 
 	lowp vec3 normalAt(in lowp vec2 uv) {
 		return texture2D(normalMap, uv).xyz * 2.0 - 1.0;
@@ -68,50 +63,6 @@ const PROG_FACE_FRAG_HELPER = `
 
 	lowp vec4 colourAt(in lowp vec2 uv) {
 		return texture2D(atlas, uv);
-	}
-
-	lowp float intersectionX(lowp float x1, lowp float x2, lowp float y1, lowp float y2) {
-		// returns intersection with line y = x
-		return (x2 * y1 - x1 * y2) / (x2 - x1 + y1 - y2);
-	}
-
-	lowp float depthAt(in lowp vec2 uv, in lowp vec2 duv, in lowp float depthLimit) {
-		// thanks, http://apoorvaj.io/exploring-bump-mapping-with-webgl.html
-		lowp float lastD = 0.0;
-		lowp float nextD;
-		lowp float lastDPos = 0.0;
-		lowp float nextDPos = 0.0;
-		lowp float depthScale = depthLimit / float(depthSteps - 1);
-
-		// layer search
-		for (lowp int i = 0; i < depthSteps; ++ i) {
-			nextD = depthAt(uv + duv * nextDPos);
-			if (nextD <= nextDPos) {
-				break;
-			}
-			lastD = nextD;
-			lastDPos = nextDPos;
-			nextDPos += depthScale;
-		}
-		if (nextDPos == lastDPos) {
-			return lastDPos;
-		}
-
-		// binary search
-		for (lowp int i = 0; i < depthTuneSteps; ++ i) {
-			lowp float curDPos = (lastDPos + nextDPos) * 0.5;
-			lowp float curD = depthAt(uv + duv * curDPos);
-			if (curD <= curDPos) {
-				nextDPos = curDPos;
-				nextD = curD;
-			} else {
-				lastDPos = curDPos;
-				lastD = curD;
-			}
-		}
-
-		// linear interpolation
-		return intersectionX(lastDPos, nextDPos, lastD, nextD);
 	}
 
 	lowp vec4 getCubeUV(in lowp vec3 pos, out lowp mat3 faceD) {
@@ -146,7 +97,8 @@ const PROG_FACE_FRAG_HELPER = `
 		lowp vec2 dd = (step(0.0, duv) - uv.zw) / duv;
 		duv *= regionSize;
 
-		lowp float depth = depthAt(uv.xy, duv, min(maxDepth, min(dd.x, dd.y)));
+		lowp float depthLimit = min(maxDepth, min(dd.x, dd.y));
+		lowp float depth = depthAt(normalMap, uv.xy, duv, maxDepth, depthLimit);
 		pos += ray * depth * zmult;
 		uv.xy += duv * depth;
 
