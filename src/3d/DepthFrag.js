@@ -1,7 +1,4 @@
-export default `
-	const lowp int depthSteps = 4;
-	const lowp int depthTuneSteps = 2;
-
+export default ({layerSteps = 4, binarySearchSteps = 2, linearInterpolation = true} = {}) => `
 	lowp float intersectionX(lowp float x1, lowp float x2, lowp float y1, lowp float y2) {
 		// returns intersection with line y = x
 		return (x2 * y1 - x1 * y2) / (x2 - x1 + y1 - y2);
@@ -16,18 +13,19 @@ export default `
 	) {
 		// thanks, http://apoorvaj.io/exploring-bump-mapping-with-webgl.html
 		lowp float lastD = 0.0;
-		lowp float nextD;
+		lowp float nextD = depthLimit;
 		lowp float lastDPos = 0.0;
 		lowp float nextDPos = 0.0;
-		lowp float depthScale = depthLimit / float(depthSteps - 1);
+		lowp float depthScale = depthLimit * ${(1 / layerSteps).toFixed(6)};
 
 		// layer search
-		for (lowp int i = 0; i < depthSteps; ++ i) {
-			nextD = texture2D(normalMap, uv + duv * nextDPos).w * maxDepth;
-			if (nextD <= nextDPos) {
+		for (lowp int i = 0; i < ${layerSteps}; ++ i) {
+			lowp float curD = texture2D(normalMap, uv + duv * nextDPos).w * maxDepth;
+			if (curD <= nextDPos) {
+				nextD = curD;
 				break;
 			}
-			lastD = nextD;
+			lastD = curD;
 			lastDPos = nextDPos;
 			nextDPos += depthScale;
 		}
@@ -36,7 +34,7 @@ export default `
 		}
 
 		// binary search
-		for (lowp int i = 0; i < depthTuneSteps; ++ i) {
+		for (lowp int i = 0; i < ${binarySearchSteps}; ++ i) {
 			lowp float curDPos = (lastDPos + nextDPos) * 0.5;
 			lowp float curD = texture2D(normalMap, uv + duv * curDPos).w * maxDepth;
 			if (curD <= curDPos) {
@@ -49,6 +47,6 @@ export default `
 		}
 
 		// linear interpolation
-		return intersectionX(lastDPos, nextDPos, lastD, nextD);
+		return ${linearInterpolation ? 'intersectionX(lastDPos, nextDPos, lastD, nextD)' : 'lastDPos'};
 	}
 `;

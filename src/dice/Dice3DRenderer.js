@@ -3,7 +3,7 @@ import Program from '../3d/Program.js';
 import {VertexShader, FragmentShader} from '../3d/Shader.js';
 import {Texture2D} from '../3d/Texture.js';
 import Cube from '../3d/Cube.js';
-import DEPTH_FRAG from '../3d/DepthFrag.js';
+import DepthFrag from '../3d/DepthFrag.js';
 import {M4} from '../math/Matrix.js';
 import Quaternion from '../math/Quaternion.js';
 
@@ -49,7 +49,7 @@ const PROG_FLAT_FRAG_HELPER = `
 	}
 `;
 
-const PROG_FACE_FRAG_HELPER = DEPTH_FRAG + `
+const PROG_FACE_FRAG_HELPER = DepthFrag() + `
 	uniform sampler2D atlas;
 	uniform sampler2D normalMap;
 	uniform lowp float dotOpacity;

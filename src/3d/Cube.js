@@ -1,4 +1,4 @@
-import ModelData from '../3d/ModelData.js';
+import ModelData from './ModelData.js';
 
 const SIZEOF_FLOAT = 4;
 
