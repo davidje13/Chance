@@ -53,39 +53,76 @@ const PROG_FACE_FRAG_HELPER = `
 	uniform sampler2D normalMap;
 	uniform lowp float dotOpacity;
 
+	const lowp float maxDepth = 0.2;
+	const lowp int depthSteps = 4;
+	const lowp int depthTuneSteps = 2;
+	const lowp float depthScale = maxDepth / float(depthSteps - 1);
 	const lowp vec2 regionSize = vec2(0.25, 0.25);
 
-	lowp vec4 cubeFaceAt(in lowp vec3 pos, out lowp vec3 dx) {
+	lowp vec4 applyFace(inout lowp vec3 pos, inout lowp vec3 norm, in lowp vec3 ray) {
+		lowp mat3 faceD;
 		lowp vec2 region;
-		lowp vec2 uv;
 		lowp vec3 pp = abs(pos);
 		if (pp.x > pp.y && pp.x > pp.z) {
-			region = vec2(0.0, pos.x);
-			uv = pos.yz;
-			dx = vec3(0.0, -1.0, 0.0);
+			region = vec2(0.5, pos.x);
+			faceD[0] = vec3(0.0, 1.0, 0.0);
+			faceD[1] = vec3(0.0, 0.0, sign(pos.x));
 		} else if (pp.y > pp.z) {
-			region = vec2(1.0, pos.y);
-			uv = pos.zx;
-			dx = vec3(0.0, 0.0, -1.0);
+			region = vec2(1.5, pos.y);
+			faceD[0] = vec3(0.0, 0.0, 1.0);
+			faceD[1] = vec3(sign(pos.y), 0.0, 0.0);
 		} else {
-			region = vec2(2.0, pos.z);
-			uv = pos.xy;
-			dx = vec3(-1.0, 0.0, 0.0);
+			region = vec2(2.5, pos.z);
+			faceD[0] = vec3(1.0, 0.0, 0.0);
+			faceD[1] = vec3(0.0, sign(pos.z), 0.0);
 		}
-		region.y = step(0.0, region.y);
-		return vec4(region * regionSize, uv * vec2(0.5, 0.5 - region.y) + 0.5);
-	}
+		faceD[2] = cross(faceD[0], faceD[1]);
+		region.y = step(0.0, region.y) + 0.5;
+		lowp vec2 uv = (region + (pos * faceD).xy * 0.5) * regionSize;
+		lowp vec3 texSpaceRay = ray * faceD;
+		lowp vec2 duv = texSpaceRay.xy * regionSize * -0.5 / texSpaceRay.z;
 
-	lowp vec4 faceColAt(in lowp vec4 face) {
-		return texture2D(atlas, face.xy + face.zw * regionSize) * dotOpacity;
-	}
+		// thanks, http://apoorvaj.io/exploring-bump-mapping-with-webgl.html
+		lowp float lastD = 0.0;
+		lowp float nextD;
+		lowp float lastDPos = 0.0;
+		lowp float nextDPos = 0.0;
+		for (lowp int i = 0; i < depthSteps; ++ i) {
+			nextD = texture2D(normalMap, uv + duv * nextDPos).w * maxDepth;
+			if (nextD <= nextDPos) {
+				break;
+			}
+			lastD = nextD;
+			lastDPos = nextDPos;
+			nextDPos += depthScale;
+		}
+		lowp float depth;
+		if (nextDPos == lastDPos) {
+			depth = nextDPos;
+		} else {
+			// lastD * (1 - a) + nextD * a = lastDPos * (1 - a) + nextDPos * a
+			// a = (lastD - lastDPos) / (nextDPos - nextD + lastD - lastDPos)
+			// depth = lastDPos + (nextDPos - lastDPos) * a
+			for (lowp int i = 0; i < depthTuneSteps; ++ i) {
+				lowp float d = (nextDPos * lastD - lastDPos * nextD) / (nextDPos - lastDPos - nextD + lastD);
+				lowp float curD = texture2D(normalMap, uv + duv * d).w * maxDepth;
+				if (curD <= d) {
+					nextDPos = d;
+					nextD = curD;
+				} else {
+					lastDPos = d;
+					lastD = curD;
+				}
+			}
+			depth = (nextDPos * lastD - lastDPos * nextD) / (nextDPos - lastDPos - nextD + lastD);
+		}
+		pos -= ray * depth / texSpaceRay.z;
+		uv += duv * depth;
 
-	lowp vec3 faceNormAt(in lowp vec4 face, in lowp vec3 dx, in lowp vec3 dz) {
-		lowp vec3 dy = cross(dx, dz);
-		return (
-			mat3(dx, dy, dz) *
-			(texture2D(normalMap, face.xy + face.zw * regionSize).xyz * 2.0 - 1.0)
-		);
+		faceD[2] = norm;
+		norm = normalize(faceD * (texture2D(normalMap, uv).xyz * 2.0 - 1.0));
+
+		return texture2D(atlas, uv) * dotOpacity;
 	}
 `;
 
@@ -109,12 +146,12 @@ const PROG_SHAPE_FRAG = `
 	varying lowp vec3 n;
 
 	void main() {
+		lowp vec3 pos = p;
 		lowp vec3 ray = normalize(p - eye);
-		lowp vec3 dx;
-		lowp vec4 face = cubeFaceAt(p, dx);
-		lowp vec4 faceTex = faceColAt(face);
-		lowp vec3 matt = faceTex.rgb + baseColAt(p) * (1.0 - faceTex.a);
-		lowp vec3 norm = faceNormAt(face, dx, normalize(n));
+		lowp vec3 norm = normalize(n);
+
+		lowp vec4 faceTex = applyFace(pos, norm, ray);
+		lowp vec3 matt = faceTex.rgb + baseColAt(pos) * (1.0 - faceTex.a);
 		gl_FragColor = applyLighting(matt, rot * norm, rot * reflect(ray, norm));
 	}
 `;
@@ -151,15 +188,14 @@ const PROG_TRUNC_BALL_FRAG = `
 				discard;
 			}
 		}
-		lowp vec3 dx;
-		lowp vec4 face = cubeFaceAt(pos, dx);
-		lowp vec4 faceTex = faceColAt(face);
-		lowp vec3 matt = faceTex.rgb + baseColAt(pos) * (1.0 - faceTex.a);
-		lowp vec3 norm = faceNormAt(face, dx, normalize(mix(
+		lowp vec3 norm = normalize(mix(
 			n,
 			pos,
 			smoothstep(1.0 - rounding, 1.0 + rounding, length(pos - n) * invFaceRad)
-		)));
+		));
+
+		lowp vec4 faceTex = applyFace(pos, norm, ray);
+		lowp vec3 matt = faceTex.rgb + baseColAt(pos) * (1.0 - faceTex.a);
 		gl_FragColor = applyLighting(matt, rot * norm, rot * reflect(ray, norm));
 	}
 `;

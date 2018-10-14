@@ -24,7 +24,7 @@ function depthToNormals(data, heightOverWidth) {
 	const d = data.data;
 
 	for (let i = 0; i < w * h; ++ i) {
-		d[i * 4 + 3] = d[i * 4];
+		d[i * 4 + 3] = 255 - d[i * 4];
 	}
 
 	const dz = 255.0 * 4.0 / (heightOverWidth * w);
@@ -54,9 +54,6 @@ function depthToNormals(data, heightOverWidth) {
 			d[p + 1] = dy * m + 128;
 			d[p + 2] = dz * m + 128;
 		}
-	}
-	for (let i = 0; i < w * h; ++ i) {
-		d[i * 4 + 3] = 255;
 	}
 
 	return data;
