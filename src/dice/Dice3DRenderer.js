@@ -75,13 +75,15 @@ const PROG_FACE_FRAG_HELPER = `
 		return (x2 * y1 - x1 * y2) / (x2 - x1 + y1 - y2);
 	}
 
-	lowp float depthAt(in lowp vec2 uv, in lowp vec2 duv) {
+	lowp float depthAt(in lowp vec2 uv, in lowp vec2 duv, in lowp float depthLimit) {
 		// thanks, http://apoorvaj.io/exploring-bump-mapping-with-webgl.html
 		lowp float lastD = 0.0;
 		lowp float nextD;
 		lowp float lastDPos = 0.0;
 		lowp float nextDPos = 0.0;
-		lowp float depthScale = maxDepth / float(depthSteps - 1);
+		lowp float depthScale = depthLimit / float(depthSteps - 1);
+
+		// layer search
 		for (lowp int i = 0; i < depthSteps; ++ i) {
 			nextD = depthAt(uv + duv * nextDPos);
 			if (nextD <= nextDPos) {
@@ -92,61 +94,66 @@ const PROG_FACE_FRAG_HELPER = `
 			nextDPos += depthScale;
 		}
 		if (nextDPos == lastDPos) {
-			return nextDPos;
+			return lastDPos;
 		}
-		// lastD * (1 - a) + nextD * a = lastDPos * (1 - a) + nextDPos * a
-		// a = (lastD - lastDPos) / (nextDPos - nextD + lastD - lastDPos)
-		// depth = lastDPos + (nextDPos - lastDPos) * a
+
+		// binary search
 		for (lowp int i = 0; i < depthTuneSteps; ++ i) {
-			lowp float d = intersectionX(lastDPos, nextDPos, lastD, nextD);
-			lowp float curD = depthAt(uv + duv * nextDPos);
-			if (curD <= d) {
-				nextDPos = d;
+			lowp float curDPos = (lastDPos + nextDPos) * 0.5;
+			lowp float curD = depthAt(uv + duv * curDPos);
+			if (curD <= curDPos) {
+				nextDPos = curDPos;
 				nextD = curD;
 			} else {
-				lastDPos = d;
+				lastDPos = curDPos;
 				lastD = curD;
 			}
 		}
+
+		// linear interpolation
 		return intersectionX(lastDPos, nextDPos, lastD, nextD);
 	}
 
-	lowp vec2 getCubeUV(in lowp vec3 pos, out lowp mat3 faceD) {
+	lowp vec4 getCubeUV(in lowp vec3 pos, out lowp mat3 faceD) {
 		lowp vec2 region;
 		lowp vec3 pp = abs(pos);
 		if (pp.x > pp.y && pp.x > pp.z) {
-			region = vec2(0.5, pos.x);
+			region = vec2(0.0, pos.x);
 			faceD[0] = vec3(0.0, 1.0, 0.0);
 			faceD[1] = vec3(0.0, 0.0, sign(pos.x));
 		} else if (pp.y > pp.z) {
-			region = vec2(1.5, pos.y);
+			region = vec2(1.0, pos.y);
 			faceD[0] = vec3(0.0, 0.0, 1.0);
 			faceD[1] = vec3(sign(pos.y), 0.0, 0.0);
 		} else {
-			region = vec2(2.5, pos.z);
+			region = vec2(2.0, pos.z);
 			faceD[0] = vec3(1.0, 0.0, 0.0);
 			faceD[1] = vec3(0.0, sign(pos.z), 0.0);
 		}
 		faceD[2] = cross(faceD[0], faceD[1]);
-		region.y = step(0.0, region.y) + 0.5;
-		return (region + (pos * faceD).xy * 0.5) * regionSize;
+		region.y = step(0.0, region.y);
+		lowp vec2 segmentUV = (pos * faceD).xy * 0.5 + 0.5;
+		return vec4((region + segmentUV) * regionSize, segmentUV);
 	}
 
 	lowp vec4 applyFace(inout lowp vec3 pos, inout lowp vec3 norm, in lowp vec3 ray) {
 		lowp mat3 faceD;
-		lowp vec2 uv = getCubeUV(pos, faceD);
+		lowp vec4 uv = getCubeUV(pos, faceD);
 		lowp vec3 texSpaceRay = ray * faceD;
 		lowp float zmult = -1.0 / texSpaceRay.z;
-		lowp vec2 duv = texSpaceRay.xy * regionSize * 0.5 * zmult;
+		lowp vec2 duv = texSpaceRay.xy * zmult * 0.5;
 
-		lowp float depth = depthAt(uv, duv);
+		lowp vec2 dd = (step(0.0, duv) - uv.zw) / duv;
+		duv *= regionSize;
+
+		lowp float depth = depthAt(uv.xy, duv, min(maxDepth, min(dd.x, dd.y)));
 		pos += ray * depth * zmult;
-		uv += duv * depth;
+		uv.xy += duv * depth;
 
 		faceD[2] = norm;
-		norm = faceD * normalAt(uv);
+		norm = faceD * normalAt(uv.xy);
 
-		return colourAt(uv) * dotOpacity;
+		return colourAt(uv.xy) * dotOpacity;
 	}
 `;
 
@@ -316,6 +323,14 @@ export default class Dice3DRenderer {
 				'rounding': 0.05,
 			},
 		});
+
+		this.materials.set('unlit', {prog: 'flat', props: {
+			'matt': [1.0, 1.0, 1.0],
+			'ambientCol': [1.0, 1.0, 1.0],
+			'lightCol': [0.0, 0.0, 0.0],
+			'shineCol': [0.0, 0.0, 0.0, 0.0],
+			'dotOpacity': 1.0,
+		}});
 
 		this.materials.set('wood', {prog: 'grain', props: {
 			'textureVolumeTransform': texVolumeTransform,
