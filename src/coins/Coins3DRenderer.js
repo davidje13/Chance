@@ -35,7 +35,7 @@ const PROG_SHAPE_VERT = `
 	}
 `;
 
-const PROG_SHAPE_FRAG = DepthFrag({layerSteps: 12, binarySearchSteps: 3, linearInterpolation: true}) + `
+const PROG_SHAPE_FRAG = DepthFrag() + `
 	uniform sampler2D normalMap;
 	uniform lowp mat3 rot;
 	uniform highp vec3 eye;
