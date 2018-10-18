@@ -38,16 +38,24 @@ export default class Coins {
 	}
 
 	start() {
-		this.coins = [{
-			position: {x: 0, y: 0, z: 0},
-			style: {},
-			rotation: Quaternion.random(this.randomSource),
-			vel: {
-				x: (this.randomSource.nextFloat() - 0.5) * 0.5,
-				y: (this.randomSource.nextFloat() - 0.5) * 0.5,
-				z: (this.randomSource.nextFloat() - 0.5) * 0.2,
-			},
-		}];
+		const sep = 2.5;
+		const midX = 1;
+		const midY = 1;
+		this.coins = [];
+		for (let x = 0; x < 3; ++ x) {
+			for (let y = 0; y < 3; ++ y) {
+				this.coins.push({
+					position: {x: (x - midX) * sep, y: -(y - midY) * sep, z: 0},
+					style: {},
+					rotation: Quaternion.random(this.randomSource),
+					vel: {
+						x: (this.randomSource.nextFloat() - 0.5) * 2.0,
+						y: (this.randomSource.nextFloat() - 0.5) * 2.0,
+						z: (this.randomSource.nextFloat() - 0.5) * 1.0,
+					},
+				});
+			}
+		}
 	}
 
 	stop() {

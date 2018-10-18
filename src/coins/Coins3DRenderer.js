@@ -85,7 +85,7 @@ const PROG_SHAPE_FRAG = DepthFrag() + `
 			if (pos.z < -thickness || pos.z > thickness) {
 				discard;
 			}
-			lowp float bump = atan(pos.y / pos.x) * 200.0;
+			lowp float bump = atan(pos.y / pos.x) * 100.0;
 			norm.x += sin(bump) * 0.5;
 			norm.y += cos(bump) * 0.5;
 			norm = normalize(norm);
@@ -134,7 +134,7 @@ export default class Coins3DRenderer {
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
 
-		this.shape = new Box({width: 2.1, height: 2.1, depth: 0.15});
+		this.shape = new Box({width: 2.1, height: 2.1, depth: 0.28});
 
 		this.prog = new Program(gl, [
 			new VertexShader(gl, PROG_SHAPE_VERT),
@@ -170,7 +170,7 @@ export default class Coins3DRenderer {
 
 		for (const coin of coins) {
 			const mView = M4.fromQuaternion(coin.rotation);
-			mView.translate(coin.position.x, coin.position.y, coin.position.z - 3);
+			mView.translate(coin.position.x, coin.position.y, coin.position.z - 8);
 
 			const shape = this.shape;
 			const prog = this.prog;
