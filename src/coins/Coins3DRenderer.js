@@ -85,9 +85,10 @@ const PROG_SHAPE_FRAG = DepthFrag() + `
 			if (pos.z < -thickness || pos.z > thickness) {
 				discard;
 			}
-			lowp float bump = atan(pos.y / pos.x) * 100.0;
-			norm.x += sin(bump) * 0.5;
-			norm.y += cos(bump) * 0.5;
+			lowp float bumpHeight = max(-dot(ray, norm) * 0.8, 0.0);
+			lowp float bump = atan(pos.y / pos.x) * 52.0;
+			lowp vec2 bumpNorm = normalize(vec2(-sin(bump) * sign(cos(bump)) * bumpHeight, 1.0));
+			norm.xy = bumpNorm.y * norm.xy + bumpNorm.x * vec2(1.0, -1.0) * norm.yx;
 			norm = normalize(norm);
 			gl_FragColor = metal(norm, reflect(ray, norm));
 			return;
