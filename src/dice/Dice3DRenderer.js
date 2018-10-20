@@ -54,6 +54,7 @@ const PROG_FACE_FRAG_HELPER = DepthFrag() + `
 	uniform sampler2D normalMap;
 	uniform lowp float dotOpacity;
 	uniform lowp float maxDepth;
+	uniform lowp vec2 uvOrigin;
 
 	const lowp vec2 regionSize = vec2(0.25, 0.25);
 
@@ -69,19 +70,19 @@ const PROG_FACE_FRAG_HELPER = DepthFrag() + `
 		lowp vec2 region;
 		lowp vec3 pp = abs(pos);
 		if (pp.x > pp.y && pp.x > pp.z) {
-			region = vec2(0.0, pos.x);
-			faceD[0] = vec3(0.0, 1.0, 0.0);
+			region = vec2(2.0, pos.x);
+			faceD[0] = vec3(0.0, -1.0, 0.0);
 			faceD[1] = vec3(0.0, 0.0, sign(pos.x));
 		} else if (pp.y > pp.z) {
 			region = vec2(1.0, pos.y);
-			faceD[0] = vec3(0.0, 0.0, 1.0);
+			faceD[0] = vec3(0.0, 0.0, -1.0);
 			faceD[1] = vec3(sign(pos.y), 0.0, 0.0);
 		} else {
-			region = vec2(2.0, pos.z);
-			faceD[0] = vec3(1.0, 0.0, 0.0);
+			region = vec2(0.0, pos.z);
+			faceD[0] = vec3(-1.0, 0.0, 0.0);
 			faceD[1] = vec3(0.0, sign(pos.z), 0.0);
 		}
-		faceD[2] = cross(faceD[0], faceD[1]);
+		faceD[2] = cross(faceD[1], faceD[0]);
 		region.y = step(0.0, region.y);
 		lowp vec2 segmentUV = (pos * faceD).xy * 0.5 + 0.5;
 		return vec4((region + segmentUV) * regionSize, segmentUV);
@@ -90,6 +91,7 @@ const PROG_FACE_FRAG_HELPER = DepthFrag() + `
 	lowp vec4 applyFace(inout lowp vec3 pos, inout lowp vec3 norm, in lowp vec3 ray) {
 		lowp mat3 faceD;
 		lowp vec4 uv = getCubeUV(pos, faceD);
+		uv.xy += uvOrigin;
 		lowp vec3 texSpaceRay = ray * faceD;
 		lowp float zmult = -1.0 / texSpaceRay.z;
 		lowp vec2 duv = texSpaceRay.xy * zmult * 0.5;
@@ -207,28 +209,8 @@ export default class Dice3DRenderer {
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
 
+		this.fov = 0.6;
 		const maxDepth = 0.1;
-		const worldFaceWidth = 2.0;
-		const normalMapFaceWidth = 0.25;
-		const normalMapFaceDepth = maxDepth * normalMapFaceWidth / worldFaceWidth;
-
-		this.atlas = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
-		this.atlas.setSolid(0, 0, 0, 0);
-		this.atlas.loadImage('resources/dice/atlas.png');
-
-		this.normalMap = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
-		this.normalMap.setSolid(0.5, 0.5, 1.0, 1.0);
-		this.normalMap.generateNormalMap('resources/dice/depth.png', normalMapFaceDepth);
 
 		const texVolumeTransform = M4.fromQuaternion(Quaternion.fromRotation({
 			x: 0.2,
@@ -247,6 +229,7 @@ export default class Dice3DRenderer {
 
 		this.shapes = new Map();
 		this.materials = new Map();
+		this.textures = new Map();
 		this.programs = new Map();
 
 		this.shapes.set('cube', {
@@ -324,6 +307,70 @@ export default class Dice3DRenderer {
 			'dotOpacity': 1.0,
 		}});
 
+		const worldFaceWidth = 2.0;
+		const normalMapFaceWidth = 0.25;
+		const normalMapFaceDepth = maxDepth * normalMapFaceWidth / worldFaceWidth;
+
+		const atlas1 = new Texture2D(gl, {
+			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+		});
+		atlas1.setSolid(0, 0, 0, 0);
+		atlas1.loadImage('resources/dice/atlas1.png');
+
+		const normalMap1 = new Texture2D(gl, {
+			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+		});
+		normalMap1.setSolid(0.5, 0.5, 1.0, 1.0);
+		normalMap1.generateNormalMap('resources/dice/depth1.png', normalMapFaceDepth);
+
+		const atlas2 = new Texture2D(gl, {
+			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+		});
+		atlas2.setSolid(0, 0, 0, 0);
+		atlas2.loadImage('resources/dice/atlas2.png');
+
+		const normalMap2 = new Texture2D(gl, {
+			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+		});
+		normalMap2.setSolid(0.5, 0.5, 1.0, 1.0);
+		normalMap2.generateNormalMap('resources/dice/depth2.png', normalMapFaceDepth);
+
+		this.textures.set('european', {
+			atlas: atlas1,
+			normalMap: normalMap1,
+			origin: [0, 0],
+		});
+
+		this.textures.set('asian', {
+			atlas: atlas1,
+			normalMap: normalMap1,
+			origin: [0, 0.5],
+		});
+
+		this.textures.set('numeric', {
+			atlas: atlas2,
+			normalMap: normalMap2,
+			origin: [0, 0],
+		});
+
+		this.textures.set('written', {
+			atlas: atlas2,
+			normalMap: normalMap2,
+			origin: [0, 0.5],
+		});
+
 		const vertShader = new VertexShader(gl, PROG_SHAPE_VERT);
 
 		this.programs.set('shape grain', new Program(gl, [
@@ -371,18 +418,37 @@ export default class Dice3DRenderer {
 		this.canvas.resize(width, height);
 	}
 
+	widthAtZ(z, {insetPixels = 0} = {}) {
+		return (
+			-z * 2
+			* Math.tan(this.fov)
+			* (this.canvas.width() - insetPixels * this.canvas.pixelRatio())
+			/ this.canvas.height()
+		);
+	}
+
+	heightAtZ(z, {insetPixels = 0} = {}) {
+		return (
+			-z * 2
+			* Math.tan(this.fov)
+			* (this.canvas.height() - insetPixels * this.canvas.pixelRatio())
+			/ this.canvas.height()
+		);
+	}
+
 	render(dice) {
 		const gl = this.canvas.gl;
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
-		const mProj = M4.perspective(0.6, this.canvas.width() / this.canvas.height(), 1.0, 100.0);
+		const mProj = M4.perspective(this.fov, this.canvas.width() / this.canvas.height(), 1.0, 100.0);
 
 		for (const die of dice) {
 			const mView = M4.fromQuaternion(die.rotation);
-			mView.translate(die.position.x, die.position.y, die.position.z - 15);
+			mView.translate(die.position.x, die.position.y, die.position.z);
 
 			const shape = this.shapes.get(die.style.shape);
 			const material = this.materials.get(die.style.material);
+			const texture = this.textures.get(die.style.dots);
 
 			const prog = this.programs.get(shape.prog + ' ' + material.prog);
 
@@ -393,8 +459,9 @@ export default class Dice3DRenderer {
 				'rot': mView.as3(),
 				'pos': shape.geom.boundVertices(),
 				'norm': shape.geom.boundNormals(),
-				'atlas': this.atlas,
-				'normalMap': this.normalMap,
+				'uvOrigin': texture.origin,
+				'atlas': texture.atlas,
+				'normalMap': texture.normalMap,
 			}, this.worldProps, shape.props, material.props));
 			shape.geom.render(gl);
 		}

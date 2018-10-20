@@ -29,6 +29,10 @@ export default class Canvas {
 		return this.gl.canvas.height;
 	}
 
+	pixelRatio() {
+		return pixelRatio;
+	}
+
 	dom() {
 		return this.gl.canvas;
 	}

@@ -120,7 +120,7 @@ export default class Coins3DRenderer {
 	constructor() {
 		this.canvas = new Canvas(1, 1, {
 			alpha: true,
-			antialias: true,
+			antialias: false,
 			depth: false,
 			powerPreference: 'low-power',
 			premultipliedAlpha: true,

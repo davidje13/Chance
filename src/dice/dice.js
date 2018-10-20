@@ -11,6 +11,10 @@ export default class Dice {
 
 		this.inner.appendChild(this.renderer.dom());
 
+		this.regionDepth = 20;
+		this.regionWidth = 0;
+		this.regionHeight = 0;
+
 		this.dice = [];
 	}
 
@@ -37,18 +41,21 @@ export default class Dice {
 		}
 	}
 
-	start() {
+	rebuildDice() {
 		const materials = ['wood', 'wood-varnished', 'metal', 'plastic', 'plastic-red'];
 		const shapes = ['cube', 'cube-fillet', 'cube-clipped', 'cube-rounded'];
-		const sep = 3.4;
-		const midX = (materials.length - 1) / 2;
-		const midY = (shapes.length - 1) / 2;
+		const dots = ['european', 'asian', 'numeric', 'written'];
+		const sepX = (this.regionWidth - 2.5) / (shapes.length - 1);
+		const sepY = (this.regionHeight - 2.5) / (materials.length - 1);
+		const midX = (shapes.length - 1) / 2;
+		const midY = (materials.length - 1) / 2;
 		this.dice = [];
-		for (let x = 0; x < materials.length; ++ x) {
-			for (let y = 0; y < shapes.length; ++ y) {
+		for (let x = 0; x < shapes.length; ++ x) {
+			for (let y = 0; y < materials.length; ++ y) {
+				const z = Math.floor(Math.random() * dots.length);
 				this.dice.push({
-					position: {x: (x - midX) * sep, y: -(y - midY) * sep, z: 0},
-					style: {shape: shapes[y], material: materials[x]},
+					position: {x: (x - midX) * sepX, y: -(y - midY) * sepY, z: 1 - this.regionDepth},
+					style: {shape: shapes[x], material: materials[y], dots: dots[z]},
 					rotation: Quaternion.random(this.randomSource),
 					vel: {
 						x: (this.randomSource.nextFloat() - 0.5) * 2.0,
@@ -60,11 +67,19 @@ export default class Dice {
 		}
 	}
 
+	start() {
+		this.rebuildDice();
+	}
+
 	stop() {
 	}
 
 	resize(width, height) {
 		this.renderer.resize(width, height);
+		const depth = 2 - this.regionDepth;
+		this.regionWidth = this.renderer.widthAtZ(depth) - 0.5;
+		this.regionHeight = this.renderer.heightAtZ(depth, {insetPixels: 140}) - 0.5;
+		this.rebuildDice();
 	}
 
 	dom() {
