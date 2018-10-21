@@ -1,4 +1,5 @@
 import {M4} from '../math/Matrix.js';
+import {V3} from '../math/Vector.js';
 import Quaternion from '../math/Quaternion.js';
 import {load} from '../libs/GoblinWrapper.js';
 
@@ -9,13 +10,6 @@ const DICE_BOX_RAD = 1.05;
 const DICE_REAL_RAD = 1;
 const STACK_IMPULSE_DELAY_SECONDS = 3;
 const ZERO = {x: 0, y: 0, z: 0};
-
-function dist2(v1, v2) {
-	const x = v1.x - v2.x;
-	const y = v1.y - v2.y;
-	const z = v1.z - v2.z;
-	return x * x + y * y + z * z;
-}
 
 export default class DiceSimulator {
 	constructor(shapePoints, maxDepth) {
@@ -84,7 +78,7 @@ export default class DiceSimulator {
 			die.position.z = 0;
 
 			// avoid obscuring camera
-			const d2 = dist2(die.position, ZERO);
+			const d2 = V3.dist2(die.position, ZERO);
 			if (d2 < 0.1 * 0.1) {
 				die.position.x += 2;
 			} else if (d2 < 2 * 2) {
@@ -246,7 +240,7 @@ export default class DiceSimulator {
 
 	step(deltaTm) {
 		if (!this.goblin) {
-			return;
+			return false;
 		}
 		if (this.dirty) {
 			this.buildSimulation();
@@ -265,10 +259,10 @@ export default class DiceSimulator {
 		let allOffscreen = true;
 		let motion = false;
 		for (const die of this.dice) {
-			if (dist2(die.position, die.physical.position) > MOTION_THRESH * MOTION_THRESH) {
+			if (V3.dist2(die.position, die.physical.position) > MOTION_THRESH * MOTION_THRESH) {
 				motion = true;
 			}
-			if (dist2(die.physical.angular_velocity, ZERO) > ROTATION_THRESH * ROTATION_THRESH) {
+			if (V3.length2(die.physical.angular_velocity) > ROTATION_THRESH * ROTATION_THRESH) {
 				motion = true;
 			}
 			if (die.physical.position.z < 0) {

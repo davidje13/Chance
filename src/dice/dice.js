@@ -16,6 +16,7 @@ export default class Dice {
 		this.region = {width: 0, height: 0, depth: 10};
 
 		this.click = this.click.bind(this);
+		this.forceRender = false;
 	}
 
 	title() {
@@ -29,8 +30,9 @@ export default class Dice {
 	}
 
 	step(deltaTm) {
-		if (this.simulator.step(deltaTm)) {
+		if (this.simulator.step(deltaTm) || this.forceRender) {
 			this.renderer.render(this.simulator.getDice());
+			this.forceRender = false;
 		}
 	}
 
@@ -73,6 +75,7 @@ export default class Dice {
 		this.rebuildDice(5);
 		this.simulator.randomise(this.randomSource);
 		this.inner.addEventListener('click', this.click);
+		this.forceRender = true;
 	}
 
 	stop() {
@@ -80,10 +83,12 @@ export default class Dice {
 	}
 
 	updateRegion() {
-		const depth = this.region.depth - 2;
-		this.region.width = this.renderer.widthAtZ(depth, {insetPixels: 10});
-		this.region.height = this.renderer.heightAtZ(depth, {insetPixels: 140});
+		const z = 2 - this.region.depth;
+		this.region.width = this.renderer.widthAtZ(z, {insetPixels: 10});
+		this.region.height = this.renderer.heightAtZ(z, {insetPixels: 140});
 		this.simulator.setRegion(this.region);
+		this.renderer.setFloorDepth(this.region.depth);
+		this.forceRender = true;
 	}
 
 	resize(width, height) {

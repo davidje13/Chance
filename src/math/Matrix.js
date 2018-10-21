@@ -1,3 +1,5 @@
+import {V3} from './Vector.js';
+
 export class M4 {
 	constructor() {
 		this.data = new Float32Array(16); // col major
@@ -185,9 +187,9 @@ export class M4 {
 	}
 
 	static look(from, to, up) {
-		const dz = to.sub(from).norm();
-		const dx = up.cross(dz).norm();
-		const dy = dz.cross(dx).norm();
+		const dz = V3.sub(to, from).normalise();
+		const dx = V3.cross(up, dz).normalise();
+		const dy = V3.cross(dz, dx).normalise();
 		return (
 			M4.identity()
 			.translate(from.x, from.y, from.z)
@@ -201,9 +203,9 @@ export class M4 {
 	}
 
 	static lookObj(from, to, up) {
-		const dz = to.sub(from).norm();
-		const dx = up.cross(dz).norm();
-		const dy = dz.cross(dx).norm();
+		const dz = V3.sub(to, from).normalise();
+		const dx = V3.cross(up, dz).normalise();
+		const dy = V3.cross(dz, dx).normalise();
 		return M4.of([
 			dx.x, dy.x, dz.x, from.x,
 			dx.y, dy.y, dz.y, from.y,
@@ -224,6 +226,33 @@ export class M4 {
 			0, 0, c, d,
 			0, 0, -1, 0,
 		]);
+	}
+
+	static shadowPerspective(
+		lightPos,
+		planeCentre,
+		planeNormal,
+		planeY,
+		planeWidth,
+		planeHeight,
+		znear
+	) {
+		const zfar = V3.dot(lightPos, planeNormal) - V3.dot(planeCentre, planeNormal);
+		const planeNearest = V3.sub(lightPos, V3.multScalar(planeNormal, zfar));
+		const planeX = V3.cross(planeY, planeNormal);
+		const delta = V3.sub(planeCentre, lightPos);
+		const c = (zfar + znear) / (znear - zfar);
+		const d = 2 * zfar * znear / (znear - zfar);
+		const iw = 2 / planeWidth;
+		const ih = 2 / planeHeight;
+		const proj = M4.of([
+			zfar * iw, 0, V3.dot(delta, planeX) * iw, 0,
+			0, zfar * ih, V3.dot(delta, planeY) * ih, 0,
+			0, 0, c, d,
+			0, 0, -1, 0,
+		]);
+		planeNearest.z *= -1;
+		return M4.lookObj(lightPos, planeNearest, planeY).invert().mult(proj);
 	}
 
 	static fromQuaternion(q) {

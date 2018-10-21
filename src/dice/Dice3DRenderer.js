@@ -2,24 +2,27 @@ import Canvas from '../3d/Canvas.js';
 import Program from '../3d/Program.js';
 import {VertexShader, FragmentShader} from '../3d/Shader.js';
 import {Texture2D} from '../3d/Texture.js';
+import Framebuffer from '../3d/Framebuffer.js';
 import Cube from '../3d/Cube.js';
+import ScreenQuad from '../3d/ScreenQuad.js';
 import {M4} from '../math/Matrix.js';
+import {V3} from '../math/Vector.js';
 import Quaternion from '../math/Quaternion.js';
 import PROG_SHAPE_VERT from './shaders/VertexProject.js';
 import PROG_GLOSS_FRAG_HELPER from './shaders/Gloss.js';
 import PROG_GRAIN_FRAG_HELPER from './shaders/MatWood.js';
 import PROG_FLAT_FRAG_HELPER from './shaders/MatFlat.js';
 import PROG_FACE_FRAG_HELPER from './shaders/GeomCube.js';
+import PROG_COL_FRAG_HELPER from './shaders/TargetCol.js';
+import PROG_SHADOW_FRAG_HELPER from './shaders/TargetShadow.js';
 import PROG_SHAPE_FRAG from './shaders/ShapeDirect.js';
 import PROG_TRUNC_BALL_FRAG from './shaders/ShapeRoundedCube.js';
+
+const ZERO = {x: 0, y: 0, z: 0};
 
 function normalize(v) {
 	const m = 1 / Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 	return [v[0] * m, v[1] * m, v[2] * m];
-}
-
-function length2(v) {
-	return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
 function loadAtlas(gl, url) {
@@ -46,6 +49,25 @@ function loadNormalMap(gl, url, depth) {
 	return normalMap;
 }
 
+const PROG_COVER_VERT = `
+	attribute vec4 pos;
+	attribute vec2 tex;
+	varying lowp vec2 t;
+	void main() {
+		gl_Position = pos;
+		t = tex;
+	}
+`;
+
+const PROG_FLOOR_FRAG = `
+	uniform mediump float opacity;
+	uniform sampler2D atlas;
+	varying lowp vec2 t;
+	void main() {
+		gl_FragColor = texture2D(atlas, t) * opacity;
+	}
+`;
+
 export default class Dice3DRenderer {
 	constructor() {
 		this.canvas = new Canvas(1, 1, {
@@ -65,7 +87,19 @@ export default class Dice3DRenderer {
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
 		gl.depthFunc(gl.LESS);
-		gl.enable(gl.DEPTH_TEST);
+
+		this.floor = new ScreenQuad({uv: {left: 0, right: 1, top: 1, bottom: 0}});
+		this.floorZ = 0;
+
+		this.shadowBufferTex = new Texture2D(gl, {
+			[gl.TEXTURE_MAG_FILTER]: gl.NEAREST,
+			[gl.TEXTURE_MIN_FILTER]: gl.NEAREST,
+			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+		});
+
+		this.shadowBufferTex.set(this.canvas.width(), this.canvas.height());
+		this.shadowBuffer = new Framebuffer(gl, this.shadowBufferTex);
 
 		this.fov = 0.6;
 		const maxDepth = 0.1;
@@ -201,12 +235,29 @@ export default class Dice3DRenderer {
 
 		const vertShader = new VertexShader(gl, PROG_SHAPE_VERT);
 
+		this.programs.set('shape shadow', new Program(gl, [
+			vertShader,
+			new FragmentShader(gl,
+				PROG_SHADOW_FRAG_HELPER +
+				PROG_SHAPE_FRAG
+			),
+		]));
+
+		this.programs.set('rounded shadow', new Program(gl, [
+			vertShader,
+			new FragmentShader(gl,
+				PROG_SHADOW_FRAG_HELPER +
+				PROG_TRUNC_BALL_FRAG
+			),
+		]));
+
 		this.programs.set('shape grain', new Program(gl, [
 			vertShader,
 			new FragmentShader(gl,
 				PROG_FACE_FRAG_HELPER +
 				PROG_GLOSS_FRAG_HELPER +
 				PROG_GRAIN_FRAG_HELPER +
+				PROG_COL_FRAG_HELPER +
 				PROG_SHAPE_FRAG
 			),
 		]));
@@ -217,6 +268,7 @@ export default class Dice3DRenderer {
 				PROG_FACE_FRAG_HELPER +
 				PROG_GLOSS_FRAG_HELPER +
 				PROG_GRAIN_FRAG_HELPER +
+				PROG_COL_FRAG_HELPER +
 				PROG_TRUNC_BALL_FRAG
 			),
 		]));
@@ -227,6 +279,7 @@ export default class Dice3DRenderer {
 				PROG_FACE_FRAG_HELPER +
 				PROG_GLOSS_FRAG_HELPER +
 				PROG_FLAT_FRAG_HELPER +
+				PROG_COL_FRAG_HELPER +
 				PROG_SHAPE_FRAG
 			),
 		]));
@@ -237,18 +290,25 @@ export default class Dice3DRenderer {
 				PROG_FACE_FRAG_HELPER +
 				PROG_GLOSS_FRAG_HELPER +
 				PROG_FLAT_FRAG_HELPER +
+				PROG_COL_FRAG_HELPER +
 				PROG_TRUNC_BALL_FRAG
 			),
 		]));
+
+		this.floorProg = new Program(gl, [
+			new VertexShader(gl, PROG_COVER_VERT),
+			new FragmentShader(gl, PROG_FLOOR_FRAG),
+		]);
 	}
 
 	resize(width, height) {
 		this.canvas.resize(width, height);
+		this.shadowBufferTex.set(this.canvas.width(), this.canvas.height());
 	}
 
 	widthAtZ(z, {insetPixels = 0} = {}) {
 		return (
-			z * 2
+			-z * 2
 			* Math.tan(this.fov)
 			* (this.canvas.width() - insetPixels * this.canvas.pixelRatio())
 			/ this.canvas.height()
@@ -257,25 +317,82 @@ export default class Dice3DRenderer {
 
 	heightAtZ(z, {insetPixels = 0} = {}) {
 		return (
-			z * 2
+			-z * 2
 			* Math.tan(this.fov)
 			* (this.canvas.height() - insetPixels * this.canvas.pixelRatio())
 			/ this.canvas.height()
 		);
 	}
 
-	render(dice) {
+	renderShadow(dice) {
 		const gl = this.canvas.gl;
+
+		this.shadowBuffer.bind();
+		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
-		const mProj = M4.perspective(this.fov, this.canvas.width() / this.canvas.height(), 1.0, 100.0);
+		const ww = this.widthAtZ(this.floorZ);
+		const hh = this.heightAtZ(this.floorZ);
+		const lightPos = {x: 0.0, y: hh * 0.6, z: hh * 0.3};
+		const mProj = M4.shadowPerspective(
+			lightPos,
+			{x: 0, y: 0, z: this.floorZ},
+			{x: 0, y: 0, z: 1},
+			{x: 0, y: 1, z: 0},
+			ww,
+			hh,
+			1.0
+		);
 
 		const orderedDice = dice.slice().sort((a, b) => {
-			const dA = length2(a.position);
-			const dB = length2(b.position);
+			const dA = V3.dist2(a.position, lightPos);
+			const dB = V3.dist2(b.position, lightPos);
 			return dB - dA;
 		});
 
+		for (const die of orderedDice) {
+			const mView = M4.fromQuaternion(die.rotation);
+			mView.translate(die.position.x, die.position.y, die.position.z);
+
+			const shape = this.shapes.get(die.style.shape);
+
+			const prog = this.programs.get(shape.prog + ' shadow');
+
+			shape.geom.bind(gl);
+			prog.use(Object.assign({
+				'projview': mView.mult(mProj),
+				'eye': mView.invert().apply3([lightPos.x, lightPos.y, lightPos.z]),
+				'pos': shape.geom.boundVertices(),
+				'norm': shape.geom.boundNormals(),
+			}, this.worldProps, shape.props));
+			shape.geom.render(gl);
+		}
+
+		this.shadowBuffer.unbind();
+	}
+
+	renderScene(dice) {
+		const gl = this.canvas.gl;
+
+		this.floor.bind(gl);
+		this.floorProg.use({
+			'opacity': 0.2,
+			'atlas': this.shadowBufferTex,
+			'pos': this.floor.boundVertices(),
+			'tex': this.floor.boundUvs(),
+		});
+		this.floor.render(gl);
+
+		const mProj = M4.perspective(this.fov, this.canvas.width() / this.canvas.height(), 1.0, 100.0);
+		const cameraPos = ZERO;
+
+		const orderedDice = dice.slice().sort((a, b) => {
+			const dA = V3.dist2(a.position, cameraPos);
+			const dB = V3.dist2(b.position, cameraPos);
+			return dB - dA;
+		});
+
+		gl.enable(gl.DEPTH_TEST);
 		for (const die of orderedDice) {
 			const mView = M4.fromQuaternion(die.rotation);
 			mView.translate(die.position.x, die.position.y, die.position.z);
@@ -289,7 +406,7 @@ export default class Dice3DRenderer {
 			shape.geom.bind(gl);
 			prog.use(Object.assign({
 				'projview': mView.mult(mProj),
-				'eye': mView.invert().apply3([0, 0, 0]),
+				'eye': mView.invert().apply3([cameraPos.x, cameraPos.y, cameraPos.z]),
 				'rot': mView.as3(),
 				'pos': shape.geom.boundVertices(),
 				'norm': shape.geom.boundNormals(),
@@ -299,6 +416,16 @@ export default class Dice3DRenderer {
 			}, this.worldProps, shape.props, material.props));
 			shape.geom.render(gl);
 		}
+		gl.disable(gl.DEPTH_TEST);
+	}
+
+	setFloorDepth(depth) {
+		this.floorZ = -depth;
+	}
+
+	render(dice) {
+		this.renderShadow(dice);
+		this.renderScene(dice);
 	}
 
 	dom() {
