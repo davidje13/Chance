@@ -2,7 +2,7 @@ import FrictionSimulator from './FrictionSimulator.js';
 import Pointer from './Pointer.js';
 import Momentum from './Momentum.js';
 import MouseDrag from './MouseDrag.js';
-import ShakeGesture from './ShakeGesture.js';
+import ShakeGesture from '../gestures/ShakeGesture.js';
 import ContortionGlRenderer from './ContortionGlRenderer.js';
 
 const BOARD_WIDTH = 310;

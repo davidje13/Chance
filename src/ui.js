@@ -39,8 +39,8 @@ function updateLabels() {
 
 function start(tm) {
 	lastTime = tm;
-	currentTabRunner.start();
 	resize();
+	currentTabRunner.start();
 }
 
 function resize() {
@@ -55,8 +55,12 @@ function resize() {
 
 function step(tm) {
 	const deltaMillis = (tm - lastTime);
-	currentTabRunner.step(Math.min(deltaMillis * 0.001, 0.1), tm * 0.001);
-	lastTime = tm;
+	if (deltaMillis < 0) {
+		currentTabRunner.step(0, lastTime);
+	} else {
+		currentTabRunner.step(Math.min(deltaMillis * 0.001, 0.1), tm * 0.001);
+		lastTime = tm;
+	}
 	updateLabels();
 }
 

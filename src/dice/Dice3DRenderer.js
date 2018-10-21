@@ -3,191 +3,47 @@ import Program from '../3d/Program.js';
 import {VertexShader, FragmentShader} from '../3d/Shader.js';
 import {Texture2D} from '../3d/Texture.js';
 import Cube from '../3d/Cube.js';
-import DepthFrag from '../3d/DepthFrag.js';
 import {M4} from '../math/Matrix.js';
 import Quaternion from '../math/Quaternion.js';
-
-const PROG_GLOSS_FRAG_HELPER = `
-	uniform lowp vec3 ambientCol;
-	uniform lowp vec3 lightCol;
-	uniform lowp vec4 shineCol;
-
-	uniform lowp vec3 lightDir;
-	uniform lowp vec3 shineDir;
-
-	lowp vec4 applyLighting(
-		in lowp vec3 matt,
-		in lowp vec3 norm,
-		in lowp vec3 ref
-	) {
-		return vec4(
-			mix(
-				matt * (ambientCol + lightCol * dot(norm, lightDir)),
-				shineCol.rgb,
-				smoothstep(0.49, 0.51, dot(ref, shineDir)) * shineCol.a
-			),
-			1.0
-		);
-	}
-`;
-
-const PROG_GRAIN_FRAG_HELPER = `
-	uniform lowp mat4 textureVolumeTransform;
-
-	lowp vec3 baseColAt(in lowp vec3 pos) {
-		lowp vec4 woodPos = textureVolumeTransform * vec4(pos, 1.0);
-		lowp float wood = fract(length(woodPos.xy));
-		return mix(vec3(0.88, 0.66, 0.48), vec3(0.86, 0.62, 0.44), wood);
-	}
-`;
-
-const PROG_FLAT_FRAG_HELPER = `
-	uniform lowp vec3 matt;
-
-	lowp vec3 baseColAt(in lowp vec3 pos) {
-		return matt;
-	}
-`;
-
-const PROG_FACE_FRAG_HELPER = DepthFrag() + `
-	uniform sampler2D atlas;
-	uniform sampler2D normalMap;
-	uniform lowp float dotOpacity;
-	uniform lowp float maxDepth;
-	uniform lowp vec2 uvOrigin;
-
-	const lowp vec2 regionSize = vec2(0.25, 0.25);
-
-	lowp vec3 normalAt(in lowp vec2 uv) {
-		return texture2D(normalMap, uv).xyz * 2.0 - 1.0;
-	}
-
-	lowp vec4 colourAt(in lowp vec2 uv) {
-		return texture2D(atlas, uv);
-	}
-
-	lowp vec4 getCubeUV(in lowp vec3 pos, out lowp mat3 faceD) {
-		lowp vec2 region;
-		lowp vec3 pp = abs(pos);
-		if (pp.x > pp.y && pp.x > pp.z) {
-			region = vec2(2.0, pos.x);
-			faceD[0] = vec3(0.0, -1.0, 0.0);
-			faceD[1] = vec3(0.0, 0.0, sign(pos.x));
-		} else if (pp.y > pp.z) {
-			region = vec2(1.0, pos.y);
-			faceD[0] = vec3(0.0, 0.0, -1.0);
-			faceD[1] = vec3(sign(pos.y), 0.0, 0.0);
-		} else {
-			region = vec2(0.0, pos.z);
-			faceD[0] = vec3(-1.0, 0.0, 0.0);
-			faceD[1] = vec3(0.0, sign(pos.z), 0.0);
-		}
-		faceD[2] = cross(faceD[1], faceD[0]);
-		region.y = step(0.0, region.y);
-		lowp vec2 segmentUV = (pos * faceD).xy * 0.5 + 0.5;
-		return vec4((region + segmentUV) * regionSize, segmentUV);
-	}
-
-	lowp vec4 applyFace(inout lowp vec3 pos, inout lowp vec3 norm, in lowp vec3 ray) {
-		lowp mat3 faceD;
-		lowp vec4 uv = getCubeUV(pos, faceD);
-		uv.xy += uvOrigin;
-		lowp vec3 texSpaceRay = ray * faceD;
-		lowp float zmult = -1.0 / texSpaceRay.z;
-		lowp vec2 duv = texSpaceRay.xy * zmult * 0.5;
-
-		lowp vec2 dd = (step(0.0, duv) - uv.zw) / duv;
-		duv *= regionSize;
-
-		lowp float depthLimit = min(maxDepth, min(dd.x, dd.y));
-		lowp float depth = depthAt(normalMap, uv.xy, duv, maxDepth, depthLimit);
-		pos += ray * depth * zmult;
-		uv.xy += duv * depth;
-
-		faceD[2] = norm;
-		norm = faceD * normalAt(uv.xy);
-
-		return colourAt(uv.xy) * dotOpacity;
-	}
-`;
-
-const PROG_SHAPE_VERT = `
-	uniform lowp mat4 projview;
-	attribute vec4 pos;
-	attribute vec3 norm;
-	varying lowp vec3 p;
-	varying lowp vec3 n;
-	void main() {
-		p = pos.xyz;
-		n = norm;
-		gl_Position = projview * pos;
-	}
-`;
-
-const PROG_SHAPE_FRAG = `
-	uniform lowp mat3 rot;
-	uniform highp vec3 eye;
-	varying lowp vec3 p;
-	varying lowp vec3 n;
-
-	void main() {
-		lowp vec3 pos = p;
-		lowp vec3 ray = normalize(p - eye);
-		lowp vec3 norm = normalize(n);
-
-		lowp vec4 faceTex = applyFace(pos, norm, ray);
-		lowp vec3 matt = faceTex.rgb + baseColAt(pos) * (1.0 - faceTex.a);
-		gl_FragColor = applyLighting(matt, rot * norm, rot * reflect(ray, norm));
-	}
-`;
-
-const PROG_TRUNC_BALL_FRAG = `
-	uniform lowp mat3 rot;
-	uniform highp vec3 eye;
-	uniform lowp float radius;
-	uniform lowp float invFaceRad;
-	uniform lowp float rounding;
-	varying lowp vec3 p;
-	varying lowp vec3 n;
-
-	void main() {
-		lowp vec3 ray = normalize(p - eye);
-		lowp float lo = -dot(ray, eye);
-		lowp float root = lo * lo + radius * radius - dot(eye, eye);
-		if (root < 0.0) {
-			discard;
-		}
-		root = sqrt(root);
-		highp float dSphereNear = lo - root;
-		highp float dShapeNear = dot(p - eye, ray);
-		mediump vec3 pos;
-		if (dShapeNear > dSphereNear) {
-			highp float dSphereFar = lo + root;
-			if (dShapeNear > dSphereFar) {
-				discard;
-			}
-			pos = p;
-		} else {
-			pos = eye + ray * dSphereNear;
-			if (any(greaterThan(pos * sign(ray), vec3(1.0)))) {
-				discard;
-			}
-		}
-		lowp vec3 norm = normalize(mix(
-			n,
-			pos,
-			smoothstep(1.0 - rounding, 1.0 + rounding, length(pos - n) * invFaceRad)
-		));
-
-		lowp vec4 faceTex = applyFace(pos, norm, ray);
-		lowp vec3 matt = faceTex.rgb + baseColAt(pos) * (1.0 - faceTex.a);
-		gl_FragColor = applyLighting(matt, rot * norm, rot * reflect(ray, norm));
-	}
-`;
+import PROG_SHAPE_VERT from './shaders/VertexProject.js';
+import PROG_GLOSS_FRAG_HELPER from './shaders/Gloss.js';
+import PROG_GRAIN_FRAG_HELPER from './shaders/MatWood.js';
+import PROG_FLAT_FRAG_HELPER from './shaders/MatFlat.js';
+import PROG_FACE_FRAG_HELPER from './shaders/GeomCube.js';
+import PROG_SHAPE_FRAG from './shaders/ShapeDirect.js';
+import PROG_TRUNC_BALL_FRAG from './shaders/ShapeRoundedCube.js';
 
 function normalize(v) {
 	const m = 1 / Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 	return [v[0] * m, v[1] * m, v[2] * m];
+}
+
+function length2(v) {
+	return v.x * v.x + v.y * v.y + v.z * v.z;
+}
+
+function loadAtlas(gl, url) {
+	const atlas = new Texture2D(gl, {
+		[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+		[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+		[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+		[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+	});
+	atlas.setSolid(0, 0, 0, 0);
+	atlas.loadImage(url);
+	return atlas;
+}
+
+function loadNormalMap(gl, url, depth) {
+	const normalMap = new Texture2D(gl, {
+		[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+		[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+		[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+		[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+	});
+	normalMap.setSolid(0.5, 0.5, 1.0, 1.0);
+	normalMap.generateNormalMap(url, depth);
+	return normalMap;
 }
 
 export default class Dice3DRenderer {
@@ -283,15 +139,15 @@ export default class Dice3DRenderer {
 			'dotOpacity': 0.9,
 		}});
 
-		this.materials.set('metal', {prog: 'flat', props: {
-			'matt': [0.96, 0.98, 1.0],
+		this.materials.set('metal-black', {prog: 'flat', props: {
+			'matt': [0.28, 0.28, 0.3],
 			'ambientCol': [0.1, 0.1, 0.1],
 			'lightCol': [0.6, 0.6, 0.6],
-			'shineCol': [1.0, 1.0, 1.0, 0.8],
+			'shineCol': [0.95, 0.95, 1.0, 0.8],
 			'dotOpacity': 0.0,
 		}});
 
-		this.materials.set('plastic', {prog: 'flat', props: {
+		this.materials.set('plastic-white', {prog: 'flat', props: {
 			'matt': [0.95, 0.95, 0.97],
 			'ambientCol': [0.6, 0.6, 0.6],
 			'lightCol': [0.4, 0.4, 0.4],
@@ -311,41 +167,11 @@ export default class Dice3DRenderer {
 		const normalMapFaceWidth = 0.25;
 		const normalMapFaceDepth = maxDepth * normalMapFaceWidth / worldFaceWidth;
 
-		const atlas1 = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
-		atlas1.setSolid(0, 0, 0, 0);
-		atlas1.loadImage('resources/dice/atlas1.png');
+		const atlas1 = loadAtlas(gl, 'resources/dice/atlas1.png');
+		const normalMap1 = loadNormalMap(gl, 'resources/dice/depth1.png', normalMapFaceDepth);
 
-		const normalMap1 = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
-		normalMap1.setSolid(0.5, 0.5, 1.0, 1.0);
-		normalMap1.generateNormalMap('resources/dice/depth1.png', normalMapFaceDepth);
-
-		const atlas2 = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
-		atlas2.setSolid(0, 0, 0, 0);
-		atlas2.loadImage('resources/dice/atlas2.png');
-
-		const normalMap2 = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
-		normalMap2.setSolid(0.5, 0.5, 1.0, 1.0);
-		normalMap2.generateNormalMap('resources/dice/depth2.png', normalMapFaceDepth);
+		const atlas2 = loadAtlas(gl, 'resources/dice/atlas2.png');
+		const normalMap2 = loadNormalMap(gl, 'resources/dice/depth2.png', normalMapFaceDepth);
 
 		this.textures.set('european', {
 			atlas: atlas1,
@@ -420,7 +246,7 @@ export default class Dice3DRenderer {
 
 	widthAtZ(z, {insetPixels = 0} = {}) {
 		return (
-			-z * 2
+			z * 2
 			* Math.tan(this.fov)
 			* (this.canvas.width() - insetPixels * this.canvas.pixelRatio())
 			/ this.canvas.height()
@@ -429,7 +255,7 @@ export default class Dice3DRenderer {
 
 	heightAtZ(z, {insetPixels = 0} = {}) {
 		return (
-			-z * 2
+			z * 2
 			* Math.tan(this.fov)
 			* (this.canvas.height() - insetPixels * this.canvas.pixelRatio())
 			/ this.canvas.height()
@@ -442,7 +268,13 @@ export default class Dice3DRenderer {
 
 		const mProj = M4.perspective(this.fov, this.canvas.width() / this.canvas.height(), 1.0, 100.0);
 
-		for (const die of dice) {
+		const orderedDice = dice.slice().sort((a, b) => {
+			const dA = length2(a.position);
+			const dB = length2(b.position);
+			return dB - dA;
+		});
+
+		for (const die of orderedDice) {
 			const mView = M4.fromQuaternion(die.rotation);
 			mView.translate(die.position.x, die.position.y, die.position.z);
 

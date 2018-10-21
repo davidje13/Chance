@@ -1,5 +1,7 @@
 import Dice3DRenderer from './Dice3DRenderer.js';
+import DiceSimulator from './DiceSimulator.js';
 import Quaternion from '../math/Quaternion.js';
+import ShakeGesture from '../gestures/ShakeGesture.js';
 
 export default class Dice {
 	constructor(randomSource) {
@@ -8,14 +10,14 @@ export default class Dice {
 
 		this.randomSource = randomSource;
 		this.renderer = new Dice3DRenderer();
+		this.simulator = new DiceSimulator();
 
 		this.inner.appendChild(this.renderer.dom());
 
-		this.regionDepth = 20;
-		this.regionWidth = 0;
-		this.regionHeight = 0;
+		this.region = {width: 0, height: 0, depth: 10};
 
-		this.dice = [];
+		this.click = this.click.bind(this);
+		this.shake = new ShakeGesture(this.click);
 	}
 
 	title() {
@@ -28,58 +30,60 @@ export default class Dice {
 		);
 	}
 
-	step(deltaTm, absTm) {
-		this.renderer.render(this.dice);
-
-		for (const die of this.dice) {
-			const rvel = Quaternion.fromAngularVelocity({
-				x: die.vel.x * deltaTm,
-				y: die.vel.y * deltaTm,
-				z: die.vel.z * deltaTm,
-			});
-			die.rotation = rvel.mult(die.rotation);
-		}
+	step(deltaTm) {
+		this.simulator.step(deltaTm);
+		this.renderer.render(this.simulator.getDice());
 	}
 
-	rebuildDice() {
-		const materials = ['wood', 'wood-varnished', 'metal', 'plastic', 'plastic-red'];
+	rebuildDice(quantity) {
+		this.simulator.clearDice();
+
+		const materials = ['wood', 'wood-varnished', 'plastic-white', 'plastic-red'];
 		const shapes = ['cube', 'cube-fillet', 'cube-clipped', 'cube-rounded'];
 		const dots = ['european', 'asian', 'numeric', 'written'];
-		const sepX = (this.regionWidth - 2.5) / (shapes.length - 1);
-		const sepY = (this.regionHeight - 2.5) / (materials.length - 1);
-		const midX = (shapes.length - 1) / 2;
-		const midY = (materials.length - 1) / 2;
-		this.dice = [];
-		for (let x = 0; x < shapes.length; ++ x) {
-			for (let y = 0; y < materials.length; ++ y) {
-				const z = Math.floor(Math.random() * dots.length);
-				this.dice.push({
-					position: {x: (x - midX) * sepX, y: -(y - midY) * sepY, z: 1 - this.regionDepth},
-					style: {shape: shapes[x], material: materials[y], dots: dots[z]},
-					rotation: Quaternion.random(this.randomSource),
-					vel: {
-						x: (this.randomSource.nextFloat() - 0.5) * 2.0,
-						y: (this.randomSource.nextFloat() - 0.5) * 2.0,
-						z: (this.randomSource.nextFloat() - 0.5) * 1.0,
-					},
-				});
-			}
+
+		for (let i = 0; i < quantity; ++ i) {
+			const x = this.randomSource.nextInt(shapes.length);
+			const y = this.randomSource.nextInt(materials.length);
+			const z = this.randomSource.nextInt(dots.length);
+			this.simulator.addDie({
+				style: {shape: shapes[x], material: materials[y], dots: dots[z]}
+			});
 		}
+
+		this.region.depth = Math.max(10, Math.min(100,
+			4 * Math.sqrt(quantity) + 2
+		));
+		this.updateRegion();
+	}
+
+	click() {
+		this.simulator.fireOffscreen()
+			.then(() => this.simulator.randomise(this.randomSource));
 	}
 
 	start() {
-		this.rebuildDice();
+		this.rebuildDice(10);
+		this.simulator.randomise(this.randomSource);
+		this.inner.addEventListener('click', this.click);
+		this.shake.start();
 	}
 
 	stop() {
+		this.inner.removeEventListener('click', this.click);
+		this.shake.stop();
+	}
+
+	updateRegion() {
+		const depth = this.region.depth - 2;
+		this.region.width = this.renderer.widthAtZ(depth, {insetPixels: 10});
+		this.region.height = this.renderer.heightAtZ(depth, {insetPixels: 140});
+		this.simulator.setRegion(this.region);
 	}
 
 	resize(width, height) {
 		this.renderer.resize(width, height);
-		const depth = 2 - this.regionDepth;
-		this.regionWidth = this.renderer.widthAtZ(depth) - 0.5;
-		this.regionHeight = this.renderer.heightAtZ(depth, {insetPixels: 140}) - 0.5;
-		this.rebuildDice();
+		this.updateRegion();
 	}
 
 	dom() {

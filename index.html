@@ -1,6 +1,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="content-security-policy" content="
+	base-uri 'self';
+	default-src 'self';
+	child-src 'none';
+	frame-src 'none';
+	connect-src 'none';
+	script-src 'self' https://cdn.jsdelivr.net;
+	worker-src 'self';
+	style-src 'self';
+	img-src 'self';
+	form-action 'none';
+">
 <meta name="viewport" content="initial-scale=1.0, user-scalable=no, minimal-ui">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
