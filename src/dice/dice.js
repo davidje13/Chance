@@ -31,8 +31,9 @@ export default class Dice {
 	}
 
 	step(deltaTm) {
-		this.simulator.step(deltaTm);
-		this.renderer.render(this.simulator.getDice());
+		if (this.simulator.step(deltaTm)) {
+			this.renderer.render(this.simulator.getDice());
+		}
 	}
 
 	rebuildDice(quantity) {

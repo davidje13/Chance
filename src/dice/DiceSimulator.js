@@ -2,6 +2,19 @@ import {M4} from '../math/Matrix.js';
 import Quaternion from '../math/Quaternion.js';
 import {load} from '../libs/GoblinWrapper.js';
 
+const MOTION_THRESH = 0.01;
+const ROTATION_THRESH = 0.1;
+const INACTIVITY_THRESH_SECONDS = 0.5;
+const DICE_BOX_RAD = 1.05;
+const DICE_REAL_RAD = 1;
+
+function dist2(v1, v2) {
+	const x = v1.x - v2.x;
+	const y = v1.y - v2.y;
+	const z = v1.z - v2.z;
+	return x * x + y * y + z * z;
+}
+
 export default class DiceSimulator {
 	constructor(shapePoints, maxDepth) {
 		this.dice = [];
@@ -11,6 +24,9 @@ export default class DiceSimulator {
 
 		this.dirty = true;
 		this.goblin = null;
+
+		this.active = true;
+		this.inactivity = 0;
 
 		load().then((lib) => {
 			this.goblin = lib;
@@ -63,6 +79,17 @@ export default class DiceSimulator {
 			die.position.x = (randomSource.nextFloat() - 0.5) * (this.region.width - 3);
 			die.position.y = (randomSource.nextFloat() - 0.5) * (this.region.height - 3);
 			die.position.z = 0;
+
+			// avoid obscuring camera
+			const d2 = dist2(die.position, {x: 0, y: 0, z: 0});
+			if (d2 < 0.1 * 0.1) {
+				die.position.x += 2;
+			} else if (d2 < 2 * 2) {
+				const m = 2 / Math.sqrt(d2);
+				die.position.x *= m;
+				die.position.y *= m;
+			}
+
 			die.velocity.x = (randomSource.nextFloat() - 0.5) * 100.0;
 			die.velocity.y = (randomSource.nextFloat() - 0.5) * 100.0;
 			die.velocity.z = randomSource.nextFloat() * -20.0;
@@ -81,7 +108,7 @@ export default class DiceSimulator {
 		const Goblin = this.goblin;
 		const w = this.region.width;
 		const h = this.region.height;
-		const d = this.region.depth;
+		const d = this.region.depth + DICE_BOX_RAD - DICE_REAL_RAD;
 		const thickness = 100;
 
 		// removeRigidBody does not seem to remove all state,
@@ -98,7 +125,7 @@ export default class DiceSimulator {
 			0
 		);
 		this.floor.position.z = -d - thickness;
-		this.floor.friction = 0.9;
+		this.floor.friction = 1.0;
 		this.world.addRigidBody(this.floor);
 
 		this.wallLeft = new Goblin.RigidBody(
@@ -133,6 +160,14 @@ export default class DiceSimulator {
 		this.wallBottom.friction = 0.0;
 		this.world.addRigidBody(this.wallBottom);
 
+		this.cameraBubble = new Goblin.RigidBody(
+			new Goblin.SphereShape(2.0),
+			0
+		);
+		this.cameraBubble.position.z = -1;
+		this.cameraBubble.friction = 0.0;
+		this.world.addRigidBody(this.cameraBubble);
+
 		if (this.firing) {
 			this.world.gravity = new Goblin.Vector3(0, 0, 20);
 		} else {
@@ -141,9 +176,11 @@ export default class DiceSimulator {
 
 		for (const die of this.dice) {
 			die.physical = new Goblin.RigidBody(
-				new Goblin.BoxShape(1, 1, 1),
+				new Goblin.BoxShape(DICE_BOX_RAD, DICE_BOX_RAD, DICE_BOX_RAD),
 				1
 			);
+			die.physical.friction = 0.0;
+
 			die.physical.position.x = die.position.x;
 			die.physical.position.y = die.position.y;
 			die.physical.position.z = die.position.z;
@@ -168,18 +205,31 @@ export default class DiceSimulator {
 		}
 		if (this.dirty) {
 			this.buildSimulation();
+			this.active = true;
+			this.inactivity = 0;
+		}
+		if (!this.active) {
+			return false;
 		}
 
 		this.world.step(deltaTm);
 
 		let allOffscreen = true;
+		let motion = false;
 		const buffer = [];
 		for (const die of this.dice) {
 			if (die.physical === null) {
 				continue;
 			}
-			if (die.physical.position.z < -this.region.depth + 1) {
-				die.physical.position.z = -this.region.depth + 1;
+			if (dist2(die.position, die.physical.position) > MOTION_THRESH * MOTION_THRESH) {
+				motion = true;
+			}
+			if (dist2(die.physical.angular_velocity, {x: 0, y: 0, z: 0}) > ROTATION_THRESH * ROTATION_THRESH) {
+				motion = true;
+			}
+
+			if (die.physical.position.z < -this.region.depth + DICE_REAL_RAD) {
+				die.physical.position.z = -this.region.depth + DICE_REAL_RAD;
 				die.physical.linear_velocity.z = 0;
 			}
 			die.position.x = die.physical.position.x;
@@ -198,11 +248,20 @@ export default class DiceSimulator {
 				allOffscreen = false;
 			}
 		}
+		if (motion) {
+			this.inactivity = 0;
+		} else if (deltaTm > 0) {
+			this.inactivity += deltaTm;
+			if (this.inactivity >= INACTIVITY_THRESH_SECONDS) {
+				this.active = false;
+			}
+		}
 		if (this.firing && allOffscreen) {
 			this.firing = false;
 			this.fireDone();
 			this.fireDone = null;
 		}
+		return motion;
 	}
 
 	getDice() {

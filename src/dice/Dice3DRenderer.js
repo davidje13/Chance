@@ -51,7 +51,7 @@ export default class Dice3DRenderer {
 		this.canvas = new Canvas(1, 1, {
 			alpha: true,
 			antialias: true,
-			depth: false,
+			depth: true,
 			powerPreference: 'low-power',
 			premultipliedAlpha: true,
 			preserveDrawingBuffer: false,
@@ -64,6 +64,8 @@ export default class Dice3DRenderer {
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
+		gl.depthFunc(gl.LESS);
+		gl.enable(gl.DEPTH_TEST);
 
 		this.fov = 0.6;
 		const maxDepth = 0.1;
