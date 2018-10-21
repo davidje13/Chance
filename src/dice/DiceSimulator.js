@@ -7,6 +7,8 @@ const ROTATION_THRESH = 0.1;
 const INACTIVITY_THRESH_SECONDS = 0.5;
 const DICE_BOX_RAD = 1.05;
 const DICE_REAL_RAD = 1;
+const STACK_IMPULSE_DELAY_SECONDS = 3;
+const ZERO = {x: 0, y: 0, z: 0};
 
 function dist2(v1, v2) {
 	const x = v1.x - v2.x;
@@ -27,6 +29,7 @@ export default class DiceSimulator {
 
 		this.active = true;
 		this.inactivity = 0;
+		this.timeToImpulse = 0;
 
 		load().then((lib) => {
 			this.goblin = lib;
@@ -81,7 +84,7 @@ export default class DiceSimulator {
 			die.position.z = 0;
 
 			// avoid obscuring camera
-			const d2 = dist2(die.position, {x: 0, y: 0, z: 0});
+			const d2 = dist2(die.position, ZERO);
 			if (d2 < 0.1 * 0.1) {
 				die.position.x += 2;
 			} else if (d2 < 2 * 2) {
@@ -175,28 +178,70 @@ export default class DiceSimulator {
 		}
 
 		for (const die of this.dice) {
-			die.physical = new Goblin.RigidBody(
-				new Goblin.BoxShape(DICE_BOX_RAD, DICE_BOX_RAD, DICE_BOX_RAD),
-				1
-			);
-			die.physical.friction = 0.0;
-
-			die.physical.position.x = die.position.x;
-			die.physical.position.y = die.position.y;
-			die.physical.position.z = die.position.z;
-			die.physical.linear_velocity.x = die.velocity.x;
-			die.physical.linear_velocity.y = die.velocity.y;
-			die.physical.linear_velocity.z = die.velocity.z;
-			die.physical.angular_velocity.x = die.rvel.x;
-			die.physical.angular_velocity.y = die.rvel.y;
-			die.physical.angular_velocity.z = die.rvel.z;
-
-			die.physical.rotation.x = die.rotation.data[0];
-			die.physical.rotation.y = die.rotation.data[1];
-			die.physical.rotation.z = die.rotation.data[2];
-			die.physical.rotation.w = die.rotation.data[3];
+			die.physical = this.makePhysicalDie(Goblin, die);
 			this.world.addRigidBody(die.physical);
 		}
+	}
+
+	makePhysicalDie(Goblin, die) {
+		const body = new Goblin.RigidBody(
+			new Goblin.BoxShape(DICE_BOX_RAD, DICE_BOX_RAD, DICE_BOX_RAD),
+			1
+		);
+		body.friction = 0.0;
+
+		body.position.x = die.position.x;
+		body.position.y = die.position.y;
+		body.position.z = die.position.z;
+		body.linear_velocity.x = die.velocity.x;
+		body.linear_velocity.y = die.velocity.y;
+		body.linear_velocity.z = die.velocity.z;
+		body.angular_velocity.x = die.rvel.x;
+		body.angular_velocity.y = die.rvel.y;
+		body.angular_velocity.z = die.rvel.z;
+
+		body.rotation.x = die.rotation.data[0];
+		body.rotation.y = die.rotation.data[1];
+		body.rotation.z = die.rotation.data[2];
+		body.rotation.w = die.rotation.data[3];
+
+		return body;
+	}
+
+	loadDiePosition(die) {
+		die.position.x = die.physical.position.x;
+		die.position.y = die.physical.position.y;
+		die.position.z = die.physical.position.z;
+		die.velocity.x = die.physical.linear_velocity.x;
+		die.velocity.y = die.physical.linear_velocity.y;
+		die.velocity.z = die.physical.linear_velocity.z;
+		die.rvel.x = die.physical.angular_velocity.x;
+		die.rvel.y = die.physical.angular_velocity.y;
+		die.rvel.z = die.physical.angular_velocity.z;
+
+		const rot = die.physical.rotation;
+		die.rotation.set([rot.x, rot.y, rot.z, rot.w]);
+	}
+
+	nudgeMisaligned() {
+		let nudged = false;
+		for (const die of this.dice) {
+			const depth = die.position.z + this.region.depth;
+			if (depth > DICE_REAL_RAD * 2.0) {
+				// Stacked
+				die.physical.linear_velocity.x = -die.position.x * 2.0;
+				die.physical.linear_velocity.y = -die.position.y * 2.0;
+				die.physical.linear_velocity.z = 20.0;
+				nudged = true;
+			} else if (depth > DICE_REAL_RAD * 1.2) {
+				// Resting on edge or corner
+				die.physical.linear_velocity.x = -die.position.x * 1.0;
+				die.physical.linear_velocity.y = -die.position.y * 1.0;
+				die.physical.linear_velocity.z = 10.0;
+				nudged = true;
+			}
+		}
+		return nudged;
 	}
 
 	step(deltaTm) {
@@ -207,6 +252,7 @@ export default class DiceSimulator {
 			this.buildSimulation();
 			this.active = true;
 			this.inactivity = 0;
+			this.timeToImpulse = STACK_IMPULSE_DELAY_SECONDS;
 		}
 		if (!this.active) {
 			return false;
@@ -214,40 +260,27 @@ export default class DiceSimulator {
 
 		this.world.step(deltaTm);
 
+		const depthLimit = -this.region.depth + DICE_REAL_RAD;
+
 		let allOffscreen = true;
 		let motion = false;
-		const buffer = [];
 		for (const die of this.dice) {
-			if (die.physical === null) {
-				continue;
-			}
 			if (dist2(die.position, die.physical.position) > MOTION_THRESH * MOTION_THRESH) {
 				motion = true;
 			}
-			if (dist2(die.physical.angular_velocity, {x: 0, y: 0, z: 0}) > ROTATION_THRESH * ROTATION_THRESH) {
+			if (dist2(die.physical.angular_velocity, ZERO) > ROTATION_THRESH * ROTATION_THRESH) {
 				motion = true;
 			}
-
-			if (die.physical.position.z < -this.region.depth + DICE_REAL_RAD) {
-				die.physical.position.z = -this.region.depth + DICE_REAL_RAD;
-				die.physical.linear_velocity.z = 0;
-			}
-			die.position.x = die.physical.position.x;
-			die.position.y = die.physical.position.y;
-			die.position.z = die.physical.position.z;
-			die.velocity.x = die.physical.linear_velocity.x;
-			die.velocity.y = die.physical.linear_velocity.y;
-			die.velocity.z = die.physical.linear_velocity.z;
-			die.rvel.x = die.physical.angular_velocity.x;
-			die.rvel.y = die.physical.angular_velocity.y;
-			die.rvel.z = die.physical.angular_velocity.z;
-
-			const rot = die.physical.rotation;
-			die.rotation.set([rot.x, rot.y, rot.z, rot.w]);
-			if (die.position.z < 0) {
+			if (die.physical.position.z < 0) {
 				allOffscreen = false;
 			}
+			if (die.physical.position.z < depthLimit) {
+				die.physical.position.z = depthLimit;
+				die.physical.linear_velocity.z = 0;
+			}
+			this.loadDiePosition(die);
 		}
+
 		if (motion) {
 			this.inactivity = 0;
 		} else if (deltaTm > 0) {
@@ -255,6 +288,14 @@ export default class DiceSimulator {
 			if (this.inactivity >= INACTIVITY_THRESH_SECONDS) {
 				this.active = false;
 			}
+		}
+		this.timeToImpulse -= deltaTm;
+		if (!this.active || this.timeToImpulse <= 0) {
+			if (this.nudgeMisaligned()) {
+				this.active = true;
+				this.inactivity = 0;
+			}
+			this.timeToImpulse = STACK_IMPULSE_DELAY_SECONDS;
 		}
 		if (this.firing && allOffscreen) {
 			this.firing = false;
