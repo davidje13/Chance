@@ -37,6 +37,9 @@ export default class Coins {
 		}
 	}
 
+	shake() {
+	}
+
 	start() {
 		const sep = 2.5;
 		const midX = 1;

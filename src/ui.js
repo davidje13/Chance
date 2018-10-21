@@ -6,6 +6,7 @@ import {
 } from './deviceManagement.js';
 import TabBar from './TabBar.js';
 import RandomSource from './RandomSource.js';
+import ShakeGesture from './gestures/ShakeGesture.js';
 import Dice from './dice/dice.js';
 import Coins from './coins/coins.js';
 import Numbers from './numbers/numbers.js';
@@ -17,6 +18,7 @@ const container = document.getElementById('content');
 const titleSpan = document.getElementById('title');
 const infoSpan = document.getElementById('info');
 const faviconLink = addFavicon();
+const shakeGesture = new ShakeGesture(shake);
 
 let currentTabRunner = null;
 let currentInfoLabel = '';
@@ -53,6 +55,12 @@ function resize() {
 	}
 }
 
+function shake() {
+	if (currentTabRunner !== null) {
+		currentTabRunner.shake();
+	}
+}
+
 function step(tm) {
 	const deltaMillis = (tm - lastTime);
 	if (deltaMillis < 0) {
@@ -84,6 +92,7 @@ tabs.addEventListener('enter', (tabs, id, {runner}) => {
 	faviconLink.setAttribute('href', 'resources/' + id + '/favicon.png');
 	container.appendChild(runner.dom());
 	currentTabRunner = runner;
+	shakeGesture.reset();
 	start(performance.now());
 
 	// Do not change URL if landscape (else Safari covers content with URL bar)
@@ -117,5 +126,6 @@ if (!setTabFromHash()) {
 
 window.addEventListener('resize', resize);
 window.addEventListener('hashchange', setTabFromHash);
+shakeGesture.start();
 
 lockPortrait();

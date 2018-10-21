@@ -2,7 +2,6 @@ import FrictionSimulator from './FrictionSimulator.js';
 import Pointer from './Pointer.js';
 import Momentum from './Momentum.js';
 import MouseDrag from './MouseDrag.js';
-import ShakeGesture from '../gestures/ShakeGesture.js';
 import ContortionGlRenderer from './ContortionGlRenderer.js';
 
 const BOARD_WIDTH = 310;
@@ -124,8 +123,6 @@ export default class Contortion {
 
 		this.spinRandomly = this.spinRandomly.bind(this);
 		this.dblclick = this.dblclick.bind(this);
-
-		this.shake = new ShakeGesture(this.spinRandomly);
 	}
 
 	pointNeedle(angle) {
@@ -182,6 +179,10 @@ export default class Contortion {
 		pos += change;
 
 		this.pointNeedle(pos);
+	}
+
+	shake() {
+		this.spinRandomly();
 	}
 
 	announceResult() {
@@ -315,7 +316,6 @@ export default class Contortion {
 	start() {
 		this.inner.addEventListener('dblclick', this.dblclick);
 		this.mouseDrag.register(this.inner);
-		this.shake.start();
 		if (this.autoSpin) {
 			this.spinRandomly();
 		}
@@ -325,7 +325,6 @@ export default class Contortion {
 		this.inner.removeEventListener('dblclick', this.dblclick);
 		this.mouseDrag.unregister(this.inner);
 		this.mouseDrag.abort();
-		this.shake.stop();
 		clearTimeout(this.nextFlick);
 	}
 

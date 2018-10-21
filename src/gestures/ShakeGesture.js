@@ -19,9 +19,13 @@ export default class ShakeGesture {
 		this._devicemotion = this._devicemotion.bind(this);
 	}
 
-	start() {
+	reset() {
 		this.recentGs.clear();
 		this.recentIs.clear();
+	}
+
+	start() {
+		this.reset();
 		window.addEventListener('devicemotion', this._devicemotion);
 	}
 
@@ -75,8 +79,7 @@ export default class ShakeGesture {
 		const alts = this._countAlternations(g.tm - this.fluctuatonsIntervalMillis);
 
 		if (alts >= this.thresholdAlternations) {
-			this.recentGs.clear();
-			this.recentIs.clear();
+			this.reset();
 			this.callbackFn();
 		}
 	}

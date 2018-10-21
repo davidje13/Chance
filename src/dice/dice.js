@@ -1,7 +1,6 @@
 import Dice3DRenderer from './Dice3DRenderer.js';
 import DiceSimulator from './DiceSimulator.js';
 import Quaternion from '../math/Quaternion.js';
-import ShakeGesture from '../gestures/ShakeGesture.js';
 
 export default class Dice {
 	constructor(randomSource) {
@@ -17,7 +16,6 @@ export default class Dice {
 		this.region = {width: 0, height: 0, depth: 10};
 
 		this.click = this.click.bind(this);
-		this.shake = new ShakeGesture(this.click);
 	}
 
 	title() {
@@ -52,27 +50,33 @@ export default class Dice {
 			});
 		}
 
-		this.region.depth = Math.max(10, Math.min(100,
+		this.region.depth = Math.max(10, Math.min(50,
 			4 * Math.sqrt(quantity) + 2
 		));
 		this.updateRegion();
 	}
 
-	click() {
+	flickDice() {
 		this.simulator.fireOffscreen()
 			.then(() => this.simulator.randomise(this.randomSource));
 	}
 
+	click() {
+		this.flickDice();
+	}
+
+	shake() {
+		this.flickDice();
+	}
+
 	start() {
-		this.rebuildDice(10);
+		this.rebuildDice(5);
 		this.simulator.randomise(this.randomSource);
 		this.inner.addEventListener('click', this.click);
-		this.shake.start();
 	}
 
 	stop() {
 		this.inner.removeEventListener('click', this.click);
-		this.shake.stop();
 	}
 
 	updateRegion() {

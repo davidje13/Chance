@@ -17,6 +17,9 @@ export default class Numbers {
 	step(deltaTm, absTm) {
 	}
 
+	shake() {
+	}
+
 	start() {
 	}
 

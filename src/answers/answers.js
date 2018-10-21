@@ -125,6 +125,9 @@ export default class Answers {
 		this.simGravityChange = -20;
 	}
 
+	shake() {
+	}
+
 	step(deltaTm, absTm) {
 		this.latestGravity += this.simGravityChange * deltaTm;
 		this.latestGravity = Math.max(-10, Math.min(20, this.latestGravity));
