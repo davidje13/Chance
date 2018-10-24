@@ -2,6 +2,8 @@ import Dice3DRenderer from './Dice3DRenderer.js';
 import DiceSimulator from './DiceSimulator.js';
 import Quaternion from '../math/Quaternion.js';
 
+const MAX_DICE = 20;
+
 export default class Dice {
 	constructor(randomSource) {
 		this.inner = document.createElement('div');
@@ -11,12 +13,26 @@ export default class Dice {
 		this.renderer = new Dice3DRenderer();
 		this.simulator = new DiceSimulator();
 
+		this.btnAdd = document.createElement('div');
+		this.btnAdd.innerText = '+';
+		this.btnAdd.addEventListener('click', this.addDie.bind(this));
+
+		this.btnSub = document.createElement('div');
+		this.btnSub.innerText = '\u2013';
+		this.btnSub.addEventListener('click', this.subDie.bind(this));
+
 		this.inner.appendChild(this.renderer.dom());
+		this.inner.appendChild(this.btnAdd);
+		this.inner.appendChild(this.btnSub);
 
 		this.region = {width: 0, height: 0, depth: 10};
 
+		this.diceCount = 5;
+
 		this.click = this.click.bind(this);
 		this.forceRender = false;
+
+		this.updateButtons();
 	}
 
 	title() {
@@ -27,6 +43,37 @@ export default class Dice {
 		return (
 			'Tap or shake to roll the dice'
 		);
+	}
+
+	addDie(e) {
+		e.stopPropagation();
+
+		if (this.diceCount >= MAX_DICE) {
+			return;
+		}
+
+		++ this.diceCount;
+		this.flickDice();
+
+		this.updateButtons();
+	}
+
+	subDie(e) {
+		e.stopPropagation();
+
+		if (this.diceCount <= 1) {
+			return;
+		}
+
+		-- this.diceCount;
+		this.flickDice();
+
+		this.updateButtons();
+	}
+
+	updateButtons() {
+		this.btnAdd.className = 'optbtn tr ' + ((this.diceCount >= MAX_DICE) ? 'disabled' : '');
+		this.btnSub.className = 'optbtn tl ' + ((this.diceCount <= 1) ? 'disabled' : '');
 	}
 
 	step(deltaTm) {
@@ -60,6 +107,11 @@ export default class Dice {
 
 	flickDice() {
 		this.simulator.fireOffscreen()
+			.then(() => {
+				if (this.simulator.getDice().length != this.diceCount) {
+					this.rebuildDice(this.diceCount);
+				}
+			})
 			.then(() => this.simulator.randomise(this.randomSource));
 	}
 
@@ -72,7 +124,7 @@ export default class Dice {
 	}
 
 	start() {
-		this.rebuildDice(5);
+		this.rebuildDice(this.diceCount);
 		this.simulator.randomise(this.randomSource);
 		this.inner.addEventListener('click', this.click);
 		this.forceRender = true;

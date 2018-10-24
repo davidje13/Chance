@@ -65,8 +65,8 @@ h1 {
 	display: block;
 	position: absolute;
 	top: 20px;
-	left: 10px;
-	right: 10px;
+	left: 30px;
+	right: 30px;
 	text-align: center;
 	font: bold 36px Georgia, serif;
 	color: #FFFFFF;
@@ -97,6 +97,42 @@ h1 {
 	right: 0;
 	bottom: 0;
 	overflow: hidden;
+}
+
+.optbtn {
+	position: absolute;
+	width: 44px;
+	height: 44px;
+	line-height: 40px;
+	text-align: center;
+	font-size: 38px;
+	background: #FFFFFF;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+	border-radius: 100%;
+	opacity: 0.9;
+	cursor: pointer;
+	user-select: none;
+	z-index: 2;
+}
+
+.optbtn:hover {
+	opacity: 1;
+}
+
+.optbtn.disabled, .optbtn.disabled:hover {
+	background: #CCCCCC;
+	opacity: 0.5;
+	cursor: default;
+}
+
+.optbtn.tl {
+	top: 20px;
+	left: 20px;
+}
+
+.optbtn.tr {
+	top: 20px;
+	right: 20px;
 }
 
 nav {
