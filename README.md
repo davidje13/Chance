@@ -10,7 +10,7 @@ added to the home screen.
 
 ### Dice
 
-<img src="screenshots/dice-small.png" alt="Dice preview" width="600" />
+<img src="screenshots/dice-small.png" alt="Dice preview" width="200" align="right" />
 
 Rigid-body-physics simulation with custom WebGL shaders defining the
 dice shapes and reflections.
@@ -41,7 +41,7 @@ Work in progress.
 
 ### Contortion
 
-<img src="screenshots/contortion-small.png" alt="Contortion preview" width="600" />
+<img src="screenshots/contortion-small.png" alt="Contortion preview" width="200" align="right" />
 
 Simple friction simulation with WebGL used to render a motion-blurred
 needle.
@@ -56,7 +56,7 @@ needle.
 
 ### Answers Ball
 
-<img src="screenshots/answers-small.png" alt="Answers Ball preview" width="600" />
+<img src="screenshots/answers-small.png" alt="Answers Ball preview" width="200" align="right" />
 
 Icosahedron-inside-cylinder simulation rendered using WebGL with custom
 fog simulating coloured liquid.
