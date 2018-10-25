@@ -15,6 +15,18 @@ function normalize(v) {
 	return [v[0] * m, v[1] * m, v[2] * m];
 }
 
+function loadNormalMap(gl, url, depth) {
+	const normalMap = new Texture2D(gl, {
+		[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+		[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+		[gl.TEXTURE_WRAP_S]: gl.REPEAT,
+		[gl.TEXTURE_WRAP_T]: gl.REPEAT,
+	});
+	normalMap.setSolid(0.5, 0.5, 1.0, 1.0);
+	normalMap.generateNormalMap(url, depth);
+	return normalMap;
+}
+
 export default class Coins3DRenderer {
 	constructor() {
 		this.canvas = new Canvas(1, 1, {
@@ -34,28 +46,38 @@ export default class Coins3DRenderer {
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
 
-		this.shape = new Box({width: 2.1, height: 2.1, depth: 0.28});
+		this.currencies = new Map();
 
-		this.prog = new Program(gl, [
+		const baseShape = new Box({width: 2.1, height: 2.1, depth: 0.28});
+
+		const baseProg = new Program(gl, [
 			new VertexShader(gl, PROG_SHAPE_VERT),
 			new FragmentShader(gl, PROG_COL_FRAG_HELPER + PROG_COIN_FRAG),
 		]);
 
-		const maxDepth = 0.015;
 		const worldFaceWidth = 2.0;
 		const normalMapFaceWidth = 0.5;
-		const normalMapFaceDepth = maxDepth * normalMapFaceWidth / worldFaceWidth;
+		const normalMapDepthScale = normalMapFaceWidth / worldFaceWidth;
 
-		this.maxDepth = maxDepth;
-
-		this.normalMap = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+		this.currencies.set('gbp-old', {
+			shape: baseShape,
+			prog: baseProg,
+			props: {
+				'maxDepth': 0.015,
+				'twoToneRad': 0.0,
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp-old.png', 0.015 * normalMapDepthScale),
+			},
 		});
-		this.normalMap.setSolid(0.5, 0.5, 1.0, 1.0);
-		this.normalMap.generateNormalMap('resources/coins/depth-gbp.png', normalMapFaceDepth);
+
+		this.currencies.set('gbp', {
+			shape: baseShape,
+			prog: baseProg,
+			props: {
+				'maxDepth': 0.034,
+				'twoToneRad': 0.6484375,
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp.png', 0.015 * normalMapDepthScale),
+			},
+		});
 	}
 
 	resize(width, height) {
@@ -72,18 +94,17 @@ export default class Coins3DRenderer {
 			const mView = M4.fromQuaternion(coin.rotation);
 			mView.translate(coin.position.x, coin.position.y, coin.position.z - 8);
 
-			const shape = this.shape;
-			const prog = this.prog;
+			const currency = this.currencies.get(coin.style.currency);
+			const shape = currency.shape;
+			const prog = currency.prog;
 
 			shape.bind(gl);
-			prog.use({
+			prog.use(Object.assign({
 				'projview': mView.mult(mProj),
 				'eye': mView.invert().apply3([0, 0, 0]),
 				'rot': mView.as3(),
 				'pos': shape.boundVertices(),
-				'normalMap': this.normalMap,
-				'maxDepth': this.maxDepth,
-			});
+			}, currency.props));
 			shape.render(gl);
 		}
 	}

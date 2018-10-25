@@ -1,8 +1,5 @@
 import DepthFrag from '../../3d/DepthFrag.js';
 
-const layerSteps = 6;
-const binarySearchSteps = 3;
-
 const SHAPE_FRAG = `
 	uniform sampler2D normalMap;
 
@@ -45,7 +42,7 @@ const EDGE_SHAPE_FRAG = `
 	}
 `;
 
-const EDGE_BOUNDRY_FRAG = `
+const EdgeBoundaryFrag = ({layerSteps = 6, binarySearchSteps = 3} = {}) => `
 	lowp float edgeBoundryAt(
 		in lowp vec3 pos,
 		in lowp vec3 dpos,
@@ -94,7 +91,7 @@ const EDGE_BOUNDRY_FRAG = `
 	}
 `;
 
-export default DepthFrag() + SHAPE_FRAG + EDGE_SHAPE_FRAG + EDGE_BOUNDRY_FRAG + `
+export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeBoundaryFrag() + `
 	uniform highp vec3 eye;
 	uniform lowp float maxDepth;
 
@@ -175,7 +172,7 @@ export default DepthFrag() + SHAPE_FRAG + EDGE_SHAPE_FRAG + EDGE_BOUNDRY_FRAG + 
 
 		lowp float depthLimit = min(maxDepth, min(dd.x, dd.y));
 		lowp float depth = depthAt(normalMap, uv, duv, maxDepth, depthLimit);
-		lowp vec3 pos = p + ray * depth * zmult;
+		lowp vec3 pos = p + ray * depth * zmult * 2.0;
 		uv += duv * depth;
 
 		apply(pos, faceD * normalAt(uv), ray);

@@ -41,15 +41,16 @@ export default class Coins {
 	}
 
 	start() {
+		const currencies = ['gbp-old', 'gbp'];
 		const sep = 2.5;
-		const midX = 1;
+		const midX = (currencies.length - 1) / 2;
 		const midY = 1;
 		this.coins = [];
-		for (let x = 0; x < 3; ++ x) {
+		for (let x = 0; x < currencies.length; ++ x) {
 			for (let y = 0; y < 3; ++ y) {
 				this.coins.push({
 					position: {x: (x - midX) * sep, y: -(y - midY) * sep, z: 0},
-					style: {},
+					style: {currency: currencies[x]},
 					rotation: Quaternion.random(this.randomSource),
 					vel: {
 						x: (this.randomSource.nextFloat() - 0.5) * 2.0,
