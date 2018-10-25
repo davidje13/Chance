@@ -123,7 +123,7 @@ export default class Answers3DRenderer {
 			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
 			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
 		});
-		this.atlas.setSolid(1, 1, 1, 0);
+		this.atlas.setSolid(0, 0, 0, 0);
 		this.atlas.loadImage('resources/answers/atlas.png');
 
 		this.answers = new Texture2D(gl, {
