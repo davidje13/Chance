@@ -1,6 +1,96 @@
 import DepthFrag from '../../3d/DepthFrag.js';
 
-export default DepthFrag() + `
+const layerSteps = 6;
+const binarySearchSteps = 3;
+
+const EDGE_SHAPE_FRAG = `
+	varying lowp float thickness;
+
+	const lowp float bumps = 90.0;
+
+	lowp vec2 edgeUvAt(in lowp vec3 pos) {
+		return vec2(
+			atan(pos.y / pos.x),
+			pos.z * 0.5 / thickness + 0.5
+		);
+	}
+
+	lowp float edgeDepthAt(in lowp vec3 pos) {
+		lowp float bump = edgeUvAt(pos).x * bumps;
+		return (sin(bump) * 0.5 + 0.5);
+	}
+
+	lowp float edgePenetrationAt(in lowp vec3 pos) {
+		return 1.0 - length(pos.xy);
+	}
+
+	lowp vec3 edgeNormalAt(in lowp vec3 pos, in lowp float edgeThickness) {
+		lowp float bump = edgeUvAt(pos).x * bumps;
+		lowp float g = 0.5 * bumps * cos(bump) * edgeThickness;
+
+		return normalize(vec3(-g, 0.0, 1.0));
+	}
+
+	lowp vec3 rotatedEdgeNormalAt(in lowp vec3 pos, in lowp float edgeThickness) {
+		lowp mat3 faceD;
+		faceD[2] = vec3(normalize(pos.xy), 0.0);
+		faceD[1] = vec3(0.0, 0.0, 1.0);
+		faceD[0] = cross(faceD[2], faceD[1]);
+
+		return faceD * edgeNormalAt(pos, edgeThickness);
+	}
+`;
+
+const EDGE_BOUNDRY_FRAG = `
+	lowp float edgeBoundryAt(
+		in lowp vec3 pos,
+		in lowp vec3 dpos,
+		in lowp float edgeThickness
+	) {
+		lowp float lastD = 0.0;
+		lowp float nextD = 1.0;
+		lowp float lastP = 0.0;
+		lowp float nextP = 0.0;
+		lowp float stepP = ${(1 / layerSteps).toFixed(6)};
+
+		// layer search
+		for (lowp int i = 0; i < ${layerSteps}; ++ i) {
+			lowp vec3 p = pos + dpos * nextP;
+			lowp float curD = edgeDepthAt(p) * edgeThickness;
+			if (curD <= edgePenetrationAt(p)) {
+				nextD = curD;
+				break;
+			}
+			lastD = curD;
+			lastP = nextP;
+			nextP += stepP;
+		}
+		if (nextP == lastP) {
+			return lastP;
+		}
+
+		// binary search
+		for (lowp int i = 0; i < ${binarySearchSteps}; ++ i) {
+			lowp float curP = (lastP + nextP) * 0.5;
+			lowp vec3 p = pos + dpos * curP;
+			lowp float curD = edgeDepthAt(p) * edgeThickness;
+			if (curD <= edgePenetrationAt(p)) {
+				nextP = curP;
+				nextD = curD;
+			} else {
+				lastP = curP;
+				lastD = curD;
+			}
+		}
+		if (nextD == 1.0) {
+			return 1.0;
+		}
+
+		return lastP;
+	}
+`;
+
+export default DepthFrag() + EDGE_SHAPE_FRAG + EDGE_BOUNDRY_FRAG + `
 	uniform sampler2D normalMap;
 	uniform highp vec3 eye;
 	uniform lowp float maxDepth;
@@ -8,7 +98,9 @@ export default DepthFrag() + `
 	varying lowp vec3 p;
 	varying lowp vec3 n;
 	varying lowp vec2 t;
-	varying lowp float thickness;
+
+	const lowp float edgeThickness = 0.01;
+	const lowp float edgeThresh = 1.0 - edgeThickness;
 
 	lowp vec3 normalAt(in lowp vec2 uv) {
 		return texture2D(normalMap, uv).xyz * 2.0 - 1.0;
@@ -16,8 +108,7 @@ export default DepthFrag() + `
 
 	void main() {
 		lowp vec3 ray = normalize(p - eye);
-		lowp float rad = length(p.xy);
-		if (rad > 1.0) {
+		if (dot(p.xy, p.xy) > edgeThresh * edgeThresh) {
 			highp float ee = dot(eye.xy, eye.xy);
 			highp float er = dot(eye.xy, ray.xy);
 			highp float rr = dot(ray.xy, ray.xy);
@@ -25,19 +116,53 @@ export default DepthFrag() + `
 			if (root < 0.0) {
 				discard;
 			}
-			root = sqrt(root);
-			highp float l = (-er - root) / rr;
+			lowp float dir = sign(dot(p.xy, ray.xy));
+			root = sqrt(root) * dir;
+			highp float l = (root - er) / rr;
 			lowp vec3 pos = eye + ray * l;
-			lowp vec3 norm = vec3(pos.xy, 0.0);
-			if (pos.z < -thickness || pos.z > thickness) {
+
+			highp vec3 cap;
+			bool clipped = true;
+			if (dir < 0.0) {
+				// front face (trace from pos to back face)
+				highp float capL = (-root - er) / rr;
+
+				ee = dot(eye.xy, eye.xy);
+				er = dot(eye.xy, ray.xy);
+				rr = dot(ray.xy, ray.xy);
+				root = er * er - ee * rr + edgeThresh * edgeThresh * rr;
+				if (root > 0.0) {
+					capL = (-sqrt(root) - er) / rr;
+					clipped = false;
+				}
+				cap = eye + ray * capL;
+
+				if (dot(p - pos, ray) > 0.0) {
+					pos = p;
+				}
+			} else {
+				// back face (trace from p to pos)
+				cap = pos;
+				pos = p;
+			}
+			if (cap.z * sign(ray.z) > thickness) {
+				cap = pos + (thickness * sign(ray.z) - pos.z) * ray / ray.z;
+				clipped = true;
+			}
+
+			lowp float d = edgeBoundryAt(pos, cap - pos, edgeThickness);
+			if (clipped && d == 1.0) {
 				discard;
 			}
-			lowp float bumpHeight = max(-dot(ray, norm) * 0.8, 0.0);
-			lowp float bump = atan(pos.y / pos.x) * 52.0;
-			lowp vec2 bumpNorm = normalize(vec2(-sin(bump) * sign(cos(bump)) * bumpHeight, 1.0));
-			norm.xy = bumpNorm.y * norm.xy + bumpNorm.x * vec2(1.0, -1.0) * norm.yx;
-			apply(pos, normalize(norm), ray);
-			return;
+			pos += (cap - pos) * d;
+
+			lowp float compare = pos.z * sign(ray.z);
+			if (compare > thickness) {
+				discard;
+			} else if (compare > -thickness) {
+				apply(pos, rotatedEdgeNormalAt(pos, edgeThickness), ray);
+				return;
+			}
 		}
 
 		lowp vec2 uv = t;
