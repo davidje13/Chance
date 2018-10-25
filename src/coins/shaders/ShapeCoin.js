@@ -3,41 +3,45 @@ import DepthFrag from '../../3d/DepthFrag.js';
 const layerSteps = 6;
 const binarySearchSteps = 3;
 
-const EDGE_SHAPE_FRAG = `
+const SHAPE_FRAG = `
+	uniform sampler2D normalMap;
+
 	varying lowp float thickness;
 
-	const lowp float bumps = 90.0;
+	const lowp float pi2 = 3.14159265359 * 2.0;
 
 	lowp vec2 edgeUvAt(in lowp vec3 pos) {
 		return vec2(
-			atan(pos.y / pos.x),
-			pos.z * 0.5 / thickness + 0.5
+			0.5 - atan(pos.y, pos.x) / pi2,
+			(pos.z * 0.5 / thickness + 0.5) * 0.0625 + 0.53125
 		);
 	}
 
 	lowp float edgeDepthAt(in lowp vec3 pos) {
-		lowp float bump = edgeUvAt(pos).x * bumps;
-		return (sin(bump) * 0.5 + 0.5);
+		return texture2D(normalMap, edgeUvAt(pos)).w;
 	}
 
+	lowp vec3 edgeNormalAt(in lowp vec3 pos) {
+		return texture2D(normalMap, edgeUvAt(pos)).xyz * 2.0 - 1.0;
+	}
+
+	lowp vec3 normalAt(in lowp vec2 uv) {
+		return texture2D(normalMap, uv).xyz * 2.0 - 1.0;
+	}
+`;
+
+const EDGE_SHAPE_FRAG = `
 	lowp float edgePenetrationAt(in lowp vec3 pos) {
 		return 1.0 - length(pos.xy);
 	}
 
-	lowp vec3 edgeNormalAt(in lowp vec3 pos, in lowp float edgeThickness) {
-		lowp float bump = edgeUvAt(pos).x * bumps;
-		lowp float g = 0.5 * bumps * cos(bump) * edgeThickness;
-
-		return normalize(vec3(-g, 0.0, 1.0));
-	}
-
-	lowp vec3 rotatedEdgeNormalAt(in lowp vec3 pos, in lowp float edgeThickness) {
+	lowp vec3 rotatedEdgeNormalAt(in lowp vec3 pos) {
 		lowp mat3 faceD;
 		faceD[2] = vec3(normalize(pos.xy), 0.0);
 		faceD[1] = vec3(0.0, 0.0, 1.0);
 		faceD[0] = cross(faceD[2], faceD[1]);
 
-		return faceD * edgeNormalAt(pos, edgeThickness);
+		return faceD * edgeNormalAt(pos);
 	}
 `;
 
@@ -45,7 +49,7 @@ const EDGE_BOUNDRY_FRAG = `
 	lowp float edgeBoundryAt(
 		in lowp vec3 pos,
 		in lowp vec3 dpos,
-		in lowp float edgeThickness
+		in lowp float maxDepth
 	) {
 		lowp float lastD = 0.0;
 		lowp float nextD = 1.0;
@@ -56,7 +60,7 @@ const EDGE_BOUNDRY_FRAG = `
 		// layer search
 		for (lowp int i = 0; i < ${layerSteps}; ++ i) {
 			lowp vec3 p = pos + dpos * nextP;
-			lowp float curD = edgeDepthAt(p) * edgeThickness;
+			lowp float curD = edgeDepthAt(p) * maxDepth;
 			if (curD <= edgePenetrationAt(p)) {
 				nextD = curD;
 				break;
@@ -73,7 +77,7 @@ const EDGE_BOUNDRY_FRAG = `
 		for (lowp int i = 0; i < ${binarySearchSteps}; ++ i) {
 			lowp float curP = (lastP + nextP) * 0.5;
 			lowp vec3 p = pos + dpos * curP;
-			lowp float curD = edgeDepthAt(p) * edgeThickness;
+			lowp float curD = edgeDepthAt(p) * maxDepth;
 			if (curD <= edgePenetrationAt(p)) {
 				nextP = curP;
 				nextD = curD;
@@ -90,8 +94,7 @@ const EDGE_BOUNDRY_FRAG = `
 	}
 `;
 
-export default DepthFrag() + EDGE_SHAPE_FRAG + EDGE_BOUNDRY_FRAG + `
-	uniform sampler2D normalMap;
+export default DepthFrag() + SHAPE_FRAG + EDGE_SHAPE_FRAG + EDGE_BOUNDRY_FRAG + `
 	uniform highp vec3 eye;
 	uniform lowp float maxDepth;
 
@@ -99,16 +102,10 @@ export default DepthFrag() + EDGE_SHAPE_FRAG + EDGE_BOUNDRY_FRAG + `
 	varying lowp vec3 n;
 	varying lowp vec2 t;
 
-	const lowp float edgeThickness = 0.01;
-	const lowp float edgeThresh = 1.0 - edgeThickness;
-
-	lowp vec3 normalAt(in lowp vec2 uv) {
-		return texture2D(normalMap, uv).xyz * 2.0 - 1.0;
-	}
-
 	void main() {
 		lowp vec3 ray = normalize(p - eye);
-		if (dot(p.xy, p.xy) > edgeThresh * edgeThresh) {
+		lowp float edgeInnerRad = 1.0 - maxDepth;
+		if (dot(p.xy, p.xy) > edgeInnerRad * edgeInnerRad) {
 			highp float ee = dot(eye.xy, eye.xy);
 			highp float er = dot(eye.xy, ray.xy);
 			highp float rr = dot(ray.xy, ray.xy);
@@ -130,7 +127,7 @@ export default DepthFrag() + EDGE_SHAPE_FRAG + EDGE_BOUNDRY_FRAG + `
 				ee = dot(eye.xy, eye.xy);
 				er = dot(eye.xy, ray.xy);
 				rr = dot(ray.xy, ray.xy);
-				root = er * er - ee * rr + edgeThresh * edgeThresh * rr;
+				root = er * er - ee * rr + edgeInnerRad * edgeInnerRad * rr;
 				if (root > 0.0) {
 					capL = (-sqrt(root) - er) / rr;
 					clipped = false;
@@ -150,7 +147,7 @@ export default DepthFrag() + EDGE_SHAPE_FRAG + EDGE_BOUNDRY_FRAG + `
 				clipped = true;
 			}
 
-			lowp float d = edgeBoundryAt(pos, cap - pos, edgeThickness);
+			lowp float d = edgeBoundryAt(pos, cap - pos, maxDepth);
 			if (clipped && d == 1.0) {
 				discard;
 			}
@@ -160,7 +157,7 @@ export default DepthFrag() + EDGE_SHAPE_FRAG + EDGE_BOUNDRY_FRAG + `
 			if (compare > thickness) {
 				discard;
 			} else if (compare > -thickness) {
-				apply(pos, rotatedEdgeNormalAt(pos, edgeThickness), ray);
+				apply(pos, rotatedEdgeNormalAt(pos), ray);
 				return;
 			}
 		}
