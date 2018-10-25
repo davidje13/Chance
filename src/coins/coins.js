@@ -41,7 +41,7 @@ export default class Coins {
 	}
 
 	start() {
-		const currencies = ['gbp-old', 'gbp'];
+		const currencies = ['gbp-old', 'gbp', 'eur-de'];
 		const sep = 2.5;
 		const midX = (currencies.length - 1) / 2;
 		const midY = 1;

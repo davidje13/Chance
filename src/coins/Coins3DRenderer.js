@@ -48,34 +48,40 @@ export default class Coins3DRenderer {
 
 		this.currencies = new Map();
 
-		const baseShape = new Box({width: 2.1, height: 2.1, depth: 0.28});
-
 		const baseProg = new Program(gl, [
 			new VertexShader(gl, PROG_SHAPE_VERT),
 			new FragmentShader(gl, PROG_COL_FRAG_HELPER + PROG_COIN_FRAG),
 		]);
 
-		const worldFaceWidth = 2.0;
-		const normalMapFaceWidth = 0.5;
-		const normalMapDepthScale = normalMapFaceWidth / worldFaceWidth;
+		const normalScale = 0.5 / 2.0;
 
 		this.currencies.set('gbp-old', {
-			shape: baseShape,
+			shape: new Box({width: 2.1, height: 2.1, depth: 0.28}),
 			prog: baseProg,
 			props: {
 				'maxDepth': 0.015,
 				'twoToneRad': 0.0,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp-old.png', 0.015 * normalMapDepthScale),
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp-old.png', 0.015 * normalScale),
 			},
 		});
 
 		this.currencies.set('gbp', {
-			shape: baseShape,
+			shape: new Box({width: 2.1, height: 2.1, depth: 0.24}),
 			prog: baseProg,
 			props: {
-				'maxDepth': 0.034,
+				'maxDepth': 0.032,
 				'twoToneRad': 0.6484375,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp.png', 0.015 * normalMapDepthScale),
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp.png', 0.032 * normalScale),
+			},
+		});
+
+		this.currencies.set('eur-de', {
+			shape: new Box({width: 2.1, height: 2.1, depth: 0.2}),
+			prog: baseProg,
+			props: {
+				'maxDepth': 0.02,
+				'twoToneRad': 0.71875,
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-eur-de.png', 0.02 * normalScale),
 			},
 		});
 	}
