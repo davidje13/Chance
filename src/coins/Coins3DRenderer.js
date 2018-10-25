@@ -84,6 +84,16 @@ export default class Coins3DRenderer {
 				'normalMap': loadNormalMap(gl, 'resources/coins/depth-eur-de.png', 0.02 * normalScale),
 			},
 		});
+
+		this.currencies.set('usd', {
+			shape: new Box({width: 2.1, height: 2.1, depth: 0.14}),
+			prog: baseProg,
+			props: {
+				'maxDepth': 0.02,
+				'twoToneRad': 1.1,
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-usd.png', 0.02 * normalScale),
+			},
+		});
 	}
 
 	resize(width, height) {
@@ -98,7 +108,7 @@ export default class Coins3DRenderer {
 
 		for (const coin of coins) {
 			const mView = M4.fromQuaternion(coin.rotation);
-			mView.translate(coin.position.x, coin.position.y, coin.position.z - 8);
+			mView.translate(coin.position.x, coin.position.y, coin.position.z);
 
 			const currency = this.currencies.get(coin.style.currency);
 			const shape = currency.shape;
