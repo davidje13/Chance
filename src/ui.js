@@ -24,6 +24,8 @@ let currentTabRunner = null;
 let currentInfoLabel = '';
 let currentTitle = '';
 let lastTime = 0;
+let lastW = 0;
+let lastH = 0;
 
 function updateLabels() {
 	const title = currentTabRunner.title();
@@ -41,17 +43,20 @@ function updateLabels() {
 
 function start(tm) {
 	lastTime = tm;
-	resize();
+	resize(true);
 	currentTabRunner.start();
 }
 
-function resize() {
+function resize(force) {
+	const w = container.offsetWidth;
+	const h = container.offsetHeight;
+	if (!force && lastW === w && lastH === h) {
+		return;
+	}
+	lastW = w;
+	lastH = h;
 	if (currentTabRunner !== null) {
-		const bounds = container.getBoundingClientRect();
-		currentTabRunner.resize(
-			bounds.right - bounds.left,
-			bounds.bottom - bounds.top
-		);
+		currentTabRunner.resize(w, h);
 	}
 }
 
@@ -124,8 +129,7 @@ if (!setTabFromHash()) {
 	tabs.set('dice');
 }
 
-window.addEventListener('resize', resize);
 window.addEventListener('hashchange', setTabFromHash);
 shakeGesture.start();
 
-lockPortrait();
+lockPortrait(resize.bind(null, false));

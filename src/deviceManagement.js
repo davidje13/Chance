@@ -24,7 +24,7 @@ function updateOrientation() {
 	document.body.className = ORIENTATION_CLASSNAMES[angle];
 }
 
-export function lockPortrait() {
+export function lockPortrait(resizeFn = null) {
 	// No scrolling or zooming, since Safari removed ability to do this via meta
 	// Thanks, https://stackoverflow.com/a/38573198/1180785
 	window.addEventListener('touchmove', (e) => e.preventDefault(), {passive: false, capture: true});
@@ -46,9 +46,15 @@ export function lockPortrait() {
 
 	if (supportsOrientation()) {
 		window.addEventListener('orientationchange', updateOrientation);
+		if (resizeFn !== null) {
+			window.addEventListener('orientationchange', resizeFn);
+		}
 		updateOrientation();
 	} else {
 		document.body.className = 'nonrotating';
+	}
+	if (resizeFn !== null) {
+		window.addEventListener('resize', resizeFn);
 	}
 
 	// Lock portrait on devices which support it
