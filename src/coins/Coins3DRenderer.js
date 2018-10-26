@@ -196,6 +196,7 @@ export default class Coins3DRenderer {
 
 	resize(width, height) {
 		this.canvas.resize(width, height);
+		this.shadowBuffer.flushAssumptions();
 	}
 
 	renderCoinFrame(mProj, mView, currency, prog, position, rotation) {
@@ -274,7 +275,7 @@ export default class Coins3DRenderer {
 
 		const gl = this.canvas.gl;
 
-		this.shadowBuffer.bind();
+		this.shadowBuffer.bind({assumeSameEnv: true});
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
 		const {mProj, mView} = M4.shadowPerspective(

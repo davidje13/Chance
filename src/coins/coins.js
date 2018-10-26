@@ -187,6 +187,9 @@ export default class Coins {
 
 	resize(width, height) {
 		this.renderer.resize(width, height);
+		if (this.coin && this.coin.state === STOPPED) {
+			this.coin.state = FALLING;
+		}
 	}
 
 	dom() {

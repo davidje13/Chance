@@ -7,6 +7,8 @@ export default class Framebuffer {
 		this.gl = gl;
 		this.viewport = null;
 		this.oldViewport = null;
+		this.assumedOldTarget = null;
+		this.assumedOldViewport = null;
 
 		this.fb = gl.createFramebuffer();
 		this.bind();
@@ -14,14 +16,29 @@ export default class Framebuffer {
 		this.unbind();
 	}
 
-	bind() {
+	flushAssumptions() {
+		this.assumedOldTarget = null;
+		this.assumedOldViewport = null;
+	}
+
+	bind({assumeSameEnv = false} = {}) {
 		const gl = this.gl;
-		this.oldTarget = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+		if (assumeSameEnv && this.assumedOldTarget !== null) {
+			this.oldTarget = this.assumedOldTarget;
+		} else {
+			this.oldTarget = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+		}
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
 		if (this.viewport !== null) {
-			this.oldViewport = gl.getParameter(gl.VIEWPORT);
+			if (assumeSameEnv && this.assumedOldViewport !== null) {
+				this.oldViewport = this.assumedOldViewport;
+			} else {
+				this.oldViewport = gl.getParameter(gl.VIEWPORT);
+			}
 			setViewport(gl, this.viewport);
 		}
+		this.assumedOldTarget = this.oldTarget;
+		this.assumedOldViewport = this.oldViewport;
 	}
 
 	unbind() {
