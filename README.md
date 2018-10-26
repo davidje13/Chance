@@ -18,22 +18,31 @@ dice shapes and reflections.
 * Uses [GoblinPhysics](https://github.com/chandlerprall/GoblinPhysics)
   for the physics simulation
 * Seeds dice with uniform random rotations to ensure randomness
-* Variety of dice materials and shapes
+* Variety of dice materials, shapes and faces
   - Wood (varnished and unvarnished)
   - Plastic (white and red)
-  - Sharp square
-  - Smooth square
-  - Truncated square
-  - Rounded square
+  - Sharp square / Smooth square / Truncated square / Rounded square
+  - Dots (European and Asian style) / Numbers / Words
 * Uses normal mapping and parallax mapping on the dice faces for
   realistic dot rendering
 * Uses raytracing to render rounded dice shapes
+* Sharp shadows beneath dice
+* No rendering while stationary for energy saving
 
 ### Coins
 
-Work in progress; uses normal mapping and parallax mapping to render
-coin faces, and raytracing to render coin edge. Physics / animation
-not implemented yet
+<img src="screenshots/coins-small.png" alt="Coins preview" width="200" align="right" />
+
+Animated coin toss with raytraced coin.
+
+* Uses normal mapping and parallax mapping to render coin faces
+* Uses a bespoke radial parallax mapping technique to render grooves
+  and shapes around the edges
+* Losely physics-based animation which runs independently of random
+  coin characteristics (outcome and final rotation)
+* Motion blur during animation
+* Blurred shadow beneath coin
+* No rendering while stationary for energy saving
 
 ### Numbers
 
@@ -53,6 +62,7 @@ needle.
   are seen to make it feel more closely related to how much force the
   user imparted
 * WebGL rendering allows cheap and realistic motion blur
+* No rendering while stationary for energy saving
 
 ### Answers Ball
 
@@ -68,6 +78,7 @@ fog simulating coloured liquid.
 * Layer-based volumetric rendering allows realistic appearance; letters
   are raised above icosahedron surface and colouring is provided
   entirely by distance from the camera (liquid depth)
+* No rendering while stationary or out-of-sight for energy saving
 
 ## Running Locally
 
