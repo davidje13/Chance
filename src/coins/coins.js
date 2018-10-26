@@ -84,12 +84,12 @@ export default class Coins {
 		);
 
 		coin.spin -= dwobble * (coinRad - baseRad);
-		coin.velocity.z += deltaTm * 9.81 * 3;
 		coin.position = V3.addMult(coin.position, coin.velocity, deltaTm);
+		const deltaZ = deltaTm * 9.81 * 3;
 
 		if (coin.position.z > -bottom) {
-			if (coin.velocity.z > 0.1) {
-				coin.velocity.z *= -0.4;
+			coin.velocity.z *= -0.4;
+			if (coin.velocity.z < -deltaZ) {
 				coin.state = FALLING;
 			} else {
 				coin.velocity.z = 0;
@@ -97,6 +97,7 @@ export default class Coins {
 			coin.position.z = -bottom;
 		} else {
 			coin.state = FALLING;
+			coin.velocity.z += deltaZ;
 		}
 
 		coin.rotation = Quaternion.fromRotation({
