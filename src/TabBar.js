@@ -1,23 +1,13 @@
 import EventObject from './EventObject.js';
-
-function make(tag, className) {
-	const o = document.createElement(tag);
-	o.className = className;
-	return o;
-}
+import {make, addFastClickListener} from './dom/Dom.js';
 
 function buildButton(id, label, iconUrl, callback) {
-	const li = document.createElement('li');
-	const link = document.createElement('button');
-	const select = (e) => {
-		e.preventDefault();
-		callback(id);
-	};
-	link.addEventListener('click', select);
-	link.addEventListener('touchend', select);
+	const li = make('li');
+	const link = make('button');
+	addFastClickListener(link, () => callback(id));
 	const highlight = make('div', 'highlight');
 	const iconHold = make('div', 'icon');
-	const icon = document.createElement('div');
+	const icon = make('div');
 	icon.style.maskImage = 'url(' + iconUrl + ')';
 	icon.style.webkitMaskImage = 'url(' + iconUrl + ')';
 	const spanLabel = make('div', 'label');

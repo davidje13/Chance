@@ -1,6 +1,7 @@
 import Coins3DRenderer from './Coins3DRenderer.js';
 import Quaternion from '../math/Quaternion.js';
 import {V3} from '../math/Vector.js';
+import {make, addFastClickListener} from '../dom/Dom.js';
 
 const STOPPED = 0;
 const FALLING = 1;
@@ -10,8 +11,7 @@ const HEIGHT_RANDOM = -7;
 
 export default class Coins {
 	constructor(randomSource) {
-		this.inner = document.createElement('div');
-		this.inner.className = 'coins';
+		this.inner = make('div', 'coins');
 
 		this.randomSource = randomSource;
 		this.renderer = new Coins3DRenderer();
@@ -20,7 +20,7 @@ export default class Coins {
 
 		this.coin = null;
 
-		this.click = this.click.bind(this);
+		addFastClickListener(this.inner, () => this.trigger('click'));
 	}
 
 	title() {
@@ -121,11 +121,6 @@ export default class Coins {
 		}
 	}
 
-	toss() {
-		this.coin.state = RISING,
-		this.coin.velocity.z = -20;
-	}
-
 	randomise() {
 		const side = this.randomSource.nextInt(2);
 		const rotation = this.randomSource.nextFloat() * Math.PI * 2;
@@ -153,17 +148,9 @@ export default class Coins {
 		}));
 	}
 
-	shake() {
-		this.toss();
-	}
-
-	click(e) {
-		e.preventDefault();
-		this.toss();
-	}
-
-	reenter() {
-		this.toss();
+	trigger(type) {
+		this.coin.state = RISING,
+		this.coin.velocity.z = -20;
 	}
 
 	start() {
@@ -187,13 +174,9 @@ export default class Coins {
 			},
 		};
 		this.randomise();
-		this.inner.addEventListener('click', this.click);
-		this.inner.addEventListener('touchend', this.click);
 	}
 
 	stop() {
-		this.inner.removeEventListener('click', this.click);
-		this.inner.removeEventListener('touchend', this.click);
 	}
 
 	resize(width, height) {

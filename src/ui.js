@@ -62,7 +62,7 @@ function resize(force) {
 
 function shake() {
 	if (currentTabRunner !== null) {
-		currentTabRunner.shake();
+		currentTabRunner.trigger('shake');
 	}
 }
 
@@ -107,7 +107,7 @@ tabs.addEventListener('enter', (tabs, id, {runner}) => {
 });
 
 tabs.addEventListener('reenter', () => {
-	currentTabRunner.reenter();
+	currentTabRunner.trigger('reenter');
 });
 
 function setTabFromHash() {

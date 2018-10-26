@@ -13,6 +13,13 @@ export class V3 {
 		return V3.length(this);
 	}
 
+	add(b) {
+		this.x += b.x;
+		this.y += b.y;
+		this.z += b.z;
+		return this;
+	}
+
 	multScalar(m) {
 		this.x *= m;
 		this.y *= m;

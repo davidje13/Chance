@@ -1,8 +1,9 @@
 import FrictionSimulator from './FrictionSimulator.js';
 import Pointer from './Pointer.js';
 import Momentum from './Momentum.js';
-import MouseDrag from './MouseDrag.js';
+import MouseDrag from '../gestures/MouseDrag.js';
 import ContortionGlRenderer from './ContortionGlRenderer.js';
+import {make} from '../dom/Dom.js';
 
 const BOARD_WIDTH = 310;
 const BOARD_HEIGHT = 310;
@@ -16,12 +17,6 @@ const PIN_SIZE = 8;
 const DELAY_AUTO_RESPIN = 5000;
 const IMPULSE_WINDOW_MILLIS = 100;
 const MAX_IMPULSE = 10 * Math.PI;
-
-function make(tag, className) {
-	const o = document.createElement(tag);
-	o.className = className;
-	return o;
-}
 
 function setSize(o, width, height = null) {
 	if (height === null) {
@@ -122,7 +117,8 @@ export default class Contortion {
 		this.pointNeedle(0);
 
 		this.spinRandomly = this.spinRandomly.bind(this);
-		this.dblclick = this.dblclick.bind(this);
+		this.mouseDrag.register(this.inner);
+		this.inner.addEventListener('dblclick', this.dblclick.bind(this));
 	}
 
 	pointNeedle(angle) {
@@ -179,10 +175,6 @@ export default class Contortion {
 		pos += change;
 
 		this.pointNeedle(pos);
-	}
-
-	shake() {
-		this.spinRandomly();
 	}
 
 	announceResult() {
@@ -313,25 +305,23 @@ export default class Contortion {
 		this.startAutospin();
 	}
 
-	reenter() {
+	trigger(type) {
 		if (this.autoSpin) {
-			this.stopAutospin();
+			if (type !== 'shake') {
+				this.stopAutospin();
+			}
 		} else {
 			this.spinRandomly();
 		}
 	}
 
 	start() {
-		this.inner.addEventListener('dblclick', this.dblclick);
-		this.mouseDrag.register(this.inner);
 		if (this.autoSpin) {
 			this.spinRandomly();
 		}
 	}
 
 	stop() {
-		this.inner.removeEventListener('dblclick', this.dblclick);
-		this.mouseDrag.unregister(this.inner);
 		this.mouseDrag.abort();
 		clearTimeout(this.nextFlick);
 	}

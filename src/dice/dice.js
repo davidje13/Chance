@@ -1,6 +1,7 @@
 import Dice3DRenderer from './Dice3DRenderer.js';
 import DiceSimulator from './DiceSimulator.js';
 import Quaternion from '../math/Quaternion.js';
+import {make, addFastClickListener} from '../dom/Dom.js';
 
 const MAX_DICE = 20;
 
@@ -14,24 +15,19 @@ function setDisabled(o, disabled) {
 
 export default class Dice {
 	constructor(randomSource) {
-		this.inner = document.createElement('div');
-		this.inner.className = 'dice';
+		this.inner = make('div', 'dice');
 
 		this.randomSource = randomSource;
 		this.renderer = new Dice3DRenderer();
 		this.simulator = new DiceSimulator();
 
-		this.btnSub = document.createElement('button');
-		this.btnSub.className = 'optbtn tl';
+		this.btnSub = make('button', 'optbtn tl');
 		this.btnSub.innerText = '\u2013';
-		this.btnSub.addEventListener('click', this.subDie.bind(this));
-		this.btnSub.addEventListener('touchend', this.subDie.bind(this));
+		addFastClickListener(this.btnSub, this.subDie.bind(this));
 
-		this.btnAdd = document.createElement('button');
-		this.btnAdd.className = 'optbtn tr';
+		this.btnAdd = make('button', 'optbtn tr');
 		this.btnAdd.innerText = '+';
-		this.btnAdd.addEventListener('click', this.addDie.bind(this));
-		this.btnAdd.addEventListener('touchend', this.addDie.bind(this));
+		addFastClickListener(this.btnAdd, this.addDie.bind(this));
 
 		this.inner.appendChild(this.renderer.dom());
 		this.inner.appendChild(this.btnSub);
@@ -41,7 +37,7 @@ export default class Dice {
 
 		this.diceCount = 5;
 
-		this.click = this.click.bind(this);
+		addFastClickListener(this.inner, () => this.trigger('click'));
 		this.forceRender = false;
 
 		this.updateButtons();
@@ -57,10 +53,7 @@ export default class Dice {
 		);
 	}
 
-	addDie(e) {
-		e.stopPropagation();
-		e.preventDefault();
-
+	addDie() {
 		if (this.diceCount >= MAX_DICE) {
 			return;
 		}
@@ -71,10 +64,7 @@ export default class Dice {
 		this.updateButtons();
 	}
 
-	subDie(e) {
-		e.stopPropagation();
-		e.preventDefault();
-
+	subDie() {
 		if (this.diceCount <= 1) {
 			return;
 		}
@@ -109,7 +99,7 @@ export default class Dice {
 			const y = this.randomSource.nextInt(materials.length);
 			const z = this.randomSource.nextInt(dots.length);
 			this.simulator.addDie({
-				style: {shape: shapes[x], material: materials[y], dots: dots[z]}
+				style: {shape: shapes[x], material: materials[y], dots: dots[z]},
 			});
 		}
 
@@ -129,30 +119,17 @@ export default class Dice {
 			.then(() => this.simulator.randomise(this.randomSource));
 	}
 
-	click(e) {
-		e.preventDefault();
-		this.flickDice();
-	}
-
-	shake() {
-		this.flickDice();
-	}
-
-	reenter() {
+	trigger(type) {
 		this.flickDice();
 	}
 
 	start() {
 		this.rebuildDice(this.diceCount);
 		this.simulator.randomise(this.randomSource);
-		this.inner.addEventListener('click', this.click);
-		this.inner.addEventListener('touchend', this.click);
 		this.forceRender = true;
 	}
 
 	stop() {
-		this.inner.removeEventListener('click', this.click);
-		this.inner.removeEventListener('touchend', this.click);
 	}
 
 	updateRegion() {

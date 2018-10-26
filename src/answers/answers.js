@@ -2,6 +2,7 @@ import Icosahedron from './Icosahedron.js';
 import ShapeSimulator from './ShapeSimulator.js';
 import GravityAssist from './GravityAssist.js';
 import Answers3DRenderer from './Answers3DRenderer.js';
+import {make, addFastClickListener} from '../dom/Dom.js';
 
 const BALL_SIZE = 350;
 const HOLE_SIZE = 180;
@@ -14,12 +15,6 @@ const RAND_DEPTH = 2.4;
 const FLOAT_SPEED = -0.1;
 const PHYSICS_STEPS = 8;
 const DEPTH_LAYERS = 5;
-
-function make(tag, className) {
-	const o = document.createElement(tag);
-	o.className = className;
-	return o;
-}
 
 function setSize(o, size) {
 	o.style.width = `${size}px`;
@@ -70,7 +65,6 @@ export default class Answers {
 		ball.appendChild(this.renderer.dom());
 		this.inner.appendChild(ball);
 
-		this.allowClickShake = true;
 		this.allowVertical = true;
 		this.latestGravity = -10;
 		this.simGravityChange = 0;
@@ -79,7 +73,8 @@ export default class Answers {
 			: new GravityAssist(0, 15);
 
 		this.motion = this.motion.bind(this);
-		this.click = this.click.bind(this);
+
+		this.clickListener = addFastClickListener(this.inner, () => this.trigger('click'));
 	}
 
 	title() {
@@ -87,7 +82,7 @@ export default class Answers {
 	}
 
 	info() {
-		if (this.allowClickShake) {
+		if (this.clickListener !== null) {
 			return (
 				'Tap while asking or\n' +
 				'thinking of a question'
@@ -101,10 +96,9 @@ export default class Answers {
 	}
 
 	motion(e) {
-		if (this.allowClickShake) {
-			this.allowClickShake = false;
-			this.inner.removeEventListener('click', this.click);
-			this.inner.removeEventListener('touchend', this.click);
+		if (this.clickListener !== null) {
+			this.clickListener.remove();
+			this.clickListener = null;
 		}
 		this.latestGravity = this.gravAssist.apply(e.accelerationIncludingGravity.z);
 		this.simGravityChange = 0;
@@ -118,24 +112,15 @@ export default class Answers {
 		}
 	}
 
-	click(e) {
-		e.preventDefault();
-		if (!this.allowClickShake) {
+	trigger(type) {
+		if (type === 'shake') {
+			return;
+		}
+		if (this.clickListener === null) {
 			return;
 		}
 		this.latestGravity = 25;
 		this.simGravityChange = -20;
-	}
-
-	reenter() {
-		if (!this.allowClickShake) {
-			return;
-		}
-		this.latestGravity = 25;
-		this.simGravityChange = -20;
-	}
-
-	shake() {
 	}
 
 	step(deltaTm, absTm) {
@@ -158,14 +143,10 @@ export default class Answers {
 		this.simulator.setDepth(MAX_DEPTH);
 		this.simulator.randomise(this.randomSource);
 		window.addEventListener('devicemotion', this.motion);
-		this.inner.addEventListener('click', this.click);
-		this.inner.addEventListener('touchend', this.click);
 	}
 
 	stop() {
 		window.removeEventListener('devicemotion', this.motion);
-		this.inner.removeEventListener('click', this.click);
-		this.inner.removeEventListener('touchend', this.click);
 	}
 
 	resize(width, height) {

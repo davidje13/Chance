@@ -6,6 +6,7 @@ export default class MouseDrag {
 		this.eventTransformFn = eventTransformFn || ((e) => e);
 		this.previous = null;
 		this.touching = false;
+		this.holder = null;
 
 		this._mousedown = this._mousedown.bind(this);
 		this._mousemove = this._mousemove.bind(this);
@@ -17,13 +18,21 @@ export default class MouseDrag {
 	}
 
 	register(target) {
+		if (this.holder !== null) {
+			throw 'Cannot bind to multiple targets!';
+		}
 		target.addEventListener('mousedown', this._mousedown, {passive: false});
 		target.addEventListener('touchstart', this._touchstart, {passive: false});
+		this.holder = target;
 	}
 
-	unregister(target) {
-		target.removeEventListener('mousedown', this._mousedown);
-		target.removeEventListener('touchstart', this._touchstart);
+	unregister() {
+		this.abort();
+		if (this.holder !== null) {
+			this.holder.removeEventListener('mousedown', this._mousedown);
+			this.holder.removeEventListener('touchstart', this._touchstart);
+			this.holder = null;
+		}
 	}
 
 	abort() {

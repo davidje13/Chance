@@ -1,4 +1,5 @@
 import {M4} from '../math/Matrix.js';
+import {V3} from '../math/Vector.js';
 import Quaternion from '../math/Quaternion.js';
 
 // Simulate a shape which is free to move in 1 dimension and free to rotate in
@@ -9,7 +10,7 @@ export default class ShapeSimulator {
 		this.shapePoints = shapePoints;
 		this.maxDepth = maxDepth;
 		this.ang = Quaternion.identity();
-		this.vel = {x: 0, y: 0, z: 0};
+		this.vel = new V3();
 		this.dep = 0;
 		this.g = 0;
 	}
@@ -33,21 +34,15 @@ export default class ShapeSimulator {
 		this.vel.z = randomSource.nextFloat() * spinSpeed;
 	}
 
-	applyRotationImpulse({x, y, z}) {
-		this.vel.x += x;
-		this.vel.y += y;
-		this.vel.z += z;
+	applyRotationImpulse(impulse) {
+		this.vel.add(impulse);
 	}
 
 	step(deltaTm) {
 		const gv = this.g * deltaTm;
 		this.dep = Math.min(this.maxDepth, this.dep - gv);
 
-		const rotation = Quaternion.fromAngularVelocity({
-			x: this.vel.x * deltaTm,
-			y: this.vel.y * deltaTm,
-			z: this.vel.z * deltaTm,
-		});
+		const rotation = Quaternion.fromAngularVelocity(V3.multScalar(this.vel, deltaTm));
 
 		this.ang = rotation.mult(this.ang);
 		this.ang.normalise(); // not required, but avoids numeric errors
@@ -75,10 +70,7 @@ export default class ShapeSimulator {
 			friction = 0.7;
 		}
 
-		const damp = Math.pow(1 - friction, deltaTm);
-		this.vel.x *= damp;
-		this.vel.y *= damp;
-		this.vel.z *= damp;
+		this.vel.multScalar(Math.pow(1 - friction, deltaTm));
 		this.vel.x += forceVelX;
 		this.vel.y += forceVelY;
 	}
