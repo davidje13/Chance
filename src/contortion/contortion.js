@@ -313,6 +313,14 @@ export default class Contortion {
 		this.startAutospin();
 	}
 
+	reenter() {
+		if (this.autoSpin) {
+			this.stopAutospin();
+		} else {
+			this.spinRandomly();
+		}
+	}
+
 	start() {
 		this.inner.addEventListener('dblclick', this.dblclick);
 		this.mouseDrag.register(this.inner);

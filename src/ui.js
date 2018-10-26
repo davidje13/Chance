@@ -106,6 +106,10 @@ tabs.addEventListener('enter', (tabs, id, {runner}) => {
 	}
 });
 
+tabs.addEventListener('reenter', () => {
+	currentTabRunner.reenter();
+});
+
 function setTabFromHash() {
 	const hashID = window.location.hash.substr(5);
 	return tabs.set(hashID);

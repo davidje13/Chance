@@ -20,6 +20,9 @@ export default class Numbers {
 	shake() {
 	}
 
+	reenter() {
+	}
+
 	start() {
 	}
 

@@ -104,6 +104,7 @@ export default class Answers {
 		if (this.allowClickShake) {
 			this.allowClickShake = false;
 			this.inner.removeEventListener('click', this.click);
+			this.inner.removeEventListener('touchend', this.click);
 		}
 		this.latestGravity = this.gravAssist.apply(e.accelerationIncludingGravity.z);
 		this.simGravityChange = 0;
@@ -117,7 +118,16 @@ export default class Answers {
 		}
 	}
 
-	click() {
+	click(e) {
+		e.preventDefault();
+		if (!this.allowClickShake) {
+			return;
+		}
+		this.latestGravity = 25;
+		this.simGravityChange = -20;
+	}
+
+	reenter() {
 		if (!this.allowClickShake) {
 			return;
 		}
@@ -149,11 +159,13 @@ export default class Answers {
 		this.simulator.randomise(this.randomSource);
 		window.addEventListener('devicemotion', this.motion);
 		this.inner.addEventListener('click', this.click);
+		this.inner.addEventListener('touchend', this.click);
 	}
 
 	stop() {
 		window.removeEventListener('devicemotion', this.motion);
 		this.inner.removeEventListener('click', this.click);
+		this.inner.removeEventListener('touchend', this.click);
 	}
 
 	resize(width, height) {

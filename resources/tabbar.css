@@ -8,6 +8,7 @@ ul.tabbar {
 	white-space: nowrap;
 	height: 50px;
 	user-select: none;
+	-webkit-user-select: none;
 }
 
 ul.tabbar li {
@@ -20,14 +21,24 @@ ul.tabbar li {
 	text-align: center;
 }
 
-ul.tabbar li a {
+ul.tabbar li button {
 	position: absolute;
 	top: 0;
 	left: 0;
 	right: 0;
 	bottom: 0;
 	display: block;
+	width: 100%;
 	text-decoration: none;
+	margin: 0;
+	padding: 0;
+	border: none;
+	box-shadow: none;
+	box-sizing: border-box;
+	font: inherit;
+	color: inherit;
+	background: transparent;
+	outline: none;
 }
 
 ul.tabbar .highlight {
@@ -41,6 +52,15 @@ ul.tabbar .highlight {
 
 ul.tabbar li.selected .highlight {
 	background: rgba(255, 255, 255, 0.15);
+}
+
+ul.tabbar li button:focus .highlight {
+	box-shadow: 0 0 0 1px rgba(128, 192, 255, 1);
+}
+
+ul.tabbar li.selected button:focus .highlight {
+	background: rgba(255, 255, 255, 0.2);
+	box-shadow: none;
 }
 
 ul.tabbar .icon {

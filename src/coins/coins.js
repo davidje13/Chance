@@ -20,7 +20,7 @@ export default class Coins {
 
 		this.coin = null;
 
-		this.toss = this.toss.bind(this);
+		this.click = this.click.bind(this);
 	}
 
 	title() {
@@ -157,6 +157,15 @@ export default class Coins {
 		this.toss();
 	}
 
+	click(e) {
+		e.preventDefault();
+		this.toss();
+	}
+
+	reenter() {
+		this.toss();
+	}
+
 	start() {
 		const currencies = ['gbp-old', 'gbp', 'eur-de', 'usd'];
 		const currency = currencies[this.randomSource.nextInt(currencies.length)];
@@ -178,11 +187,13 @@ export default class Coins {
 			},
 		};
 		this.randomise();
-		this.inner.addEventListener('click', this.toss);
+		this.inner.addEventListener('click', this.click);
+		this.inner.addEventListener('touchend', this.click);
 	}
 
 	stop() {
-		this.inner.removeEventListener('click', this.toss);
+		this.inner.removeEventListener('click', this.click);
+		this.inner.removeEventListener('touchend', this.click);
 	}
 
 	resize(width, height) {

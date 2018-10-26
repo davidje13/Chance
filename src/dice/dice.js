@@ -4,6 +4,14 @@ import Quaternion from '../math/Quaternion.js';
 
 const MAX_DICE = 20;
 
+function setDisabled(o, disabled) {
+	if (disabled) {
+		o.setAttribute('disabled', 'disabled');
+	} else {
+		o.removeAttribute('disabled');
+	}
+}
+
 export default class Dice {
 	constructor(randomSource) {
 		this.inner = document.createElement('div');
@@ -13,17 +21,21 @@ export default class Dice {
 		this.renderer = new Dice3DRenderer();
 		this.simulator = new DiceSimulator();
 
-		this.btnAdd = document.createElement('div');
-		this.btnAdd.innerText = '+';
-		this.btnAdd.addEventListener('click', this.addDie.bind(this));
-
-		this.btnSub = document.createElement('div');
+		this.btnSub = document.createElement('button');
+		this.btnSub.className = 'optbtn tl';
 		this.btnSub.innerText = '\u2013';
 		this.btnSub.addEventListener('click', this.subDie.bind(this));
+		this.btnSub.addEventListener('touchend', this.subDie.bind(this));
+
+		this.btnAdd = document.createElement('button');
+		this.btnAdd.className = 'optbtn tr';
+		this.btnAdd.innerText = '+';
+		this.btnAdd.addEventListener('click', this.addDie.bind(this));
+		this.btnAdd.addEventListener('touchend', this.addDie.bind(this));
 
 		this.inner.appendChild(this.renderer.dom());
-		this.inner.appendChild(this.btnAdd);
 		this.inner.appendChild(this.btnSub);
+		this.inner.appendChild(this.btnAdd);
 
 		this.region = {width: 0, height: 0, depth: 10};
 
@@ -47,6 +59,7 @@ export default class Dice {
 
 	addDie(e) {
 		e.stopPropagation();
+		e.preventDefault();
 
 		if (this.diceCount >= MAX_DICE) {
 			return;
@@ -60,6 +73,7 @@ export default class Dice {
 
 	subDie(e) {
 		e.stopPropagation();
+		e.preventDefault();
 
 		if (this.diceCount <= 1) {
 			return;
@@ -72,8 +86,8 @@ export default class Dice {
 	}
 
 	updateButtons() {
-		this.btnAdd.className = 'optbtn tr ' + ((this.diceCount >= MAX_DICE) ? 'disabled' : '');
-		this.btnSub.className = 'optbtn tl ' + ((this.diceCount <= 1) ? 'disabled' : '');
+		setDisabled(this.btnAdd, this.diceCount >= MAX_DICE);
+		setDisabled(this.btnSub, this.diceCount <= 1);
 	}
 
 	step(deltaTm) {
@@ -115,7 +129,8 @@ export default class Dice {
 			.then(() => this.simulator.randomise(this.randomSource));
 	}
 
-	click() {
+	click(e) {
+		e.preventDefault();
 		this.flickDice();
 	}
 
@@ -123,15 +138,21 @@ export default class Dice {
 		this.flickDice();
 	}
 
+	reenter() {
+		this.flickDice();
+	}
+
 	start() {
 		this.rebuildDice(this.diceCount);
 		this.simulator.randomise(this.randomSource);
 		this.inner.addEventListener('click', this.click);
+		this.inner.addEventListener('touchend', this.click);
 		this.forceRender = true;
 	}
 
 	stop() {
 		this.inner.removeEventListener('click', this.click);
+		this.inner.removeEventListener('touchend', this.click);
 	}
 
 	updateRegion() {

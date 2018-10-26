@@ -8,12 +8,13 @@ function make(tag, className) {
 
 function buildButton(id, label, iconUrl, callback) {
 	const li = document.createElement('li');
-	const link = document.createElement('a');
-	link.setAttribute('href', '#');
-	link.addEventListener('click', (e) => {
+	const link = document.createElement('button');
+	const select = (e) => {
 		e.preventDefault();
 		callback(id);
-	});
+	};
+	link.addEventListener('click', select);
+	link.addEventListener('touchend', select);
 	const highlight = make('div', 'highlight');
 	const iconHold = make('div', 'icon');
 	const icon = document.createElement('div');
@@ -37,18 +38,23 @@ export default class TabBar extends EventObject {
 		this.ul = make('ul', 'tabbar');
 		this.tabs = new Map();
 		this.current = null;
-		this.set = this.set.bind(this);
 	}
 
 	add(id, label, iconUrl, data) {
-		const li = buildButton(id, label, iconUrl, this.set);
+		const li = buildButton(id, label, iconUrl, (id) => this.set(id, true));
 		this.ul.appendChild(li);
 		this.tabs.set(id, {id, data, li});
 	}
 
-	set(id) {
+	set(id, reenter = false) {
 		const target = this.tabs.get(id);
-		if (!target || target === this.current) {
+		if (!target) {
+			return false;
+		}
+		if (target === this.current) {
+			if (reenter) {
+				this.trigger('reenter', [this, this.current.id, this.current.data]);
+			}
 			return false;
 		}
 		if (this.current !== null) {
