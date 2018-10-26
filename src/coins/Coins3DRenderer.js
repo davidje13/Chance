@@ -7,6 +7,7 @@ import Box from '../3d/Box.js';
 import Face from '../3d/Face.js';
 import DepthFrag from '../3d/DepthFrag.js';
 import {M4} from '../math/Matrix.js';
+import {V3} from '../math/Vector.js';
 import Quaternion from '../math/Quaternion.js';
 import PROG_SHAPE_VERT from './shaders/VertexCoin.js';
 import PROG_COL_FRAG_HELPER from './shaders/TargetCol.js';
@@ -25,10 +26,12 @@ function loadNormalMap(gl, url, depth) {
 		[gl.TEXTURE_WRAP_S]: gl.REPEAT,
 		[gl.TEXTURE_WRAP_T]: gl.REPEAT,
 	});
-	normalMap.setSolid(0.5, 0.5, 1.0, 1.0);
+	normalMap.setSolid(0.5, 0.5, 1.0, 0.0);
 	normalMap.generateNormalMap(url, depth);
 	return normalMap;
 }
+
+const BLUR_STEPS = 16;
 
 const PROG_FLOOR_VERT = `
 	uniform lowp mat4 projview;
@@ -195,14 +198,87 @@ export default class Coins3DRenderer {
 		this.canvas.resize(width, height);
 	}
 
+	renderCoinFrame(mProj, mView, currency, prog, position, rotation) {
+		const mModel = M4.fromQuaternion(rotation);
+		mModel.translate(position.x, position.y, position.z);
+		const mMV = mModel.mult(mView);
+
+		prog.input({
+			'projview': mMV.mult(mProj),
+			'eye': mMV.invert().apply3([0, 0, 0]),
+			'rot': mMV.as3(),
+		});
+		currency.shape.render(this.canvas.gl);
+	}
+
+	renderCoin(mProj, mView, coin, {blur = false, shadow = false}) {
+		const gl = this.canvas.gl;
+
+		const currency = this.currencies.get(coin.style.currency);
+		const shape = currency.shape;
+		const prog = shadow ? currency.shadowProg : currency.prog;
+
+		shape.bind(gl);
+
+		prog.use(Object.assign({
+			'pos': currency.shape.boundVertices(),
+		}, currency.props));
+
+		if (blur && coin.blur && coin.blur.pos && coin.blur.rot && (
+			Quaternion.distance(coin.rotation, coin.blur.rot) > 0 ||
+			V3.dist2(coin.position, coin.blur.pos) > 0
+		)) {
+			gl.enable(gl.BLEND);
+			gl.blendFunc(gl.ONE, gl.ONE);
+			prog.input({'opacity': 1 / BLUR_STEPS});
+			for (let i = 0; i < BLUR_STEPS; ++ i) {
+				const p = i / (BLUR_STEPS - 1);
+				const pos = V3.mix(coin.position, coin.blur.pos, p);
+				const rot = Quaternion.mix(coin.rotation, coin.blur.rot, p);
+				this.renderCoinFrame(mProj, mView, currency, prog, pos, rot);
+			}
+			gl.disable(gl.BLEND);
+		} else {
+			prog.input({'opacity': 1});
+			this.renderCoinFrame(mProj, mView, currency, prog, coin.position, coin.rotation);
+		}
+	}
+
+	renderFloor(mProj, mView, opacity) {
+		if (opacity <= 0.0) {
+			return;
+		}
+
+		const gl = this.canvas.gl;
+
+		const mFloorModel = M4.identity();
+		mFloorModel.data[5] *= -1.0;
+
+		this.floor.bind(gl);
+		this.floorProg.use({
+			'projview': mFloorModel.mult(mView.mult(mProj)),
+			'opacity': 0.3 * Math.pow(opacity, 1.5),
+			'atlas': this.shadowBufferTex,
+			'pixw': this.shadowW,
+			'pixh': this.shadowH,
+			'pos': this.floor.boundVertices(),
+			'tex': this.floor.boundUvs(),
+		});
+		this.floor.render(gl);
+	}
+
 	renderShadow(coins) {
+		if (!coins.length) {
+			return;
+		}
+
 		const gl = this.canvas.gl;
 
 		this.shadowBuffer.bind();
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
 		const {mProj, mView} = M4.shadowPerspective(
-			{x: 0.0, y: 0.0, z: -4.0},
+			{x: 0.0, y: 0.0, z: -6.0},
 			{x: 0, y: 0, z: 0},
 			{x: 0, y: 0, z: 1},
 			{x: 0, y: 1, z: 0},
@@ -212,22 +288,7 @@ export default class Coins3DRenderer {
 		);
 
 		for (const coin of coins) {
-			const mModel = M4.fromQuaternion(coin.rotation);
-			mModel.translate(coin.position.x, coin.position.y, coin.position.z);
-
-			const mMV = mModel.mult(mView);
-
-			const currency = this.currencies.get(coin.style.currency);
-			const shape = currency.shape;
-			const prog = currency.shadowProg;
-
-			shape.bind(gl);
-			prog.use(Object.assign({
-				'projview': mMV.mult(mProj),
-				'eye': mMV.invert().apply3([0, 0, 0]),
-				'pos': shape.boundVertices(),
-			}, currency.props));
-			shape.render(gl);
+			this.renderCoin(mProj, mView, coin, {shadow: true, blur: false});
 		}
 
 		this.shadowBuffer.unbind();
@@ -238,42 +299,19 @@ export default class Coins3DRenderer {
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
+		if (!coins.length) {
+			return;
+		}
+
 		const mProj = M4.perspective(0.6, this.canvas.width() / this.canvas.height(), 1.0, 100.0);
 		const mView = M4.look({x: 0, y: 3.0, z: -3.5}, {x: 0, y: 0, z: -0.5}, {x: 0, y: -1, z: 0});
 
-		const mFloorModel = M4.identity();
-		mFloorModel.data[5] *= -1.0;
-
-		this.floor.bind(gl);
-		this.floorProg.use({
-			'projview': mFloorModel.mult(mView.mult(mProj)),
-			'opacity': 0.3,
-			'atlas': this.shadowBufferTex,
-			'pixw': this.shadowW,
-			'pixh': this.shadowH,
-			'pos': this.floor.boundVertices(),
-			'tex': this.floor.boundUvs(),
-		});
-		this.floor.render(gl);
+		const coinDepth = -coins[0].position.z;
+		const shadowOpacity = Math.max(0, Math.min(1, (3.0 - coinDepth) / 2.5));
+		this.renderFloor(mProj, mView, shadowOpacity);
 
 		for (const coin of coins) {
-			const mModel = M4.fromQuaternion(coin.rotation);
-			mModel.translate(coin.position.x, coin.position.y, coin.position.z);
-
-			const mMV = mModel.mult(mView);
-
-			const currency = this.currencies.get(coin.style.currency);
-			const shape = currency.shape;
-			const prog = currency.prog;
-
-			shape.bind(gl);
-			prog.use(Object.assign({
-				'projview': mMV.mult(mProj),
-				'eye': mMV.invert().apply3([0, 0, 0]),
-				'rot': mMV.as3(),
-				'pos': shape.boundVertices(),
-			}, currency.props));
-			shape.render(gl);
+			this.renderCoin(mProj, mView, coin, {blur: true});
 		}
 	}
 

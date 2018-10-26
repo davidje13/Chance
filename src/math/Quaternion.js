@@ -141,4 +141,41 @@ export default class Quaternion {
 		const m = Math.sin(angle * 0.5) / angle;
 		return Quaternion.of([x * m, y * m, z * m, w]);
 	}
+
+	static distance(a, b) {
+		return Quaternion.of(a.data).sub(b).length();
+	}
+
+	static dot(a, b) {
+		return (
+			a.data[0] * b.data[0] +
+			a.data[1] * b.data[1] +
+			a.data[2] * b.data[2] +
+			a.data[3] * b.data[3]
+		);
+	}
+
+	static mix(a, b, m) {
+		let s;
+		let f;
+		const d = Quaternion.dot(a, b);
+		if (Math.abs(d) < 0.99) {
+			const o = Math.acos(Math.abs(d));
+			const i = 1 / Math.sin(o);
+			s = Math.sin(o * (1 - m)) * i;
+			f = Math.sin(o * m) * i;
+		} else {
+			s = 1 - m;
+			f = m;
+		}
+		if (d < 0) {
+			s = -s;
+		}
+		return Quaternion.of([
+			a.data[0] * s + b.data[0] * f,
+			a.data[1] * s + b.data[1] * f,
+			a.data[2] * s + b.data[2] * f,
+			a.data[3] * s + b.data[3] * f,
+		]).normalise();
+	}
 };

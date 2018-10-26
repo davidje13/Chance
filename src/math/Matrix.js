@@ -238,7 +238,7 @@ export class M4 {
 		znear
 	) {
 		const zfar = V3.dot(lightPos, planeNormal) - V3.dot(planeCentre, planeNormal);
-		const planeNearest = V3.sub(lightPos, V3.multScalar(planeNormal, zfar));
+		const planeNearest = V3.addMult(lightPos, planeNormal, -zfar);
 		const planeX = V3.cross(planeY, planeNormal);
 		const delta = V3.sub(planeCentre, lightPos);
 		const c = (zfar + znear) / (znear - zfar);

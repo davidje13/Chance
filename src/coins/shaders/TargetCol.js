@@ -1,6 +1,7 @@
 export default `
 	uniform lowp mat3 rot;
 	uniform lowp float twoToneRad;
+	uniform lowp float opacity;
 
 	const lowp vec3 lightDir = vec3(0.0, 0.0, 1.0);
 	const lowp vec3 shineDir = normalize(vec3(0.0, 1.0, 2.0));
@@ -38,6 +39,6 @@ export default `
 				smoothstep(0.49, 0.51, dot(rot * reflect(ray, norm), shineDir)) * shineCol.a
 			),
 			1.0
-		);
+		) * opacity;
 	}
 `;

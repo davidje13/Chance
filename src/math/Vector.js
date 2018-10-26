@@ -13,12 +13,15 @@ export class V3 {
 		return V3.length(this);
 	}
 
-	normalise() {
-		const m = 1 / this.length();
+	multScalar(m) {
 		this.x *= m;
 		this.y *= m;
 		this.z *= m;
 		return this;
+	}
+
+	normalise() {
+		return this.multScalar(1 / this.length());
 	}
 
 	static add(v1, v2) {
@@ -26,6 +29,14 @@ export class V3 {
 			v1.x + v2.x,
 			v1.y + v2.y,
 			v1.z + v2.z,
+		);
+	}
+
+	static addMult(v1, v2, m) {
+		return new V3(
+			v1.x + v2.x * m,
+			v1.y + v2.y * m,
+			v1.z + v2.z * m,
 		);
 	}
 
@@ -78,6 +89,6 @@ export class V3 {
 	}
 
 	static mix(v1, v2, a) {
-		return V3.add(V3.multScalar(v1, 1 - a), V3.multScalar(v2, a));
+		return V3.addMult(V3.multScalar(v1, 1 - a), v2, a);
 	}
 };
