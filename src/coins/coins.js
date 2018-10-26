@@ -42,24 +42,13 @@ export default class Coins {
 
 	start() {
 		const currencies = ['gbp-old', 'gbp', 'eur-de', 'usd'];
-		const sep = 2.5;
-		const midX = (currencies.length - 1) / 2;
-		const midY = 1.5;
-		this.coins = [];
-		for (let x = 0; x < currencies.length; ++ x) {
-			for (let y = 0; y < 4; ++ y) {
-				this.coins.push({
-					position: {x: (x - midX) * sep, y: -(y - midY) * sep, z: -10},
-					style: {currency: currencies[x]},
-					rotation: Quaternion.random(this.randomSource),
-					vel: {
-						x: (this.randomSource.nextFloat() - 0.5) * 2.0,
-						y: (this.randomSource.nextFloat() - 0.5) * 2.0,
-						z: (this.randomSource.nextFloat() - 0.5) * 1.0,
-					},
-				});
-			}
-		}
+		const currency = currencies[this.randomSource.nextInt(currencies.length)];
+		this.coins = [{
+			position: {x: 0, y: 0, z: -this.renderer.coinHeight(currency) * 0.5},
+			style: {currency},
+			rotation: Quaternion.identity(),
+			vel: {x: 0, y: 0, z: 0.2},
+		}];
 	}
 
 	stop() {

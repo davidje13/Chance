@@ -72,13 +72,13 @@ export default class Dice3DRenderer {
 	constructor() {
 		this.canvas = new Canvas(1, 1, {
 			alpha: true,
-			antialias: true,
+			antialias: false,
 			depth: true,
 			powerPreference: 'low-power',
 			premultipliedAlpha: true,
 			preserveDrawingBuffer: false,
 			stencil: false,
-		});
+		}, {oversample: 2.0});
 		this.canvas.dom().className = 'render';
 
 		const gl = this.canvas.gl;
@@ -310,8 +310,8 @@ export default class Dice3DRenderer {
 		return (
 			-z * 2
 			* Math.tan(this.fov)
-			* (this.canvas.width() - insetPixels * this.canvas.pixelRatio())
-			/ this.canvas.height()
+			* (this.canvas.displayWidth() - insetPixels)
+			/ this.canvas.displayHeight()
 		);
 	}
 
@@ -319,8 +319,8 @@ export default class Dice3DRenderer {
 		return (
 			-z * 2
 			* Math.tan(this.fov)
-			* (this.canvas.height() - insetPixels * this.canvas.pixelRatio())
-			/ this.canvas.height()
+			* (this.canvas.displayHeight() - insetPixels)
+			/ this.canvas.displayHeight()
 		);
 	}
 
@@ -334,7 +334,7 @@ export default class Dice3DRenderer {
 		const ww = this.widthAtZ(this.floorZ);
 		const hh = this.heightAtZ(this.floorZ);
 		const lightPos = {x: 0.0, y: hh * 0.6, z: hh * 0.3};
-		const mProj = M4.shadowPerspective(
+		const {mProj, mView} = M4.shadowPerspective(
 			lightPos,
 			{x: 0, y: 0, z: this.floorZ},
 			{x: 0, y: 0, z: 1},
@@ -351,8 +351,10 @@ export default class Dice3DRenderer {
 		});
 
 		for (const die of orderedDice) {
-			const mView = M4.fromQuaternion(die.rotation);
-			mView.translate(die.position.x, die.position.y, die.position.z);
+			const mModel = M4.fromQuaternion(die.rotation);
+			mModel.translate(die.position.x, die.position.y, die.position.z);
+
+			const mMV = mModel.mult(mView);
 
 			const shape = this.shapes.get(die.style.shape);
 
@@ -360,8 +362,8 @@ export default class Dice3DRenderer {
 
 			shape.geom.bind(gl);
 			prog.use(Object.assign({
-				'projview': mView.mult(mProj),
-				'eye': mView.invert().apply3([lightPos.x, lightPos.y, lightPos.z]),
+				'projview': mMV.mult(mProj),
+				'eye': mMV.invert().apply3([0, 0, 0]),
 				'pos': shape.geom.boundVertices(),
 				'norm': shape.geom.boundNormals(),
 			}, this.worldProps, shape.props));
@@ -383,7 +385,13 @@ export default class Dice3DRenderer {
 		});
 		this.floor.render(gl);
 
-		const mProj = M4.perspective(this.fov, this.canvas.width() / this.canvas.height(), 1.0, 100.0);
+		const mProj = M4.perspective(
+			this.fov,
+			this.canvas.width() / this.canvas.height(),
+			1.0,
+			-this.floorZ
+		);
+		const mView = M4.identity();
 		const cameraPos = ZERO;
 
 		const orderedDice = dice.slice().sort((a, b) => {
@@ -394,8 +402,10 @@ export default class Dice3DRenderer {
 
 		gl.enable(gl.DEPTH_TEST);
 		for (const die of orderedDice) {
-			const mView = M4.fromQuaternion(die.rotation);
-			mView.translate(die.position.x, die.position.y, die.position.z);
+			const mModel = M4.fromQuaternion(die.rotation);
+			mModel.translate(die.position.x, die.position.y, die.position.z);
+
+			const mMV = mModel.mult(mView);
 
 			const shape = this.shapes.get(die.style.shape);
 			const material = this.materials.get(die.style.material);
@@ -405,9 +415,9 @@ export default class Dice3DRenderer {
 
 			shape.geom.bind(gl);
 			prog.use(Object.assign({
-				'projview': mView.mult(mProj),
-				'eye': mView.invert().apply3([cameraPos.x, cameraPos.y, cameraPos.z]),
-				'rot': mView.as3(),
+				'projview': mMV.mult(mProj),
+				'eye': mMV.invert().apply3([cameraPos.x, cameraPos.y, cameraPos.z]),
+				'rot': mMV.as3(),
 				'pos': shape.geom.boundVertices(),
 				'norm': shape.geom.boundNormals(),
 				'uvOrigin': texture.origin,

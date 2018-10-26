@@ -187,12 +187,12 @@ export class M4 {
 	}
 
 	static look(from, to, up) {
-		const dz = V3.sub(to, from).normalise();
+		const dz = V3.sub(from, to).normalise();
 		const dx = V3.cross(up, dz).normalise();
 		const dy = V3.cross(dz, dx).normalise();
 		return (
 			M4.identity()
-			.translate(from.x, from.y, from.z)
+			.translate(-from.x, -from.y, -from.z)
 			.mult(M4.of([
 				dx.x, dx.y, dx.z, 0,
 				dy.x, dy.y, dy.z, 0,
@@ -203,7 +203,7 @@ export class M4 {
 	}
 
 	static lookObj(from, to, up) {
-		const dz = V3.sub(to, from).normalise();
+		const dz = V3.sub(from, to).normalise();
 		const dx = V3.cross(up, dz).normalise();
 		const dy = V3.cross(dz, dx).normalise();
 		return M4.of([
@@ -251,8 +251,10 @@ export class M4 {
 			0, 0, c, d,
 			0, 0, -1, 0,
 		]);
-		planeNearest.z *= -1;
-		return M4.lookObj(lightPos, planeNearest, planeY).invert().mult(proj);
+		return {
+			mProj: proj,
+			mView: M4.look(lightPos, planeNearest, planeY),
+		};
 	}
 
 	static fromQuaternion(q) {
