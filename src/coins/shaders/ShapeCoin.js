@@ -28,7 +28,7 @@ const SHAPE_FRAG = `
 `;
 
 const EDGE_SHAPE_FRAG = `
-	lowp float edgePenetrationAt(in lowp vec3 pos) {
+	lowp float edgePenetrationAt(in highp vec3 pos) {
 		return 1.0 - length(pos.xy);
 	}
 
@@ -44,8 +44,8 @@ const EDGE_SHAPE_FRAG = `
 
 const EdgeBoundaryFrag = ({layerSteps = 6, binarySearchSteps = 3} = {}) => `
 	lowp float edgeBoundryAt(
-		in lowp vec3 pos,
-		in lowp vec3 dpos,
+		in highp vec3 pos,
+		in highp vec3 dpos,
 		in lowp float maxDepth
 	) {
 		lowp float lastD = 0.0;
@@ -56,7 +56,7 @@ const EdgeBoundaryFrag = ({layerSteps = 6, binarySearchSteps = 3} = {}) => `
 
 		// layer search
 		for (lowp int i = 0; i < ${layerSteps}; ++ i) {
-			lowp vec3 p = pos + dpos * nextP;
+			highp vec3 p = pos + dpos * nextP;
 			lowp float curD = edgeDepthAt(p) * maxDepth;
 			if (curD <= edgePenetrationAt(p)) {
 				nextD = curD;
@@ -73,7 +73,7 @@ const EdgeBoundaryFrag = ({layerSteps = 6, binarySearchSteps = 3} = {}) => `
 		// binary search
 		for (lowp int i = 0; i < ${binarySearchSteps}; ++ i) {
 			lowp float curP = (lastP + nextP) * 0.5;
-			lowp vec3 p = pos + dpos * curP;
+			highp vec3 p = pos + dpos * curP;
 			lowp float curD = edgeDepthAt(p) * maxDepth;
 			if (curD <= edgePenetrationAt(p)) {
 				nextP = curP;
@@ -113,7 +113,7 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 			lowp float dir = sign(dot(p.xy, ray.xy));
 			root = sqrt(root) * dir;
 			highp float l = (root - er) / rr;
-			lowp vec3 pos = eye + ray * l;
+			highp vec3 pos = eye + ray * l;
 
 			highp vec3 cap;
 			bool clipped = true;
@@ -136,6 +136,9 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 				}
 			} else {
 				// back face (trace from p to pos)
+				if (dot(p.xy, p.xy) > 1.0) {
+					discard;
+				}
 				cap = pos;
 				pos = p;
 			}
