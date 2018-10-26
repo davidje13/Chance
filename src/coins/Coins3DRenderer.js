@@ -242,12 +242,12 @@ export default class Coins3DRenderer {
 		const mView = M4.look({x: 0, y: 3.0, z: -3.5}, {x: 0, y: 0, z: -0.5}, {x: 0, y: -1, z: 0});
 
 		const mFloorModel = M4.identity();
-		mFloorModel.data[0] *= -1.0;
+		mFloorModel.data[5] *= -1.0;
 
 		this.floor.bind(gl);
 		this.floorProg.use({
 			'projview': mFloorModel.mult(mView.mult(mProj)),
-			'opacity': 0.2,
+			'opacity': 0.3,
 			'atlas': this.shadowBufferTex,
 			'pixw': this.shadowW,
 			'pixh': this.shadowH,
