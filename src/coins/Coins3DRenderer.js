@@ -27,7 +27,8 @@ function loadNormalMap(gl, url, depth) {
 	return normalMap;
 }
 
-const BLUR_STEPS = 16;
+const BLUR_STEPS_HIGH = 16;
+const BLUR_STEPS_LOW = 4;
 
 export default class Coins3DRenderer {
 	constructor() {
@@ -162,23 +163,27 @@ export default class Coins3DRenderer {
 			'pos': currency.shape.boundVertices(),
 		}, currency.props));
 
-		if (blur && coin.blur && coin.blur.pos && coin.blur.rot && (
-			Quaternion.distance(coin.rotation, coin.blur.rot) > 0 ||
-			V3.dist2(coin.position, coin.blur.pos) > 0
-		)) {
+		const rotationBlur = Quaternion.distance(coin.rotation, coin.blur.rot);
+		const positionBlur = V3.dist(coin.position, coin.blur.pos);
+
+		if (blur && (rotationBlur > 0 || positionBlur > 0)) {
+			const blurSteps = (positionBlur > 0.3 || rotationBlur > 0.1) ? BLUR_STEPS_HIGH : BLUR_STEPS_LOW;
+
 			gl.enable(gl.BLEND);
 			gl.blendFunc(gl.ONE, gl.ONE);
-			prog.input({'opacity': 1 / BLUR_STEPS});
-			for (let i = 0; i < BLUR_STEPS; ++ i) {
-				const p = i / (BLUR_STEPS - 1);
+			prog.input({'opacity': 1 / blurSteps});
+			for (let i = 0; i < blurSteps; ++ i) {
+				const p = i / Math.max(blurSteps - 1, 1);
 				const pos = V3.mix(coin.position, coin.blur.pos, p);
 				const rot = Quaternion.mix(coin.rotation, coin.blur.rot, p);
 				this.renderCoinFrame(mProj, mView, currency, prog, pos, rot);
 			}
 			gl.disable(gl.BLEND);
+			return {blurred: true};
 		} else {
 			prog.input({'opacity': 1});
 			this.renderCoinFrame(mProj, mView, currency, prog, coin.position, coin.rotation);
+			return {blurred: false};
 		}
 	}
 
@@ -233,11 +238,10 @@ export default class Coins3DRenderer {
 
 	renderScene(coins) {
 		const gl = this.canvas.gl;
-		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
 		if (!coins.length) {
-			return;
+			return {blurred: false};
 		}
 
 		const mProj = M4.perspective(0.6, this.canvas.width() / this.canvas.height(), 1.0, 100.0);
@@ -247,14 +251,19 @@ export default class Coins3DRenderer {
 		const shadowOpacity = Math.max(0, Math.min(1, (3.0 - coinDepth) / 2.5));
 		this.renderFloor(mProj, mView, shadowOpacity);
 
+		let anyBlurred = false;
 		for (const coin of coins) {
-			this.renderCoin(mProj, mView, coin, {blur: true});
+			const {blurred} = this.renderCoin(mProj, mView, coin, {blur: true});
+			if (blurred) {
+				anyBlurred = true;
+			}
 		}
+		return {blurred: anyBlurred};
 	}
 
 	render(coins) {
 		this.renderShadow(coins);
-		this.renderScene(coins);
+		return this.renderScene(coins);
 	}
 
 	dom() {

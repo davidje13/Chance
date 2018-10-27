@@ -58,10 +58,6 @@ export default class Coins {
 			return true;
 		}
 
-		if (coin.wobbleAngle <= 0) {
-			coin.state = STOPPED;
-		}
-
 		if (coin.position.z > -1.5) {
 			coin.wobbleAngle = coin.wobbleAngle * Math.pow(0.3, deltaTm) - deltaTm * 0.1;
 		}
@@ -87,6 +83,9 @@ export default class Coins {
 		coin.position = V3.addMult(coin.position, coin.velocity, deltaTm);
 		const deltaZ = deltaTm * 9.81 * 3;
 
+		if (coin.wobbleAngle <= 0) {
+			coin.state = STOPPED;
+		}
 		if (coin.position.z > -bottom) {
 			coin.velocity.z *= -0.4;
 			if (coin.velocity.z < -deltaZ) {
@@ -116,8 +115,12 @@ export default class Coins {
 	}
 
 	step(deltaTm) {
-		if (this.stepPhysics(deltaTm)) {
-			this.renderer.render([this.coin]);
+		if (!this.stepPhysics(deltaTm)) {
+			return;
+		}
+		const {blurred} = this.renderer.render([this.coin]);
+		if (blurred && this.coin.state === STOPPED) {
+			this.coin.state = FALLING;
 		}
 	}
 
