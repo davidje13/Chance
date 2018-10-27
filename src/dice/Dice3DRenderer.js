@@ -78,7 +78,7 @@ export default class Dice3DRenderer {
 			premultipliedAlpha: true,
 			preserveDrawingBuffer: false,
 			stencil: false,
-		}, {oversample: 2.0});
+		}, {maxOversampleResolution: 3});
 		this.canvas.dom().className = 'render';
 
 		const gl = this.canvas.gl;

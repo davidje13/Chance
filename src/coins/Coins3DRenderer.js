@@ -39,7 +39,7 @@ export default class Coins3DRenderer {
 			premultipliedAlpha: true,
 			preserveDrawingBuffer: false,
 			stencil: false,
-		}, {oversample: 2});
+		}, {maxOversampleResolution: 3});
 		this.canvas.dom().className = 'render';
 
 		const gl = this.canvas.gl;

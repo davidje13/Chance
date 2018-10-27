@@ -1,24 +1,26 @@
-const pixelRatio = window.devicePixelRatio || 1;
+const pixelRatio = Math.max(1, Math.min(4, window.devicePixelRatio || 1));
 
-function setCanvasSize(canvas, width, height, oversample) {
-	const w = Math.round(width * pixelRatio * oversample);
-	const h = Math.round(height * pixelRatio * oversample);
+function setCanvasSize(canvas, width, height, maxOversample) {
+	const oversample = Math.max(pixelRatio, Math.min(pixelRatio * 2, maxOversample));
+	const w = Math.round(width * oversample);
+	const h = Math.round(height * oversample);
 	canvas.width = w;
 	canvas.height = h;
 	canvas.style.width = width + 'px';
 	canvas.style.height = height + 'px';
+	return oversample;
 }
 
 export default class Canvas {
-	constructor(width, height, options = {}, {oversample = 1} = {}) {
+	constructor(width, height, options = {}, {maxOversampleResolution = 0} = {}) {
 		const canvas = document.createElement('canvas');
-		this.oversample = oversample;
-		setCanvasSize(canvas, width, height, this.oversample);
+		this.maxOversample = maxOversampleResolution;
+		this.pixRto = setCanvasSize(canvas, width, height, this.maxOversample);
 		this.gl = canvas.getContext('webgl', options);
 	}
 
 	resize(width, height) {
-		setCanvasSize(this.gl.canvas, width, height, this.oversample);
+		this.pixRto = setCanvasSize(this.gl.canvas, width, height, this.maxOversample);
 		this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 	}
 
@@ -31,7 +33,7 @@ export default class Canvas {
 	}
 
 	pixelRatio() {
-		return pixelRatio * this.oversample;
+		return this.pixRto;
 	}
 
 	displayWidth() {
