@@ -23,8 +23,16 @@ export function addFastClickListener(o, fn) {
 	};
 };
 
+export function findEnabled(o) {
+	return Array.from((o || document).querySelectorAll('button:not([disabled])'));
+}
+
 export function setDisabled(o, disabled) {
-	if (disabled) {
+	if (Array.isArray(o)) {
+		for (const i of o) {
+			setDisabled(i, disabled);
+		}
+	} else if (disabled) {
 		o.setAttribute('disabled', 'disabled');
 	} else {
 		o.removeAttribute('disabled');
