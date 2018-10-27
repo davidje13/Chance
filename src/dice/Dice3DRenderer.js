@@ -69,7 +69,7 @@ const PROG_FLOOR_FRAG = `
 `;
 
 export default class Dice3DRenderer {
-	constructor() {
+	constructor({shadow = true} = {}) {
 		this.canvas = new Canvas(1, 1, {
 			alpha: true,
 			antialias: false,
@@ -82,24 +82,27 @@ export default class Dice3DRenderer {
 		this.canvas.dom().className = 'render';
 
 		const gl = this.canvas.gl;
+		this.shadow = shadow;
 
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
 		gl.depthFunc(gl.LESS);
 
-		this.floor = new ScreenQuad({uv: {left: 0, right: 1, top: 1, bottom: 0}});
-		this.floorZ = 0;
+		if (shadow) {
+			this.floor = new ScreenQuad({uv: {left: 0, right: 1, top: 1, bottom: 0}});
+			this.floorZ = 0;
 
-		this.shadowBufferTex = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.NEAREST,
-			[gl.TEXTURE_MIN_FILTER]: gl.NEAREST,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
+			this.shadowBufferTex = new Texture2D(gl, {
+				[gl.TEXTURE_MAG_FILTER]: gl.NEAREST,
+				[gl.TEXTURE_MIN_FILTER]: gl.NEAREST,
+				[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+				[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+			});
 
-		this.shadowBufferTex.set(this.canvas.width(), this.canvas.height());
-		this.shadowBuffer = new Framebuffer(gl, this.shadowBufferTex);
+			this.shadowBufferTex.set(this.canvas.width(), this.canvas.height());
+			this.shadowBuffer = new Framebuffer(gl, this.shadowBufferTex);
+		}
 
 		this.fov = 0.6;
 		const maxDepth = 0.1;
@@ -235,21 +238,23 @@ export default class Dice3DRenderer {
 
 		const vertShader = new VertexShader(gl, PROG_SHAPE_VERT);
 
-		this.programs.set('shape shadow', new Program(gl, [
-			vertShader,
-			new FragmentShader(gl,
-				PROG_SHADOW_FRAG_HELPER +
-				PROG_SHAPE_FRAG
-			),
-		]));
+		if (shadow) {
+			this.programs.set('shape shadow', new Program(gl, [
+				vertShader,
+				new FragmentShader(gl,
+					PROG_SHADOW_FRAG_HELPER +
+					PROG_SHAPE_FRAG
+				),
+			]));
 
-		this.programs.set('rounded shadow', new Program(gl, [
-			vertShader,
-			new FragmentShader(gl,
-				PROG_SHADOW_FRAG_HELPER +
-				PROG_TRUNC_BALL_FRAG
-			),
-		]));
+			this.programs.set('rounded shadow', new Program(gl, [
+				vertShader,
+				new FragmentShader(gl,
+					PROG_SHADOW_FRAG_HELPER +
+					PROG_TRUNC_BALL_FRAG
+				),
+			]));
+		}
 
 		this.programs.set('shape grain', new Program(gl, [
 			vertShader,
@@ -295,15 +300,19 @@ export default class Dice3DRenderer {
 			),
 		]));
 
-		this.floorProg = new Program(gl, [
-			new VertexShader(gl, PROG_COVER_VERT),
-			new FragmentShader(gl, PROG_FLOOR_FRAG),
-		]);
+		if (shadow) {
+			this.floorProg = new Program(gl, [
+				new VertexShader(gl, PROG_COVER_VERT),
+				new FragmentShader(gl, PROG_FLOOR_FRAG),
+			]);
+		}
 	}
 
 	resize(width, height) {
 		this.canvas.resize(width, height);
-		this.shadowBufferTex.set(this.canvas.width(), this.canvas.height());
+		if (this.shadow) {
+			this.shadowBufferTex.set(this.canvas.width(), this.canvas.height());
+		}
 	}
 
 	widthAtZ(z, {insetPixels = 0} = {}) {
@@ -376,14 +385,16 @@ export default class Dice3DRenderer {
 	renderScene(dice) {
 		const gl = this.canvas.gl;
 
-		this.floor.bind(gl);
-		this.floorProg.use({
-			'opacity': 0.2,
-			'atlas': this.shadowBufferTex,
-			'pos': this.floor.boundVertices(),
-			'tex': this.floor.boundUvs(),
-		});
-		this.floor.render(gl);
+		if (this.shadow) {
+			this.floor.bind(gl);
+			this.floorProg.use({
+				'opacity': 0.2,
+				'atlas': this.shadowBufferTex,
+				'pos': this.floor.boundVertices(),
+				'tex': this.floor.boundUvs(),
+			});
+			this.floor.render(gl);
+		}
 
 		const mProj = M4.perspective(
 			this.fov,
@@ -434,7 +445,9 @@ export default class Dice3DRenderer {
 	}
 
 	render(dice) {
-		this.renderShadow(dice);
+		if (this.shadow) {
+			this.renderShadow(dice);
+		}
 		this.renderScene(dice);
 	}
 
