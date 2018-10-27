@@ -25,11 +25,11 @@ export default class Canvas {
 	}
 
 	width() {
-		return this.gl.canvas.width;
+		return this.gl.drawingBufferWidth;
 	}
 
 	height() {
-		return this.gl.canvas.height;
+		return this.gl.drawingBufferHeight;
 	}
 
 	pixelRatio() {
