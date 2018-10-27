@@ -145,12 +145,12 @@ h1 {
 	box-shadow: 0 0 0 3px #80C0FF;
 }
 
-.optbtn.tl {
+.optbtn.left {
 	top: 20px;
 	left: 20px;
 }
 
-.optbtn.tr {
+.optbtn.right {
 	top: 20px;
 	right: 20px;
 }
