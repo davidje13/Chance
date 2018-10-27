@@ -2,7 +2,7 @@ import Icosahedron from './Icosahedron.js';
 import ShapeSimulator from './ShapeSimulator.js';
 import GravityAssist from './GravityAssist.js';
 import Answers3DRenderer from './Answers3DRenderer.js';
-import {make, addFastClickListener} from '../dom/Dom.js';
+import {make} from '../dom/Dom.js';
 
 const BALL_SIZE = 350;
 const HOLE_SIZE = 180;
@@ -64,9 +64,9 @@ export default class Answers {
 			? new GravityAssist(-3, 15)
 			: new GravityAssist(0, 15);
 
-		this.motion = this.motion.bind(this);
+		this.clickable = true;
 
-		this.clickListener = addFastClickListener(this.inner, () => this.trigger('click'));
+		this.motion = this.motion.bind(this);
 	}
 
 	title() {
@@ -74,7 +74,7 @@ export default class Answers {
 	}
 
 	info() {
-		if (this.clickListener !== null) {
+		if (this.clickable) {
 			return (
 				'Tap while asking or\n' +
 				'thinking of a question'
@@ -88,10 +88,7 @@ export default class Answers {
 	}
 
 	motion(e) {
-		if (this.clickListener !== null) {
-			this.clickListener.remove();
-			this.clickListener = null;
-		}
+		this.clickable = false;
 		this.latestGravity = this.gravAssist.apply(e.accelerationIncludingGravity.z);
 		this.simGravityChange = 0;
 
@@ -108,7 +105,7 @@ export default class Answers {
 		if (type === 'shake') {
 			return;
 		}
-		if (this.clickListener === null) {
+		if (!this.clickable) {
 			return;
 		}
 		this.latestGravity = 25;

@@ -12,6 +12,7 @@ import Coins from './coins/coins.js';
 import Numbers from './numbers/numbers.js';
 import Contortion from './contortion/contortion.js';
 import Answers from './answers/answers.js';
+import {make, addFastClickListener} from './dom/Dom.js';
 
 const nav = document.getElementById('tabs');
 const container = document.getElementById('content');
@@ -108,6 +109,12 @@ tabs.addEventListener('enter', (tabs, id, {runner}) => {
 
 tabs.addEventListener('reenter', () => {
 	currentTabRunner.trigger('reenter');
+});
+
+addFastClickListener(container, () => {
+	if (currentTabRunner) {
+		return currentTabRunner.trigger('click');
+	}
 });
 
 function setTabFromHash() {

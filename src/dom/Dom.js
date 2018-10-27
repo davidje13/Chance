@@ -9,12 +9,13 @@ export function make(tag, className = '', innerText = null) {
 
 export function addFastClickListener(o, fn) {
 	const callback = (e) => {
-		e.preventDefault();
-		e.stopPropagation();
-		fn(e);
+		if (fn(e) !== false) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
 	};
-	o.addEventListener('click', callback);
-	o.addEventListener('touchend', callback);
+	o.addEventListener('click', callback, {passive: false});
+	o.addEventListener('touchend', callback, {passive: false});
 	return {
 		remove: () => {
 			o.removeEventListener('click', callback);

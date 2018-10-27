@@ -1,7 +1,7 @@
 import Coins3DRenderer from './Coins3DRenderer.js';
 import Quaternion from '../math/Quaternion.js';
 import {V3} from '../math/Vector.js';
-import {make, addFastClickListener} from '../dom/Dom.js';
+import {make} from '../dom/Dom.js';
 
 const STOPPED = 0;
 const FALLING = 1;
@@ -19,8 +19,6 @@ export default class Coins {
 		this.inner.appendChild(this.renderer.dom());
 
 		this.coin = null;
-
-		addFastClickListener(this.inner, () => this.trigger('click'));
 	}
 
 	title() {

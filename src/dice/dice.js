@@ -24,10 +24,7 @@ export default class Dice {
 		this.inner.appendChild(this.btnAdd);
 
 		this.region = {width: 0, height: 0, depth: 10};
-
 		this.diceCount = 5;
-
-		addFastClickListener(this.inner, () => this.trigger('click'));
 		this.forceRender = false;
 
 		this.updateButtons();

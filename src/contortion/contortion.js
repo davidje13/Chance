@@ -297,6 +297,9 @@ export default class Contortion {
 	}
 
 	trigger(type) {
+		if (type === 'click') {
+			return false;
+		}
 		if (this.autoSpin) {
 			if (type !== 'shake') {
 				this.stopAutospin();
