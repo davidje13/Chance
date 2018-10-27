@@ -1,17 +1,9 @@
 import Dice3DRenderer from './Dice3DRenderer.js';
 import DiceSimulator from './DiceSimulator.js';
 import Quaternion from '../math/Quaternion.js';
-import {make, addFastClickListener} from '../dom/Dom.js';
+import {make, addFastClickListener, setDisabled} from '../dom/Dom.js';
 
 const MAX_DICE = 20;
-
-function setDisabled(o, disabled) {
-	if (disabled) {
-		o.setAttribute('disabled', 'disabled');
-	} else {
-		o.removeAttribute('disabled');
-	}
-}
 
 export default class Dice {
 	constructor(randomSource) {
@@ -21,12 +13,10 @@ export default class Dice {
 		this.renderer = new Dice3DRenderer();
 		this.simulator = new DiceSimulator();
 
-		this.btnSub = make('button', 'optbtn tl');
-		this.btnSub.innerText = '\u2013';
+		this.btnSub = make('button', 'optbtn tl', '\u2013');
 		addFastClickListener(this.btnSub, this.subDie.bind(this));
 
-		this.btnAdd = make('button', 'optbtn tr');
-		this.btnAdd.innerText = '+';
+		this.btnAdd = make('button', 'optbtn tr', '+');
 		addFastClickListener(this.btnAdd, this.addDie.bind(this));
 
 		this.inner.appendChild(this.renderer.dom());

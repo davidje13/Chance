@@ -21,22 +21,14 @@ function setSize(o, size) {
 	o.style.height = `${size}px`;
 	o.style.marginLeft = `${-size / 2}px`;
 	o.style.marginTop = `${-size / 2}px`;
+	return o;
 }
 
 function buildBackground() {
-	const ball = make('div', 'ball');
-	setSize(ball, BALL_SIZE);
-
-	const chamfer = make('div', 'chamfer');
-	setSize(chamfer, HOLE_SIZE + CHAMFER_SIZE * 2);
-
-	const hole = make('div', 'hole');
-	setSize(hole, HOLE_SIZE);
-
+	const ball = setSize(make('div', 'ball'), BALL_SIZE);
 	ball.appendChild(make('div', 'shine'));
-	ball.appendChild(chamfer);
-	ball.appendChild(hole);
-
+	ball.appendChild(setSize(make('div', 'chamfer'), HOLE_SIZE + CHAMFER_SIZE * 2));
+	ball.appendChild(setSize(make('div', 'hole'), HOLE_SIZE));
 	return ball;
 }
 

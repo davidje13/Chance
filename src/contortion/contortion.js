@@ -26,6 +26,7 @@ function setSize(o, width, height = null) {
 	o.style.height = `${height}px`;
 	o.style.marginLeft = `${-width / 2}px`;
 	o.style.marginTop = `${-height / 2}px`;
+	return o;
 }
 
 function posMod(a, b) {
@@ -37,16 +38,7 @@ function smallestAngle(a) {
 }
 
 function makeBoard() {
-	const board = make('div', 'board');
-	setSize(board, BOARD_WIDTH, BOARD_HEIGHT);
-	const boardB1 = make('div', 'b1');
-	const boardB2 = make('div', 'b2');
-
-	const segments = make('div', 'segments');
-	setSize(segments, SPINNER_SIZE);
-
-	const outline = make('div', 'outline');
-	setSize(outline, SPINNER_SIZE + 1);
+	const segments = setSize(make('div', 'segments'), SPINNER_SIZE);
 
 	for (let i = 0; i < 4; ++ i) {
 		const wedge = make('div', 'wedge-dbl yellow');
@@ -64,16 +56,15 @@ function makeBoard() {
 		segments.appendChild(wedge);
 	}
 
-	const segmentsCore = make('div', 'core');
-	setSize(segmentsCore, SPINNER_CORE_SIZE);
-
 	segments.appendChild(make('div', 'hbeam'));
 	segments.appendChild(make('div', 'vbeam'));
-	segments.appendChild(segmentsCore);
-	board.appendChild(boardB1);
-	board.appendChild(boardB2);
+	segments.appendChild(setSize(make('div', 'core'), SPINNER_CORE_SIZE));
+
+	const board = setSize(make('div', 'board'), BOARD_WIDTH, BOARD_HEIGHT);
+	board.appendChild(make('div', 'b1'));
+	board.appendChild(make('div', 'b2'));
 	board.appendChild(segments);
-	board.appendChild(outline);
+	board.appendChild(setSize(make('div', 'outline'), SPINNER_SIZE + 1));
 	board.appendChild(make('div', 'left-hand'));
 	board.appendChild(make('div', 'right-hand'));
 	board.appendChild(make('div', 'left-foot'));

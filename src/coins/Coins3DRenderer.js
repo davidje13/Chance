@@ -13,11 +13,7 @@ import PROG_SHAPE_VERT from './shaders/VertexCoin.js';
 import PROG_COL_FRAG_HELPER from './shaders/TargetCol.js';
 import PROG_SHADOW_FRAG_HELPER from './shaders/TargetShadow.js';
 import PROG_COIN_FRAG from './shaders/ShapeCoin.js';
-
-function normalize(v) {
-	const m = 1 / Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-	return [v[0] * m, v[1] * m, v[2] * m];
-}
+import FloorShaders from './shaders/Floor.js';
 
 function loadNormalMap(gl, url, depth) {
 	const normalMap = new Texture2D(gl, {
@@ -32,65 +28,6 @@ function loadNormalMap(gl, url, depth) {
 }
 
 const BLUR_STEPS = 16;
-
-const PROG_FLOOR_VERT = `
-	uniform lowp mat4 projview;
-	uniform lowp float pixw;
-	uniform lowp float pixh;
-
-	attribute vec4 pos;
-	attribute vec2 tex;
-
-	varying lowp vec2 t;
-	varying lowp vec2 d1;
-	varying lowp vec2 d2;
-	varying lowp float m0;
-	varying lowp float m1;
-	varying lowp float m2;
-
-	void main() {
-		gl_Position = projview * pos;
-		t = tex;
-		lowp vec2 pix = vec2(1.0 / pixw, 1.0 / pixh);
-		d1 = vec2(2.5, 1.5) * pix;
-		d2 = vec2(5.5, -1.5) * pix;
-		m0 = 0.2;
-		m1 = 0.15;
-		m2 = 0.05;
-	}
-`;
-
-const PROG_FLOOR_FRAG = `
-	uniform mediump float opacity;
-	uniform sampler2D atlas;
-
-	varying lowp vec2 t;
-	varying lowp vec2 d1;
-	varying lowp vec2 d2;
-	varying lowp float m0;
-	varying lowp float m1;
-	varying lowp float m2;
-
-	void main() {
-		lowp vec2 d1b = vec2(-d1.y, d1.x);
-		lowp vec2 d2b = vec2(-d2.y, d2.x);
-		gl_FragColor = (
-			texture2D(atlas, t) * m0 +
-			(
-				texture2D(atlas, t + d1) +
-				texture2D(atlas, t + d1b) +
-				texture2D(atlas, t - d1) +
-				texture2D(atlas, t - d1b)
-			) * m1 +
-			(
-				texture2D(atlas, t + d2) +
-				texture2D(atlas, t + d2b) +
-				texture2D(atlas, t - d2) +
-				texture2D(atlas, t - d2b)
-			) * m2
-		) * opacity;
-	}
-`;
 
 export default class Coins3DRenderer {
 	constructor() {
@@ -127,8 +64,8 @@ export default class Coins3DRenderer {
 		this.shadowBuffer.viewport = [0, 0, this.shadowW, this.shadowH];
 
 		this.floorProg = new Program(gl, [
-			new VertexShader(gl, PROG_FLOOR_VERT),
-			new FragmentShader(gl, PROG_FLOOR_FRAG),
+			new VertexShader(gl, FloorShaders.vert),
+			new FragmentShader(gl, FloorShaders.frag),
 		]);
 
 		this.currencies = new Map();

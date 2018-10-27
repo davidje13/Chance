@@ -4,76 +4,19 @@ import {VertexShader, FragmentShader} from '../3d/Shader.js';
 import {Texture2D} from '../3d/Texture.js';
 import ScreenQuad from '../3d/ScreenQuad.js';
 import {M4} from '../math/Matrix.js';
+import CoverShaders from './shaders/Cover.js';
+import ShapeShaders from './shaders/Shape.js';
 
-const PROG_SHAPE_VERT = `
-	uniform mat4 projview;
-	attribute vec4 pos;
-	attribute vec2 faceTex;
-	attribute vec2 netTex;
-	varying highp vec2 faceUV;
-	varying highp vec2 netUV;
-	varying lowp float dp;
-	void main() {
-		gl_Position = projview * pos;
-		dp = gl_Position.z;
-		faceUV = faceTex;
-		netUV = netTex;
-	}
-`;
-
-const PROG_SHAPE_FRAG = `
-	uniform lowp float bumpSteps;
-	uniform lowp float bumpPos;
-	uniform lowp float fogDepth;
-	uniform sampler2D atlas;
-	uniform sampler2D tiles;
-	varying highp vec2 faceUV;
-	varying highp vec2 netUV;
-	varying lowp float dp;
-	const lowp vec3 fog = vec3(0.0, 0.3, 0.9);
-	const lowp vec3 abyss = vec3(0.0);
-	void main() {
-		if(dp > 0.5) {
-			discard;
-		}
-		gl_FragColor = vec4(
-			mix(
-				texture2D(atlas, faceUV).xyz,
-				mix(fog, abyss, max(dp, 0.0) * 2.0),
-				smoothstep(dp, 0.0, fogDepth)
-			),
-			1.0
-		) * min(texture2D(tiles, netUV).r * bumpSteps - bumpPos, 1.0);
-	}
-`;
-
-const PROG_COVER_VERT = `
-	attribute vec4 pos;
-	attribute vec2 tex;
-	varying lowp vec2 t;
-	void main() {
-		gl_Position = pos;
-		t = tex;
-	}
-`;
-
-const PROG_COVER_FRAG = `
-	uniform sampler2D atlas;
-	varying lowp vec2 t;
-	void main() {
-		gl_FragColor = texture2D(atlas, t);
-	}
-`;
-
-function maxComponent(m) {
-	let max = 0;
-	for (let i = 0; i < 16; ++ i) {
-		const v = Math.abs(m.data[i]);
-		if (v > max) {
-			max = v;
-		}
-	}
-	return max;
+function loadTexture(gl, url) {
+	const tex = new Texture2D(gl, {
+		[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+		[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+		[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+		[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+	});
+	tex.setSolid(0, 0, 0, 0);
+	tex.loadImage(url);
+	return tex;
 }
 
 export default class Answers3DRenderer {
@@ -94,18 +37,19 @@ export default class Answers3DRenderer {
 
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
-		gl.enable(gl.CULL_FACE);
-		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
+		gl.enable(gl.CULL_FACE);
+		gl.enable(gl.BLEND);
+
 		this.shapeProg = new Program(gl, [
-			new VertexShader(gl, PROG_SHAPE_VERT),
-			new FragmentShader(gl, PROG_SHAPE_FRAG),
+			new VertexShader(gl, ShapeShaders.vert),
+			new FragmentShader(gl, ShapeShaders.frag),
 		]);
 
 		this.coverProg = new Program(gl, [
-			new VertexShader(gl, PROG_COVER_VERT),
-			new FragmentShader(gl, PROG_COVER_FRAG),
+			new VertexShader(gl, CoverShaders.vert),
+			new FragmentShader(gl, CoverShaders.frag),
 		]);
 
 		this.shapeSlices = shapeSlices;
@@ -117,23 +61,8 @@ export default class Answers3DRenderer {
 			bottom: 0.75,
 		}});
 
-		this.atlas = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
-		this.atlas.setSolid(0, 0, 0, 0);
-		this.atlas.loadImage('resources/answers/atlas.png');
-
-		this.answers = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
-		this.answers.setSolid(0, 0, 0, 0);
-		this.answers.loadImage('resources/answers/MBA.png');
+		this.atlas = loadTexture(gl, 'resources/answers/atlas.png');
+		this.answers = loadTexture(gl, 'resources/answers/MBA.png');
 
 		this.blankDepth = blankDepth;
 		this.wasBlank = false;
@@ -155,8 +84,7 @@ export default class Answers3DRenderer {
 		const mView = rotationMatrix;
 		mView.translate(0, 0, -depth - 2);
 		const projview = mView.mult(mProj);
-		const diff = this.lastProjView.copy().sub(projview);
-		if (maxComponent(diff) <= 0.001) {
+		if (M4.dist2(this.lastProjView, projview) <= 0.001 * 0.001) {
 			return;
 		}
 		this.lastProjView = projview;

@@ -10,8 +10,7 @@ function buildButton(id, label, iconUrl, callback) {
 	const icon = make('div');
 	icon.style.maskImage = 'url(' + iconUrl + ')';
 	icon.style.webkitMaskImage = 'url(' + iconUrl + ')';
-	const spanLabel = make('div', 'label');
-	spanLabel.innerText = label;
+	const spanLabel = make('div', 'label', label);
 
 	link.appendChild(highlight);
 	iconHold.appendChild(icon);

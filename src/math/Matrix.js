@@ -173,6 +173,14 @@ export class M4 {
 		]).multScalar(1 / det);
 	}
 
+	length2() {
+		let t = 0;
+		for (let i = 0; i < 16; ++ i) {
+			 t += this.data[i] * this.data[i];
+		}
+		return t;
+	}
+
 	static of(data) {
 		return new M4().setRM(data);
 	}
@@ -184,6 +192,10 @@ export class M4 {
 			0, 0, 1, 0,
 			0, 0, 0, 1,
 		]);
+	}
+
+	static dist2(a, b) {
+		return a.copy().sub(b).length2();
 	}
 
 	static look(from, to, up) {
