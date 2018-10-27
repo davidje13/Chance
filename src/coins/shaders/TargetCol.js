@@ -17,21 +17,11 @@ export default `
 	const lowp vec3 baseCol2 = vec3(0.82, 0.78, 0.33);
 
 	void apply(in lowp vec3 pos, in lowp vec3 norm, in lowp vec3 ray) {
-		lowp vec3 ambientCol;
-		lowp vec3 lightCol;
-		lowp vec4 shineCol;
-		lowp vec3 baseCol;
-		if (dot(pos.xy, pos.xy) < twoToneRad * twoToneRad) {
-			ambientCol = ambientCol1;
-			lightCol = lightCol1;
-			shineCol = shineCol1;
-			baseCol = baseCol1;
-		} else {
-			ambientCol = ambientCol2;
-			lightCol = lightCol2;
-			shineCol = shineCol2;
-			baseCol = baseCol2;
-		}
+		lowp float tone = step(twoToneRad * twoToneRad, dot(pos.xy, pos.xy));
+		lowp vec3 ambientCol = mix(ambientCol1, ambientCol2, tone);
+		lowp vec3 lightCol = mix(lightCol1, lightCol2, tone);
+		lowp vec4 shineCol = mix(shineCol1, shineCol2, tone);
+		lowp vec3 baseCol = mix(baseCol1, baseCol2, tone);
 		gl_FragColor = vec4(
 			mix(
 				baseCol * (ambientCol + lightCol * dot(rot * norm, lightDir)),

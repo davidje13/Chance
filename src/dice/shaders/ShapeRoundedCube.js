@@ -3,6 +3,7 @@ export default `
 	uniform lowp float radius;
 	uniform lowp float invFaceRad;
 	uniform lowp float rounding;
+
 	varying lowp vec3 p;
 	varying lowp vec3 n;
 

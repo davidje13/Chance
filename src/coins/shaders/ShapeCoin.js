@@ -5,12 +5,12 @@ const SHAPE_FRAG = `
 
 	varying lowp float thickness;
 
-	const lowp float pi2 = 3.14159265359 * 2.0;
+	const lowp float ipi2 = -0.5 / 3.14159265359;
 
 	lowp vec2 edgeUvAt(in lowp vec3 pos) {
 		return vec2(
-			0.5 - atan(pos.y, pos.x) / pi2,
-			(pos.z * 0.5 / thickness + 0.5) * 0.0625 + 0.53125
+			0.5 + atan(pos.y, pos.x) * ipi2,
+			pos.z / thickness * 0.03125 + 0.5625
 		);
 	}
 
@@ -95,55 +95,69 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 	uniform highp vec3 eye;
 	uniform lowp float maxDepth;
 
+	varying lowp float side;
 	varying lowp vec3 p;
-	varying lowp vec3 n;
 	varying lowp vec2 t;
 
+	void applyFlatFace(in lowp vec3 ray) {
+		lowp vec3 faceD = vec3(-side, 1.0, side);
+		lowp vec3 texSpaceRay = ray * faceD;
+		lowp float zmult = -1.0 / texSpaceRay.z;
+		lowp vec2 duv = texSpaceRay.xy * zmult * 0.5;
+
+		lowp vec2 dd = (step(0.0, duv) - t) / duv;
+
+		lowp float depthLimit = min(maxDepth, min(dd.x, dd.y));
+		lowp float depth = depthAt(normalMap, t, duv, maxDepth, depthLimit);
+		lowp vec3 pos = p + ray * depth * zmult * 2.0;
+
+		apply(pos, faceD * normalAt(t + duv * depth), ray);
+	}
+
 	void main() {
-		lowp vec3 ray = normalize(p - eye);
+		highp vec3 gaze = p - eye;
 		lowp float edgeInnerRad = 1.0 - maxDepth;
-		if (dot(p.xy, p.xy) > edgeInnerRad * edgeInnerRad) {
+		lowp float surfaceRadius2 = dot(p.xy, p.xy);
+		if (surfaceRadius2 > edgeInnerRad * edgeInnerRad) {
+			lowp vec3 ray = gaze / length(gaze.xy);
 			highp float ee = dot(eye.xy, eye.xy);
 			highp float er = dot(eye.xy, ray.xy);
-			highp float rr = dot(ray.xy, ray.xy);
-			highp float root = er * er - ee * rr + rr;
+			highp float root = er * er - ee + 1.0;
 			if (root < 0.0) {
 				discard;
 			}
 			lowp float dir = sign(dot(p.xy, ray.xy));
 			root = sqrt(root) * dir;
-			highp float l = (root - er) / rr;
+			highp float l = root - er;
 			highp vec3 pos = eye + ray * l;
 
 			highp vec3 cap;
 			bool clipped = true;
 			if (dir < 0.0) {
 				// front face (trace from pos to back face)
-				highp float capL = (-root - er) / rr;
+				highp float capL = root;
 
-				ee = dot(eye.xy, eye.xy);
-				er = dot(eye.xy, ray.xy);
-				rr = dot(ray.xy, ray.xy);
-				root = er * er - ee * rr + edgeInnerRad * edgeInnerRad * rr;
+				root = er * er - ee + edgeInnerRad * edgeInnerRad;
 				if (root > 0.0) {
-					capL = (-sqrt(root) - er) / rr;
+					capL = sqrt(root);
 					clipped = false;
 				}
-				cap = eye + ray * capL;
+				cap = eye - ray * (capL + er);
 
 				if (dot(p - pos, ray) > 0.0) {
 					pos = p;
 				}
 			} else {
 				// back face (trace from p to pos)
-				if (dot(p.xy, p.xy) > 1.0) {
+				if (surfaceRadius2 > 1.0) {
 					discard;
 				}
 				cap = pos;
 				pos = p;
 			}
-			if (cap.z * sign(ray.z) > thickness) {
-				cap = pos + (thickness * sign(ray.z) - pos.z) * ray / ray.z;
+			lowp float rayzdir = sign(ray.z);
+			if (cap.z * rayzdir > thickness) {
+				cap = pos + (thickness * rayzdir - pos.z) * ray / ray.z;
 				clipped = true;
 			}
 
@@ -153,31 +167,16 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 			}
 			pos += (cap - pos) * d;
 
-			lowp float compare = pos.z * sign(ray.z);
-			if (compare > thickness) {
-				discard;
-			} else if (compare > -thickness) {
-				apply(pos, rotatedEdgeNormalAt(pos), ray);
+			lowp float compare = pos.z * rayzdir;
+			if (compare > -thickness) {
+				if (compare > thickness) {
+					discard;
+				}
+				apply(pos, rotatedEdgeNormalAt(pos), normalize(gaze));
 				return;
 			}
 		}
 
-		lowp vec2 uv = t;
-		lowp mat3 faceD;
-		faceD[2] = n;
-		faceD[1] = vec3(0.0, 1.0, 0.0);
-		faceD[0] = cross(faceD[2], faceD[1]);
-		lowp vec3 texSpaceRay = ray * faceD;
-		lowp float zmult = -1.0 / texSpaceRay.z;
-		lowp vec2 duv = texSpaceRay.xy * zmult * 0.5;
-
-		lowp vec2 dd = (step(0.0, duv) - uv) / duv;
-
-		lowp float depthLimit = min(maxDepth, min(dd.x, dd.y));
-		lowp float depth = depthAt(normalMap, uv, duv, maxDepth, depthLimit);
-		lowp vec3 pos = p + ray * depth * zmult * 2.0;
-		uv += duv * depth;
-
-		apply(pos, faceD * normalAt(uv), ray);
+		applyFlatFace(normalize(gaze));
 	}
 `;

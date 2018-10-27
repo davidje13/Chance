@@ -197,8 +197,7 @@ export default class Coins3DRenderer {
 			'projview': mFloorModel.mult(mView.mult(mProj)),
 			'opacity': 0.3 * Math.pow(opacity, 1.5),
 			'atlas': this.shadowBufferTex,
-			'pixw': this.shadowW,
-			'pixh': this.shadowH,
+			'pixsize': [1.0 / this.shadowW, 1.0 / this.shadowH],
 			'pos': this.floor.boundVertices(),
 			'tex': this.floor.boundUvs(),
 		});

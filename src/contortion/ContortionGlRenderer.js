@@ -5,47 +5,7 @@ import {Texture2D} from '../3d/Texture.js';
 import Framebuffer from '../3d/Framebuffer.js';
 import ScreenQuad from '../3d/ScreenQuad.js';
 import QuadStack from './QuadStack.js';
-
-const PROG_NEEDLE_VERT = `
-	uniform lowp float startAngle;
-	uniform lowp float sweepAngle;
-	uniform lowp vec2 centre;
-	uniform lowp vec2 size;
-	uniform lowp vec2 texTL;
-	uniform lowp vec2 texSize;
-	attribute vec3 pos;
-	varying lowp vec2 t;
-	const lowp vec2 invY = vec2(1.0, -1.0);
-	void main() {
-		lowp float angle = startAngle + pos.z * sweepAngle;
-		lowp vec2 shape = (pos.xy - 0.5) * size;
-		gl_Position = vec4(
-			centre + cos(angle) * shape * invY - sin(angle) * shape.yx,
-			0.0,
-			1.0
-		);
-		t = texTL + pos.xy * texSize;
-	}
-`;
-
-const PROG_COVER_VERT = `
-	attribute vec4 pos;
-	attribute vec2 tex;
-	varying lowp vec2 t;
-	void main() {
-		gl_Position = pos;
-		t = tex;
-	}
-`;
-
-const PROG_TEX_FRAG = `
-	uniform mediump float opacity;
-	uniform sampler2D atlas;
-	varying lowp vec2 t;
-	void main() {
-		gl_FragColor = texture2D(atlas, t) * opacity;
-	}
-`;
+import NeedleFrag from './shaders/Needle.js';
 
 export default class ContortionGlRenderer {
 	constructor(size, needleCount, needleSize, pinSize) {
@@ -70,14 +30,14 @@ export default class ContortionGlRenderer {
 		gl.clearColor(0, 0, 0, 0);
 		gl.enable(gl.BLEND);
 
-		const texFragShader = new FragmentShader(gl, PROG_TEX_FRAG);
+		const texFragShader = new FragmentShader(gl, NeedleFrag.frag);
 		this.needleProg = new Program(gl, [
-			new VertexShader(gl, PROG_NEEDLE_VERT),
+			new VertexShader(gl, NeedleFrag.needleVert),
 			texFragShader,
 		]);
 
 		this.coverProg = new Program(gl, [
-			new VertexShader(gl, PROG_COVER_VERT),
+			new VertexShader(gl, NeedleFrag.coverVert),
 			texFragShader,
 		]);
 

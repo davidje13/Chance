@@ -1,12 +1,15 @@
 export default {
 	vert: `
 		uniform mat4 projview;
+
 		attribute vec4 pos;
 		attribute vec2 faceTex;
 		attribute vec2 netTex;
+
 		varying highp vec2 faceUV;
 		varying highp vec2 netUV;
 		varying lowp float dp;
+
 		void main() {
 			gl_Position = projview * pos;
 			dp = gl_Position.z;
@@ -20,13 +23,16 @@ export default {
 		uniform lowp float fogDepth;
 		uniform sampler2D atlas;
 		uniform sampler2D tiles;
+
 		varying highp vec2 faceUV;
 		varying highp vec2 netUV;
 		varying lowp float dp;
+
 		const lowp vec3 fog = vec3(0.0, 0.3, 0.9);
 		const lowp vec3 abyss = vec3(0.0);
+
 		void main() {
-			if(dp > 0.5) {
+			if (dp > 0.5) {
 				discard;
 			}
 			gl_FragColor = vec4(
