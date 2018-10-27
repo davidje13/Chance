@@ -31,7 +31,7 @@ const BLUR_STEPS_HIGH = 16;
 const BLUR_STEPS_LOW = 4;
 
 export default class Coins3DRenderer {
-	constructor() {
+	constructor({shadow = true} = {}) {
 		this.canvas = new Canvas(1, 1, {
 			alpha: true,
 			antialias: false,
@@ -44,30 +44,33 @@ export default class Coins3DRenderer {
 		this.canvas.dom().className = 'render';
 
 		const gl = this.canvas.gl;
+		this.shadow = shadow;
 
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
 		gl.enable(gl.CULL_FACE);
 
-		this.floor = new Face({size: {width: 4.0, height: 4.0}, twoSided: false});
+		if (shadow) {
+			this.floor = new Face({size: {width: 4.0, height: 4.0}, twoSided: false});
 
-		this.shadowBufferTex = new Texture2D(gl, {
-			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-			[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
-			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-		});
+			this.shadowBufferTex = new Texture2D(gl, {
+				[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+				[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+				[gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
+				[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+			});
 
-		this.shadowW = 256;
-		this.shadowH = 256;
-		this.shadowBufferTex.set(this.shadowW, this.shadowH);
-		this.shadowBuffer = new Framebuffer(gl, this.shadowBufferTex);
-		this.shadowBuffer.viewport = [0, 0, this.shadowW, this.shadowH];
+			this.shadowW = 256;
+			this.shadowH = 256;
+			this.shadowBufferTex.set(this.shadowW, this.shadowH);
+			this.shadowBuffer = new Framebuffer(gl, this.shadowBufferTex);
+			this.shadowBuffer.viewport = [0, 0, this.shadowW, this.shadowH];
 
-		this.floorProg = new Program(gl, [
-			new VertexShader(gl, FloorShaders.vert),
-			new FragmentShader(gl, FloorShaders.frag),
-		]);
+			this.floorProg = new Program(gl, [
+				new VertexShader(gl, FloorShaders.vert),
+				new FragmentShader(gl, FloorShaders.frag),
+			]);
+		}
 
 		this.currencies = new Map();
 
@@ -76,10 +79,10 @@ export default class Coins3DRenderer {
 			new FragmentShader(gl, PROG_COL_FRAG_HELPER + PROG_COIN_FRAG),
 		]);
 
-		const baseShadowProg = new Program(gl, [
+		const baseShadowProg = shadow ? new Program(gl, [
 			new VertexShader(gl, PROG_SHAPE_VERT),
 			new FragmentShader(gl, PROG_SHADOW_FRAG_HELPER + PROG_COIN_FRAG),
-		]);
+		]) : null;
 
 		const normalScale = 0.5 / 2.0;
 
@@ -134,7 +137,9 @@ export default class Coins3DRenderer {
 
 	resize(width, height) {
 		this.canvas.resize(width, height);
-		this.shadowBuffer.flushAssumptions();
+		if (this.shadow) {
+			this.shadowBuffer.flushAssumptions();
+		}
 	}
 
 	renderCoinFrame(mProj, mView, currency, prog, position, rotation) {
@@ -210,7 +215,7 @@ export default class Coins3DRenderer {
 	}
 
 	renderShadow(coins) {
-		if (!coins.length) {
+		if (!this.shadow || !coins.length) {
 			return;
 		}
 
@@ -236,7 +241,7 @@ export default class Coins3DRenderer {
 		this.shadowBuffer.unbind();
 	}
 
-	renderScene(coins) {
+	renderScene(coins, shadow) {
 		const gl = this.canvas.gl;
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -247,9 +252,11 @@ export default class Coins3DRenderer {
 		const mProj = M4.perspective(0.6, this.canvas.width() / this.canvas.height(), 1.0, 100.0);
 		const mView = M4.look({x: 0, y: 3.0, z: -3.5}, {x: 0, y: 0, z: -0.5}, {x: 0, y: -1, z: 0});
 
-		const coinDepth = -coins[0].position.z;
-		const shadowOpacity = Math.max(0, Math.min(1, (3.0 - coinDepth) / 2.5));
-		this.renderFloor(mProj, mView, shadowOpacity);
+		if (this.shadow) {
+			const coinDepth = -coins[0].position.z;
+			const shadowOpacity = Math.max(0, Math.min(1, (3.0 - coinDepth) / 2.5));
+			this.renderFloor(mProj, mView, shadowOpacity);
+		}
 
 		let anyBlurred = false;
 		for (const coin of coins) {
