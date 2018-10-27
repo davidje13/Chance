@@ -13,10 +13,10 @@ export default class Dice {
 		this.renderer = new Dice3DRenderer();
 		this.simulator = new DiceSimulator();
 
-		this.btnSub = make('button', 'optbtn tl', '\u2013');
+		this.btnSub = make('button', 'optbtn left', '\u2013');
 		addFastClickListener(this.btnSub, this.subDie.bind(this));
 
-		this.btnAdd = make('button', 'optbtn tr', '+');
+		this.btnAdd = make('button', 'optbtn right', '+');
 		addFastClickListener(this.btnAdd, this.addDie.bind(this));
 
 		this.inner.appendChild(this.renderer.dom());
