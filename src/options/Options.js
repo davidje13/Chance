@@ -3,7 +3,7 @@ import {make} from '../dom/Dom.js';
 export default class Options {
 	constructor() {
 		this.headingHeight = 30;
-		this.rowHeight = 20;
+		this.rowHeight = 24;
 		this.sampleWidth = 75;
 		this.rowPadding = 5;
 		this.border = 1;

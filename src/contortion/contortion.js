@@ -3,6 +3,7 @@ import Pointer from './Pointer.js';
 import Momentum from './Momentum.js';
 import MouseDrag from '../gestures/MouseDrag.js';
 import ContortionGlRenderer from './ContortionGlRenderer.js';
+import Options from '../options/Options.js';
 import {make} from '../dom/Dom.js';
 
 const BOARD_WIDTH = 310;
@@ -110,6 +111,9 @@ export default class Contortion {
 		this.spinRandomly = this.spinRandomly.bind(this);
 		this.mouseDrag.register(this.inner);
 		this.inner.addEventListener('dblclick', this.dblclick.bind(this));
+
+		this.opts = new Options();
+		this.opts.addRow({label: 'Prevent duplicate spins'});
 	}
 
 	pointNeedle(angle) {
@@ -145,7 +149,7 @@ export default class Contortion {
 	}
 
 	options() {
-		return null;
+		return this.opts;
 	}
 
 	step(deltaTm, absTm) {

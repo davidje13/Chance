@@ -2,6 +2,7 @@ import Icosahedron from './Icosahedron.js';
 import ShapeSimulator from './ShapeSimulator.js';
 import GravityAssist from './GravityAssist.js';
 import Answers3DRenderer from './Answers3DRenderer.js';
+import Options from '../options/Options.js';
 import {make} from '../dom/Dom.js';
 
 const BALL_SIZE = 350;
@@ -67,6 +68,12 @@ export default class Answers {
 		this.clickable = true;
 
 		this.motion = this.motion.bind(this);
+
+		this.opts = new Options();
+		this.opts.addRow({label: 'Gravity assist'});
+		this.opts.addHeading('Answer Set');
+		this.opts.addRow({label: 'A'});
+		this.opts.addRow({label: 'B'});
 	}
 
 	title() {
@@ -88,7 +95,7 @@ export default class Answers {
 	}
 
 	options() {
-		return null;
+		return this.opts;
 	}
 
 	motion(e) {
