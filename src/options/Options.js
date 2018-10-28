@@ -1,9 +1,7 @@
 import {make} from '../dom/Dom.js';
 
 export default class Options {
-	constructor(renderer) {
-		this.renderer = renderer;
-
+	constructor() {
 		this.headingHeight = 30;
 		this.rowHeight = 20;
 		this.sampleWidth = 75;
@@ -14,15 +12,27 @@ export default class Options {
 		this.y = 0;
 
 		this.hold = make('div', 'option-list');
-		if (this.renderer) {
-			const rendererCanvas = this.renderer.dom();
-			this.hold.appendChild(rendererCanvas);
-			rendererCanvas.style.position = 'absolute';
-			rendererCanvas.style.top = '0';
-			rendererCanvas.style.right = '15px';
-		}
+		this.renderer = null;
 
 		this.curSection = this.hold;
+	}
+
+	setRenderer(renderer) {
+		if (this.renderer === renderer) {
+			return;
+		}
+		if (this.renderer !== null) {
+			this.hold.removeChild(this.renderer.dom());
+		}
+		this.renderer = renderer;
+		if (renderer === null) {
+			return;
+		}
+		const rendererCanvas = this.renderer.dom();
+		this.hold.appendChild(rendererCanvas);
+		rendererCanvas.style.position = 'absolute';
+		rendererCanvas.style.top = '0';
+		rendererCanvas.style.right = '15px';
 	}
 
 	addHeading(label) {
@@ -65,6 +75,10 @@ export default class Options {
 	animate() {
 	}
 
+	makeRenderer() {
+		return null;
+	}
+
 	clear() {
 	}
 
@@ -72,6 +86,9 @@ export default class Options {
 	}
 
 	start() {
+		if (!this.renderer) {
+			this.setRenderer(this.makeRenderer());
+		}
 		if (this.renderer) {
 			let maxX = 0;
 			let maxY = 0;

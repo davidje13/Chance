@@ -5,11 +5,7 @@ import {make} from '../dom/Dom.js';
 
 export default class DiceOptions extends Options {
 	constructor() {
-		super(new Dice3DRenderer({
-			shadow: false,
-			maxOversampleResolution: 1.5,
-			fov: 0.2,
-		}));
+		super();
 
 		this.rowHeight = this.sampleWidth;
 
@@ -27,6 +23,15 @@ export default class DiceOptions extends Options {
 		this.frameRotation = Quaternion
 			.fromRotation({x: 0, y: 1, z: 0, angle: this.spin})
 			.mult(this.rotation);
+	}
+
+	makeRenderer() {
+		return new Dice3DRenderer({
+			shadow: false,
+			maxOversampleResolution: 1.5,
+			downsampleTextures: true,
+			fov: 0.2,
+		});
 	}
 
 	clear() {

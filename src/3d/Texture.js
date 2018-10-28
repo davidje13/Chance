@@ -18,6 +18,12 @@ function imageToData(img) {
 	return ctx.getImageData(0, 0, w, h);
 }
 
+function createImageData(w, h) {
+	const canvas = document.createElement('canvas');
+	const ctx = canvas.getContext('2d');
+	return ctx.createImageData(w, h);
+}
+
 function depthToNormals(data, heightOverWidth) {
 	const w = data.width;
 	const h = data.height;
@@ -57,6 +63,53 @@ function depthToNormals(data, heightOverWidth) {
 	}
 
 	return data;
+}
+
+function premultiply(data) {
+	const n = data.width * data.height;
+	const d = data.data;
+
+	for (let i = 0; i < n; ++ i) {
+		const p = i * 4;
+		const a = d[p + 3];
+		if (a === 0) {
+			d[p    ] = 0;
+			d[p + 1] = 0;
+			d[p + 2] = 0;
+		} else if (a !== 255) {
+			d[p    ] = (d[p    ] * a) / 255;
+			d[p + 1] = (d[p + 1] * a) / 255;
+			d[p + 2] = (d[p + 2] * a) / 255;
+		}
+	}
+
+	return data;
+}
+
+function downsampleData(data) {
+	const w = data.width;
+	const w2 = Math.floor(data.width / 2);
+	const h2 = Math.floor(data.height / 2);
+	const d2 = createImageData(w2, h2);
+	const d = data.data;
+	const w4 = w * 4;
+
+	for (let y = 0; y < h2; ++ y) {
+		for (let x = 0; x < w2; ++ x) {
+			const p = (y * w + x) * 8;
+			const p2 = (y * w2 + x) * 4;
+			for (let c = 0; c < 4; ++ c) {
+				d2.data[p2 + c] = (
+					d[p + c] +
+					d[p + c + 4] +
+					d[p + c + w4] +
+					d[p + c + w4 + 4]
+				) * 0.25;
+			}
+		}
+	}
+
+	return d2;
 }
 
 export default class Texture {
@@ -112,30 +165,36 @@ export default class Texture {
 		gl.generateMipmap(this.type);
 	}
 
-	loadImage(url, {
-		premultiplyAlpha = true,
-	} = {}) {
-		return loadImage(url)
-			.then((img) => {
-				const gl = this.gl;
-				this.bind();
-				gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiplyAlpha);
-				gl.texImage2D(this.type, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-				return this;
-			});
+	_uploadData(data, {premultiplyAlpha = true}) {
+		const gl = this.gl;
+		this.bind();
+		gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiplyAlpha);
+		gl.texImage2D(this.type, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, data);
+		return this;
 	}
 
-	generateNormalMap(url, height) {
+	loadImage(url, {
+		premultiplyAlpha = true,
+		downsample = false,
+	} = {}) {
+		if (downsample) {
+			return loadImage(url)
+				.then(imageToData)
+				.then((data) => premultiplyAlpha ? premultiply(data) : data)
+				.then((data) => downsample ? downsampleData(data) : data)
+				.then((data) => this._uploadData(data, {premultiplyAlpha: false}));
+		} else {
+			return loadImage(url)
+				.then((img) => this._uploadData(img, {premultiplyAlpha}));
+		}
+	}
+
+	generateNormalMap(url, height, {downsample = false} = {}) {
 		return loadImage(url)
 			.then(imageToData)
 			.then((data) => depthToNormals(data, height))
-			.then((data) => {
-				const gl = this.gl;
-				this.bind();
-				gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-				gl.texImage2D(this.type, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, data);
-				return this;
-			});
+			.then((data) => downsample ? downsampleData(data) : data)
+			.then((data) => this._uploadData(data, {premultiplyAlpha: false}));
 	}
 
 	bind(index = 0) {

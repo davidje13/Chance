@@ -15,7 +15,7 @@ import PROG_SHADOW_FRAG_HELPER from './shaders/TargetShadow.js';
 import PROG_COIN_FRAG from './shaders/ShapeCoin.js';
 import FloorShaders from './shaders/Floor.js';
 
-function loadNormalMap(gl, url, depth) {
+function loadNormalMap(gl, url, depth, downsample) {
 	const normalMap = new Texture2D(gl, {
 		[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
 		[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
@@ -23,7 +23,7 @@ function loadNormalMap(gl, url, depth) {
 		[gl.TEXTURE_WRAP_T]: gl.REPEAT,
 	});
 	normalMap.setSolid(0.5, 0.5, 1.0, 0.0);
-	normalMap.generateNormalMap(url, depth);
+	normalMap.generateNormalMap(url, depth, {downsample});
 	return normalMap;
 }
 
@@ -31,7 +31,12 @@ const BLUR_STEPS_HIGH = 16;
 const BLUR_STEPS_LOW = 4;
 
 export default class Coins3DRenderer {
-	constructor({shadow = true, maxOversampleResolution = 3, fov = 0.6} = {}) {
+	constructor({
+		shadow = true,
+		maxOversampleResolution = 3,
+		downsampleTextures = false,
+		fov = 0.6,
+	} = {}) {
 		this.canvas = new Canvas(1, 1, {
 			alpha: true,
 			antialias: false,
@@ -94,7 +99,7 @@ export default class Coins3DRenderer {
 			props: {
 				'maxDepth': 0.015,
 				'twoToneRad': 0.0,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp-old.png', 0.015 * normalScale),
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp-old.png', 0.015 * normalScale, downsampleTextures),
 			},
 		});
 
@@ -105,7 +110,7 @@ export default class Coins3DRenderer {
 			props: {
 				'maxDepth': 0.032,
 				'twoToneRad': 0.6484375,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp.png', 0.032 * normalScale),
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp.png', 0.032 * normalScale, downsampleTextures),
 			},
 		});
 
@@ -116,7 +121,7 @@ export default class Coins3DRenderer {
 			props: {
 				'maxDepth': 0.02,
 				'twoToneRad': 0.71875,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-eur-de.png', 0.02 * normalScale),
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-eur-de.png', 0.02 * normalScale, downsampleTextures),
 			},
 		});
 
@@ -127,7 +132,7 @@ export default class Coins3DRenderer {
 			props: {
 				'maxDepth': 0.02,
 				'twoToneRad': 1.1,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-usd.png', 0.02 * normalScale),
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-usd.png', 0.02 * normalScale, downsampleTextures),
 			},
 		});
 	}

@@ -25,7 +25,7 @@ function normalize(v) {
 	return [v[0] * m, v[1] * m, v[2] * m];
 }
 
-function loadAtlas(gl, url) {
+function loadAtlas(gl, url, downsample) {
 	const atlas = new Texture2D(gl, {
 		[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
 		[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
@@ -33,11 +33,11 @@ function loadAtlas(gl, url) {
 		[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
 	});
 	atlas.setSolid(0, 0, 0, 0);
-	atlas.loadImage(url);
+	atlas.loadImage(url, {downsample});
 	return atlas;
 }
 
-function loadNormalMap(gl, url, depth) {
+function loadNormalMap(gl, url, depth, downsample) {
 	const normalMap = new Texture2D(gl, {
 		[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
 		[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
@@ -45,7 +45,7 @@ function loadNormalMap(gl, url, depth) {
 		[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
 	});
 	normalMap.setSolid(0.5, 0.5, 1.0, 1.0);
-	normalMap.generateNormalMap(url, depth);
+	normalMap.generateNormalMap(url, depth, {downsample});
 	return normalMap;
 }
 
@@ -69,7 +69,12 @@ const PROG_FLOOR_FRAG = `
 `;
 
 export default class Dice3DRenderer {
-	constructor({shadow = true, maxOversampleResolution = 3, fov = 0.6} = {}) {
+	constructor({
+		shadow = true,
+		maxOversampleResolution = 3,
+		downsampleTextures = false,
+		fov = 0.6,
+	} = {}) {
 		this.canvas = new Canvas(1, 1, {
 			alpha: true,
 			antialias: false,
@@ -224,11 +229,11 @@ export default class Dice3DRenderer {
 		const normalMapFaceWidth = 0.25;
 		const normalMapFaceDepth = maxDepth * normalMapFaceWidth / worldFaceWidth;
 
-		const atlas1 = loadAtlas(gl, 'resources/dice/atlas1.png');
-		const normalMap1 = loadNormalMap(gl, 'resources/dice/depth1.png', normalMapFaceDepth);
+		const atlas1 = loadAtlas(gl, 'resources/dice/atlas1.png', downsampleTextures);
+		const normalMap1 = loadNormalMap(gl, 'resources/dice/depth1.png', normalMapFaceDepth, downsampleTextures);
 
-		const atlas2 = loadAtlas(gl, 'resources/dice/atlas2.png');
-		const normalMap2 = loadNormalMap(gl, 'resources/dice/depth2.png', normalMapFaceDepth);
+		const atlas2 = loadAtlas(gl, 'resources/dice/atlas2.png', downsampleTextures);
+		const normalMap2 = loadNormalMap(gl, 'resources/dice/depth2.png', normalMapFaceDepth, downsampleTextures);
 
 		this.textures.set('european', {
 			atlas: atlas1,
