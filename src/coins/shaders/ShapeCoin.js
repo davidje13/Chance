@@ -94,6 +94,7 @@ const EdgeBoundaryFrag = ({layerSteps = 6, binarySearchSteps = 3} = {}) => `
 export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeBoundaryFrag() + `
 	uniform highp vec3 eye;
 	uniform lowp float maxDepth;
+	uniform lowp float edgeMaxDepth;
 	uniform lowp float punchRad;
 
 	varying lowp float side;
@@ -117,7 +118,7 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 
 	void main() {
 		highp vec3 gaze = p - eye;
-		lowp float edgeInnerRad = 1.0 - maxDepth;
+		lowp float edgeInnerRad = 1.0 - edgeMaxDepth;
 		lowp float surfaceRadius2 = dot(p.xy, p.xy);
 
 		lowp vec3 ray2d = gaze / length(gaze.xy);
@@ -163,7 +164,7 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 				clipped = true;
 			}
 
-			lowp float d = edgeBoundryAt(pos, cap - pos, maxDepth);
+			lowp float d = edgeBoundryAt(pos, cap - pos, edgeMaxDepth);
 			if (clipped && d == 1.0) {
 				discard;
 			}

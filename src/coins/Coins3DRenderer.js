@@ -51,6 +51,7 @@ export default class Coins3DRenderer {
 		const gl = this.canvas.gl;
 		this.shadow = shadow;
 		this.fov = fov;
+		this.downsampleTextures = downsampleTextures;
 
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
@@ -90,7 +91,8 @@ export default class Coins3DRenderer {
 			new FragmentShader(gl, PROG_SHADOW_FRAG_HELPER + PROG_COIN_FRAG),
 		]) : null;
 
-		const normalScale = 0.5 / 2.0;
+		this.normalScale = 0.5 / 2.0;
+		this.edgeDepthScale = Math.PI / 2.0;
 
 		this.currencies.set('gbp-old', {
 			shape: new Box({width: 2.1, height: 2.1, depth: 0.28}),
@@ -100,7 +102,7 @@ export default class Coins3DRenderer {
 				'maxDepth': 0.015,
 				'twoToneRad': 0.0,
 				'punchRad': 0.0,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp-old.png', 0.015 * normalScale, downsampleTextures),
+				'normalMap': 'resources/coins/depth-gbp-old.png',
 			},
 		});
 
@@ -109,10 +111,11 @@ export default class Coins3DRenderer {
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
-				'maxDepth': 0.032,
+				// edge varies from 32--256, and must produce straight edges for a 12-sided shape:
+				'maxDepth': (1 - Math.cos(Math.PI / 12)) * (8 / 7) / this.edgeDepthScale,
 				'twoToneRad': 0.6484375,
 				'punchRad': 0.0,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp.png', 0.032 * normalScale, downsampleTextures),
+				'normalMap': 'resources/coins/depth-gbp.png',
 			},
 		});
 
@@ -124,7 +127,7 @@ export default class Coins3DRenderer {
 				'maxDepth': 0.02,
 				'twoToneRad': 0.71875,
 				'punchRad': 0.0,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-eur-de.png', 0.02 * normalScale, downsampleTextures),
+				'normalMap': 'resources/coins/depth-eur-de.png',
 			},
 		});
 
@@ -133,10 +136,10 @@ export default class Coins3DRenderer {
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
-				'maxDepth': 0.02,
+				'maxDepth': 0.015,
 				'twoToneRad': 1.1,
 				'punchRad': 0.0,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-usd.png', 0.02 * normalScale, downsampleTextures),
+				'normalMap': 'resources/coins/depth-usd.png',
 			},
 		});
 
@@ -148,7 +151,7 @@ export default class Coins3DRenderer {
 				'maxDepth': 0.02,
 				'twoToneRad': 0.0,
 				'punchRad': 0.227,
-				'normalMap': loadNormalMap(gl, 'resources/coins/depth-jpy.png', 0.02 * normalScale, downsampleTextures),
+				'normalMap': 'resources/coins/depth-jpy.png',
 			},
 		});
 	}
@@ -174,12 +177,27 @@ export default class Coins3DRenderer {
 		currency.shape.render(this.canvas.gl);
 	}
 
+	_prepareCurrency(currency) {
+		if (typeof currency.props['normalMap'] === 'string') {
+			currency.props['normalMap'] = loadNormalMap(
+				this.canvas.gl,
+				currency.props['normalMap'],
+				currency.props['maxDepth'] * this.normalScale,
+				this.downsampleTextures
+			);
+			// edge is stretched relative to face, so scale is different
+			currency.props['edgeMaxDepth'] = currency.props['maxDepth'] * this.edgeDepthScale;
+		}
+	}
+
 	renderCoin(mProj, mView, coin, {blur = false, shadow = false}) {
 		const gl = this.canvas.gl;
 
 		const currency = this.currencies.get(coin.style.currency);
 		const shape = currency.shape;
 		const prog = shadow ? currency.shadowProg : currency.prog;
+
+		this._prepareCurrency(currency);
 
 		shape.bind(gl);
 
