@@ -94,6 +94,7 @@ const EdgeBoundaryFrag = ({layerSteps = 6, binarySearchSteps = 3} = {}) => `
 export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeBoundaryFrag() + `
 	uniform highp vec3 eye;
 	uniform lowp float maxDepth;
+	uniform lowp float punchRad;
 
 	varying lowp float side;
 	varying lowp vec3 p;
@@ -118,18 +119,20 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 		highp vec3 gaze = p - eye;
 		lowp float edgeInnerRad = 1.0 - maxDepth;
 		lowp float surfaceRadius2 = dot(p.xy, p.xy);
+
+		lowp vec3 ray2d = gaze / length(gaze.xy);
+		lowp float rayzdir = sign(ray2d.z);
+		highp float ee = dot(eye.xy, eye.xy);
+		highp float er = dot(eye.xy, ray2d.xy);
+		highp float root = er * er - ee;
+
 		if (surfaceRadius2 > edgeInnerRad * edgeInnerRad) {
-			lowp vec3 ray = gaze / length(gaze.xy);
-			highp float ee = dot(eye.xy, eye.xy);
-			highp float er = dot(eye.xy, ray.xy);
-			highp float root = er * er - ee + 1.0;
-			if (root < 0.0) {
+			if (root < -1.0) {
 				discard;
 			}
-			lowp float dir = sign(dot(p.xy, ray.xy));
-			root = sqrt(root) * dir;
-			highp float l = root - er;
-			highp vec3 pos = eye + ray * l;
+			lowp float dir = sign(dot(p.xy, ray2d.xy));
+			root = sqrt(root + 1.0) * dir;
+			highp vec3 pos = eye + ray2d * (root - er);
 
 			highp vec3 cap;
 			bool clipped = true;
@@ -142,9 +145,9 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 					capL = sqrt(root);
 					clipped = false;
 				}
-				cap = eye - ray * (capL + er);
+				cap = eye - ray2d * (capL + er);
 
-				if (dot(p - pos, ray) > 0.0) {
+				if (dot(p - pos, ray2d) > 0.0) {
 					pos = p;
 				}
 			} else {
@@ -155,9 +158,8 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 				cap = pos;
 				pos = p;
 			}
-			lowp float rayzdir = sign(ray.z);
 			if (cap.z * rayzdir > thickness) {
-				cap = pos + (thickness * rayzdir - pos.z) * ray / ray.z;
+				cap = pos + (thickness * rayzdir - pos.z) * ray2d / ray2d.z;
 				clipped = true;
 			}
 
@@ -175,6 +177,13 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 				apply(pos, rotatedEdgeNormalAt(pos), normalize(gaze));
 				return;
 			}
+		} else if (surfaceRadius2 < punchRad * punchRad) {
+			highp vec3 pos = eye + ray2d * (sqrt(root + punchRad * punchRad) - er);
+			if (pos.z * rayzdir > thickness) {
+				discard;
+			}
+			apply(pos, vec3(-pos.xy, 0.0) / punchRad, normalize(gaze));
+			return;
 		}
 
 		applyFlatFace(normalize(gaze));

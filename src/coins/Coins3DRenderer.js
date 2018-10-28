@@ -99,6 +99,7 @@ export default class Coins3DRenderer {
 			props: {
 				'maxDepth': 0.015,
 				'twoToneRad': 0.0,
+				'punchRad': 0.0,
 				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp-old.png', 0.015 * normalScale, downsampleTextures),
 			},
 		});
@@ -110,6 +111,7 @@ export default class Coins3DRenderer {
 			props: {
 				'maxDepth': 0.032,
 				'twoToneRad': 0.6484375,
+				'punchRad': 0.0,
 				'normalMap': loadNormalMap(gl, 'resources/coins/depth-gbp.png', 0.032 * normalScale, downsampleTextures),
 			},
 		});
@@ -121,6 +123,7 @@ export default class Coins3DRenderer {
 			props: {
 				'maxDepth': 0.02,
 				'twoToneRad': 0.71875,
+				'punchRad': 0.0,
 				'normalMap': loadNormalMap(gl, 'resources/coins/depth-eur-de.png', 0.02 * normalScale, downsampleTextures),
 			},
 		});
@@ -132,7 +135,20 @@ export default class Coins3DRenderer {
 			props: {
 				'maxDepth': 0.02,
 				'twoToneRad': 1.1,
+				'punchRad': 0.0,
 				'normalMap': loadNormalMap(gl, 'resources/coins/depth-usd.png', 0.02 * normalScale, downsampleTextures),
+			},
+		});
+
+		this.currencies.set('jpy', {
+			shape: new Box({width: 2.1, height: 2.1, depth: 0.14}),
+			prog: baseProg,
+			shadowProg: baseShadowProg,
+			props: {
+				'maxDepth': 0.02,
+				'twoToneRad': 0.0,
+				'punchRad': 0.227,
+				'normalMap': loadNormalMap(gl, 'resources/coins/depth-jpy.png', 0.02 * normalScale, downsampleTextures),
 			},
 		});
 	}
