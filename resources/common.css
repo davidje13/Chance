@@ -2,7 +2,7 @@ html, body {
 	margin: 0;
 	padding: 0;
 	-webkit-text-size-adjust: 100%;
-	overscroll-behaviour: none;
+	overscroll-behavior: none;
 
 	/* disable whole-page elastic scrolling in iOS */
 	width: 100%;
@@ -241,9 +241,9 @@ nav {
 	right: 0;
 	bottom: 45px;
 	padding: 1px 0;
-	overflow-x: none;
+	overflow-x: hidden;
 	overflow-y: auto;
-	overscroll-behaviour: contain;
+	overscroll-behavior: contain;
 	-webkit-overflow-scrolling: touch;
 	font: 1.2em helvetica, sans-serif;
 }

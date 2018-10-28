@@ -93,7 +93,7 @@ function step(tm) {
 		}
 	}
 	if (currentTabRunner !== null) {
-		currentTabRunner.step(Math.min((tm - lastTime) * 0.001, 0.1), tm * 0.001);
+		currentTabRunner.step(Math.min((tm - lastTime) * 0.001, 0.05), tm * 0.001);
 		lastTime = tm;
 		updateLabels();
 	}
@@ -177,8 +177,7 @@ function resetOverscroll() {
 	const y = optionScroller.scrollTop;
 	if (y >= 0 && y < 1) {
 		optionScroller.scrollTop = 1;
-	}
-	if (y <= h && y > h - 1) {
+	} else if (y <= h && y > h - 1) {
 		optionScroller.scrollTop = h - 1;
 	}
 }

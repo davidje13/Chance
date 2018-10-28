@@ -12,16 +12,17 @@
 }
 
 .option-list h3 {
-	margin: 0;
+	margin: -1px 0 0;
 	padding: 0 10px;
 	box-sizing: border-box;
 	line-height: 28px;
 	font: bolder 18px helvetica, sans-serif;
 	background: rgba(240, 240, 240, 0.95);
+	border-top: 1px solid rgba(0, 0, 0, 0.3);
 	border-bottom: 1px solid rgba(0, 0, 0, 0.3);
 	position: -webkit-sticky;
 	position: sticky;
-	top: -1px;
+	top: -2px;
 	z-index: 1;
 }
 

@@ -28,7 +28,7 @@ export default class Options {
 	addHeading(label) {
 		this.curSection = make('section');
 		const header = make('h3', '', label);
-		header.style.height = this.headingHeight + 'px';
+		header.style.height = (this.headingHeight + 1) + 'px';
 		header.style.lineHeight = (this.headingHeight - 2) + 'px';
 		this.curSection.appendChild(header);
 		this.hold.appendChild(this.curSection);
