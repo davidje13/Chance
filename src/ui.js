@@ -101,10 +101,9 @@ function step(tm) {
 
 function frame(tm) {
 	step(tm);
+	resetOverscroll();
 	window.requestAnimationFrame(frame);
 }
-
-frame(performance.now());
 
 const tabs = new TabBar();
 
@@ -170,6 +169,20 @@ optionPane.appendChild(optionScroller);
 optionPane.appendChild(optionFoot);
 optionScroller.dataset.allowScroll = true;
 
+function resetOverscroll() {
+	const h = optionScroller.scrollHeight - optionScroller.clientHeight;
+	if (h <= 0) {
+		return;
+	}
+	const y = optionScroller.scrollTop;
+	if (y >= 0 && y < 1) {
+		optionScroller.scrollTop = 1;
+	}
+	if (y <= h && y > h - 1) {
+		optionScroller.scrollTop = h - 1;
+	}
+}
+
 const emptyOptions = new Options();
 
 addFastClickListener(configBtn, () => {
@@ -189,6 +202,7 @@ modal.addEventListener('attach', (pane, {options}) => {
 	currentOptions = options;
 	optionsFrame = 0;
 	lastOptionsTime = lastTime;
+	optionScroller.scrollTop = 1;
 });
 
 modal.addEventListener('detach', (pane, {options}) => {
@@ -203,5 +217,6 @@ if (!setTabFromHash()) {
 
 window.addEventListener('hashchange', setTabFromHash);
 shakeGesture.start();
+frame(performance.now());
 
 lockPortrait(resize.bind(null, false));

@@ -15,8 +15,8 @@ export default class Modal extends EventObject {
 	}
 
 	_attach() {
-		this.trigger('attach', [this.modal, this.data]);
 		this.parent.appendChild(this.modal);
+		this.trigger('attach', [this.modal, this.data]);
 	}
 
 	_detach() {

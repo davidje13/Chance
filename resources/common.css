@@ -193,31 +193,6 @@ nav {
 	background: #000000;
 }
 
-.modal-shade {
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: rgba(0, 0, 0, 0.5);
-	z-index: 10;
-	animation: fade-in 0.3s ease-out;
-}
-
-.modal {
-	position: absolute;
-	top: 30px;
-	left: 30px;
-	right: 30px;
-	bottom: 30px;
-	border-radius: 20px;
-	overflow: hidden;
-	background: #FFFFFF;
-	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
-	z-index: 11;
-	animation: slide-in 0.3s ease-out;
-}
-
 .options h2 {
 	position: absolute;
 	top: 0;
@@ -265,27 +240,10 @@ nav {
 	left: 0;
 	right: 0;
 	bottom: 45px;
+	padding: 1px 0;
 	overflow-x: none;
 	overflow-y: auto;
 	overscroll-behaviour: contain;
 	-webkit-overflow-scrolling: touch;
 	font: 1.2em helvetica, sans-serif;
-}
-
-@keyframes fade-in {
-	0% {
-		opacity: 0;
-	}
-	100% {
-		opacity: 1;
-	}
-}
-
-@keyframes slide-in {
-	0% {
-		transform: translate(0, 100%);
-	}
-	100% {
-		transform: none;
-	}
 }

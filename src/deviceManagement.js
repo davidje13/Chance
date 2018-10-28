@@ -25,9 +25,14 @@ function updateOrientation() {
 }
 
 function blockScroll(e) {
-	if (!e.target.dataset.allowScroll) {
-		e.preventDefault();
+	let o = e.target;
+	while (o && o.dataset) {
+		if (o.dataset.allowScroll) {
+			return;
+		}
+		o = o.parentNode;
 	}
+	e.preventDefault();
 }
 
 function block(e) {
@@ -44,7 +49,6 @@ export function lockPortrait(resizeFn = null) {
 	window.addEventListener('touchend', (e) => {
 		const now = Date.now();
 		if (now < lastTouchEnd + 500) {
-			e.preventDefault();
 			const event = new MouseEvent('dblclick');
 			let o = e.target;
 			while (o && o !== document.body) {
@@ -52,6 +56,7 @@ export function lockPortrait(resizeFn = null) {
 				o = o.parentNode;
 			}
 		}
+		e.preventDefault();
 		lastTouchEnd = now;
 	}, {passive: false, capture: true});
 
