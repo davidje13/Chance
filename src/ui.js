@@ -13,20 +13,31 @@ import Numbers from './numbers/numbers.js';
 import Contortion from './contortion/contortion.js';
 import Answers from './answers/answers.js';
 import {make, addFastClickListener} from './dom/Dom.js';
+import Options from './options/Options.js';
+import Modal from './dom/Modal.js';
 
 const nav = document.getElementById('tabs');
 const container = document.getElementById('content');
 const titleSpan = document.getElementById('title');
 const infoSpan = document.getElementById('info');
+const holder2 = document.getElementById('holder2');
+const configBtn = make('button', 'config');
 const faviconLink = addFavicon();
 const shakeGesture = new ShakeGesture(shake);
 
+container.appendChild(configBtn);
+
 let currentTabRunner = null;
+let currentOptions = null;
 let currentInfoLabel = '';
 let currentTitle = '';
 let lastTime = 0;
 let lastW = 0;
 let lastH = 0;
+let lastOptionsTime = 0;
+let optionsFrame = 0;
+
+const OPTIONS_FRAMERATE = 2;
 
 function updateLabels() {
 	const title = currentTabRunner.title();
@@ -62,26 +73,34 @@ function resize(force) {
 }
 
 function shake() {
-	if (currentTabRunner !== null) {
+	if (currentTabRunner !== null && currentOptions === null) {
 		currentTabRunner.trigger('shake');
 	}
 }
 
 function step(tm) {
-	const deltaMillis = (tm - lastTime);
-	if (deltaMillis < 0) {
-		currentTabRunner.step(0, lastTime);
-	} else {
-		currentTabRunner.step(Math.min(deltaMillis * 0.001, 0.1), tm * 0.001);
-		lastTime = tm;
+	if (tm < lastTime) {
+		tm = lastTime;
 	}
-	updateLabels();
+
+	if (currentOptions !== null) {
+		if (optionsFrame === 0) {
+			currentOptions.step(Math.min((tm - lastOptionsTime) * 0.001, 0.1), tm * 0.001);
+			lastOptionsTime = tm;
+			optionsFrame = OPTIONS_FRAMERATE - 1;
+		} else {
+			-- optionsFrame;
+		}
+	}
+	if (currentTabRunner !== null) {
+		currentTabRunner.step(Math.min((tm - lastTime) * 0.001, 0.1), tm * 0.001);
+		lastTime = tm;
+		updateLabels();
+	}
 }
 
 function frame(tm) {
-	if (currentTabRunner !== null) {
-		step(tm);
-	}
+	step(tm);
 	window.requestAnimationFrame(frame);
 }
 
@@ -108,11 +127,13 @@ tabs.addEventListener('enter', (tabs, id, {runner}) => {
 });
 
 tabs.addEventListener('reenter', () => {
-	currentTabRunner.trigger('reenter');
+	if (currentTabRunner !== null && currentOptions === null) {
+		currentTabRunner.trigger('reenter');
+	}
 });
 
 addFastClickListener(container, () => {
-	if (currentTabRunner) {
+	if (currentTabRunner !== null && currentOptions === null) {
 		return currentTabRunner.trigger('click');
 	}
 });
@@ -135,6 +156,46 @@ addTab('contortion', 'Contortion', new Contortion(random));
 addTab('answers', 'Answers', new Answers(random));
 
 nav.appendChild(tabs.dom());
+
+const modal = new Modal(holder2);
+modal.addEventListener('dismiss', () => modal.hide());
+
+const optionPane = make('div', 'modal options');
+const optionTitle = make('h2');
+const optionFoot = make('button', 'footer', 'close');
+const optionScroller = make('div', 'scroller');
+addFastClickListener(optionFoot, () => modal.hide());
+optionPane.appendChild(optionTitle);
+optionPane.appendChild(optionScroller);
+optionPane.appendChild(optionFoot);
+optionScroller.dataset.allowScroll = true;
+
+const emptyOptions = new Options();
+
+addFastClickListener(configBtn, () => {
+	if (currentTabRunner === null) {
+		return;
+	}
+
+	optionTitle.innerText = currentTabRunner.title();
+	const options = currentTabRunner.options() || emptyOptions;
+
+	modal.show(optionPane, {options});
+});
+
+modal.addEventListener('attach', (pane, {options}) => {
+	optionScroller.appendChild(options.dom());
+	options.start();
+	currentOptions = options;
+	optionsFrame = 0;
+	lastOptionsTime = lastTime;
+});
+
+modal.addEventListener('detach', (pane, {options}) => {
+	options.stop();
+	optionScroller.removeChild(optionScroller.firstChild);
+	currentOptions = null;
+});
 
 if (!setTabFromHash()) {
 	tabs.set('dice');

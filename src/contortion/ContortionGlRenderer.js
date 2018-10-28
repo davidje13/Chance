@@ -73,10 +73,10 @@ export default class ContortionGlRenderer {
 			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
 		});
 
-		this.bufferTex.set(canvas.width(), canvas.height(), {
+		this.bufferTex.set(canvas.bufferWidth(), canvas.bufferHeight(), {
 			type: Framebuffer.bestSupportedTargetPrecision(gl),
 		});
-		this.buffer = new Framebuffer(gl, this.bufferTex);
+		this.buffer = new Framebuffer(canvas, this.bufferTex);
 
 		this.gl = gl;
 

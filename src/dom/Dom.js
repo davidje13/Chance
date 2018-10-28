@@ -1,7 +1,9 @@
-export function make(tag, className = '', innerText = null) {
+export function make(tag, className = null, innerText = null) {
 	const o = document.createElement(tag);
-	o.className = className;
-	if (innerText !== null) {
+	if (className) {
+		o.className = className;
+	}
+	if (innerText) {
 		o.innerText = innerText;
 	}
 	return o;

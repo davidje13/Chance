@@ -16,6 +16,10 @@ export default class Numbers {
 		);
 	}
 
+	options() {
+		return null;
+	}
+
 	start() {
 	}
 

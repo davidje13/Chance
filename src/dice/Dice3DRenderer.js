@@ -69,7 +69,7 @@ const PROG_FLOOR_FRAG = `
 `;
 
 export default class Dice3DRenderer {
-	constructor({shadow = true} = {}) {
+	constructor({shadow = true, maxOversampleResolution = 3, fov = 0.6} = {}) {
 		this.canvas = new Canvas(1, 1, {
 			alpha: true,
 			antialias: false,
@@ -78,7 +78,7 @@ export default class Dice3DRenderer {
 			premultipliedAlpha: true,
 			preserveDrawingBuffer: false,
 			stencil: false,
-		}, {maxOversampleResolution: 3});
+		}, {maxOversampleResolution});
 		this.canvas.dom().className = 'render';
 
 		const gl = this.canvas.gl;
@@ -86,12 +86,12 @@ export default class Dice3DRenderer {
 
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
-		gl.enable(gl.CULL_FACE);
 		gl.depthFunc(gl.LESS);
+
+		gl.enable(gl.CULL_FACE);
 
 		if (shadow) {
 			this.floor = new ScreenQuad({uv: {left: 0, right: 1, top: 1, bottom: 0}});
-			this.floorZ = 0;
 
 			this.shadowBufferTex = new Texture2D(gl, {
 				[gl.TEXTURE_MAG_FILTER]: gl.NEAREST,
@@ -100,11 +100,13 @@ export default class Dice3DRenderer {
 				[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
 			});
 
-			this.shadowBufferTex.set(this.canvas.width(), this.canvas.height());
-			this.shadowBuffer = new Framebuffer(gl, this.shadowBufferTex);
+			this.shadowBufferTex.set(this.canvas.bufferWidth(), this.canvas.bufferHeight());
+			this.shadowBuffer = new Framebuffer(this.canvas, this.shadowBufferTex);
 		}
 
-		this.fov = 0.6;
+		this.fov = fov;
+		this.floorZ = 100;
+
 		const maxDepth = 0.1;
 
 		const texVolumeTransform = M4.fromQuaternion(Quaternion.fromRotation({
@@ -183,6 +185,22 @@ export default class Dice3DRenderer {
 			'ambientCol': [0.1, 0.1, 0.1],
 			'lightCol': [0.6, 0.6, 0.6],
 			'shineCol': [0.95, 0.95, 1.0, 0.8],
+			'dotOpacity': 0.0,
+		}});
+
+		this.materials.set('metal-gold', {prog: 'flat', props: {
+			'matt': [0.82, 0.75, 0.4],
+			'ambientCol': [0.3, 0.3, 0.3],
+			'lightCol': [0.7, 0.7, 0.7],
+			'shineCol': [1.0, 1.0, 0.4, 0.5],
+			'dotOpacity': 0.0,
+		}});
+
+		this.materials.set('metal-silver', {prog: 'flat', props: {
+			'matt': [0.88, 0.85, 0.82],
+			'ambientCol': [0.3, 0.3, 0.3],
+			'lightCol': [0.7, 0.7, 0.7],
+			'shineCol': [1.0, 1.0, 1.0, 0.5],
 			'dotOpacity': 0.0,
 		}});
 
@@ -311,7 +329,7 @@ export default class Dice3DRenderer {
 	resize(width, height) {
 		this.canvas.resize(width, height);
 		if (this.shadow) {
-			this.shadowBufferTex.set(this.canvas.width(), this.canvas.height());
+			this.shadowBufferTex.set(this.canvas.bufferWidth(), this.canvas.bufferHeight());
 		}
 	}
 
@@ -319,8 +337,8 @@ export default class Dice3DRenderer {
 		return (
 			-z * 2
 			* Math.tan(this.fov)
-			* (this.canvas.displayWidth() - insetPixels)
-			/ this.canvas.displayHeight()
+			* (this.canvas.viewportDisplayWidth() - insetPixels)
+			/ this.canvas.viewportDisplayHeight()
 		);
 	}
 
@@ -328,8 +346,8 @@ export default class Dice3DRenderer {
 		return (
 			-z * 2
 			* Math.tan(this.fov)
-			* (this.canvas.displayHeight() - insetPixels)
-			/ this.canvas.displayHeight()
+			* (this.canvas.viewportDisplayHeight() - insetPixels)
+			/ this.canvas.viewportDisplayHeight()
 		);
 	}
 
@@ -337,7 +355,6 @@ export default class Dice3DRenderer {
 		const gl = this.canvas.gl;
 
 		this.shadowBuffer.bind({assumeSameEnv: true});
-		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
 		const ww = this.widthAtZ(this.floorZ);
@@ -385,20 +402,9 @@ export default class Dice3DRenderer {
 	renderScene(dice) {
 		const gl = this.canvas.gl;
 
-		if (this.shadow) {
-			this.floor.bind(gl);
-			this.floorProg.use({
-				'opacity': 0.2,
-				'atlas': this.shadowBufferTex,
-				'pos': this.floor.boundVertices(),
-				'tex': this.floor.boundUvs(),
-			});
-			this.floor.render(gl);
-		}
-
 		const mProj = M4.perspective(
 			this.fov,
-			this.canvas.width() / this.canvas.height(),
+			this.canvas.viewportDisplayWidth() / this.canvas.viewportDisplayHeight(),
 			1.0,
 			-this.floorZ
 		);
@@ -412,6 +418,7 @@ export default class Dice3DRenderer {
 		});
 
 		gl.enable(gl.DEPTH_TEST);
+		gl.clear(gl.DEPTH_BUFFER_BIT);
 		for (const die of orderedDice) {
 			const mModel = M4.fromQuaternion(die.rotation);
 			mModel.translate(die.position.x, die.position.y, die.position.z);
@@ -427,7 +434,7 @@ export default class Dice3DRenderer {
 			shape.geom.bind(gl);
 			prog.use(Object.assign({
 				'projview': mMV.mult(mProj),
-				'eye': mMV.invert().apply3([cameraPos.x, cameraPos.y, cameraPos.z]),
+				'eye': mMV.invert().apply3([0, 0, 0]),
 				'rot': mMV.as3(),
 				'pos': shape.geom.boundVertices(),
 				'norm': shape.geom.boundNormals(),
@@ -444,9 +451,23 @@ export default class Dice3DRenderer {
 		this.floorZ = -depth;
 	}
 
-	render(dice) {
+	render(dice, {viewport = null, clear = true} = {}) {
+		const gl = this.canvas.gl;
+		if (viewport) {
+			this.canvas.setViewport(viewport);
+		}
 		if (this.shadow) {
 			this.renderShadow(dice);
+			this.floor.bind(gl);
+			this.floorProg.use({
+				'opacity': 0.2,
+				'atlas': this.shadowBufferTex,
+				'pos': this.floor.boundVertices(),
+				'tex': this.floor.boundUvs(),
+			});
+			this.floor.render(gl);
+		} else if (clear) {
+			gl.clear(gl.COLOR_BUFFER_BIT);
 		}
 		this.renderScene(dice);
 	}

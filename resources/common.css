@@ -2,6 +2,13 @@ html, body {
 	margin: 0;
 	padding: 0;
 	-webkit-text-size-adjust: 100%;
+	overscroll-behaviour: none;
+
+	/* disable whole-page elastic scrolling in iOS */
+	width: 100%;
+	height: 100%;
+	position: fixed;
+	overflow: hidden;
 }
 
 body {
@@ -155,6 +162,28 @@ h1 {
 	right: 20px;
 }
 
+.config {
+	position: absolute;
+	bottom: 5px;
+	right: 5px;
+	width: 30px;
+	height: 30px;
+	font-size: 24px;
+	padding-top: 1px;
+	border-radius: 100%;
+	cursor: pointer;
+	opacity: 0.8;
+	z-index: 2;
+}
+
+.config:before {
+	content: "\2699";
+}
+
+.config:focus {
+	box-shadow: 0 0 0 3px #80C0FF;
+}
+
 nav {
 	position: absolute;
 	left: 0;
@@ -162,4 +191,101 @@ nav {
 	bottom: 0;
 	height: 50px;
 	background: #000000;
+}
+
+.modal-shade {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	z-index: 10;
+	animation: fade-in 0.3s ease-out;
+}
+
+.modal {
+	position: absolute;
+	top: 30px;
+	left: 30px;
+	right: 30px;
+	bottom: 30px;
+	border-radius: 20px;
+	overflow: hidden;
+	background: #FFFFFF;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
+	z-index: 11;
+	animation: slide-in 0.3s ease-out;
+}
+
+.options h2 {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	margin: 0;
+	padding: 10px;
+	height: 45px;
+	text-align: center;
+	background: #EEEEEE;
+	font: bolder 22px helvetica, sans-serif;
+	line-height: 25px;
+	border-bottom: 1px solid #DDDDDD;
+	box-sizing: border-box;
+}
+
+.options .footer {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	width: 100%;
+	margin: 0;
+	padding: 5px 20px 10px;
+	height: 45px;
+	text-align: center;
+	background: #EEEEEE;
+	font: 22px helvetica, sans-serif;
+	line-height: 25px;
+	border-top: 1px solid #DDDDDD;
+	box-sizing: border-box;
+}
+
+.options button.footer {
+	cursor: pointer;
+}
+
+.options button.footer:focus {
+	background: #DDEEFF;
+}
+
+.options .scroller {
+	position: absolute;
+	top: 45px;
+	left: 0;
+	right: 0;
+	bottom: 45px;
+	overflow-x: none;
+	overflow-y: auto;
+	overscroll-behaviour: contain;
+	-webkit-overflow-scrolling: touch;
+	font: 1.2em helvetica, sans-serif;
+}
+
+@keyframes fade-in {
+	0% {
+		opacity: 0;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+
+@keyframes slide-in {
+	0% {
+		transform: translate(0, 100%);
+	}
+	100% {
+		transform: none;
+	}
 }

@@ -24,6 +24,12 @@ function updateOrientation() {
 	document.body.className = ORIENTATION_CLASSNAMES[angle];
 }
 
+function blockScroll(e) {
+	if (!e.target.dataset.allowScroll) {
+		e.preventDefault();
+	}
+}
+
 function block(e) {
 	e.preventDefault();
 }
@@ -31,8 +37,7 @@ function block(e) {
 export function lockPortrait(resizeFn = null) {
 	// No scrolling or zooming, since Safari removed ability to do this via meta
 	// Thanks, https://stackoverflow.com/a/38573198/1180785
-	window.addEventListener('touchmove', block, {passive: false, capture: true});
-
+	window.addEventListener('touchmove', blockScroll, {passive: false, capture: true});
 	window.addEventListener('gesturestart', block, {passive: false, capture: true});
 
 	let lastTouchEnd = 0;

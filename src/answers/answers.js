@@ -87,6 +87,10 @@ export default class Answers {
 		}
 	}
 
+	options() {
+		return null;
+	}
+
 	motion(e) {
 		this.clickable = false;
 		this.latestGravity = this.gravAssist.apply(e.accelerationIncludingGravity.z);

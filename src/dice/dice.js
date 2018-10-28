@@ -1,5 +1,6 @@
 import Dice3DRenderer from './Dice3DRenderer.js';
 import DiceSimulator from './DiceSimulator.js';
+import DiceOptions from './DiceOptions.js';
 import Quaternion from '../math/Quaternion.js';
 import {make, addFastClickListener, setDisabled} from '../dom/Dom.js';
 
@@ -27,6 +28,35 @@ export default class Dice {
 		this.diceCount = 5;
 		this.forceRender = false;
 
+		this.opts = new DiceOptions();
+
+		const shape = 'cube';
+		const dots = 'european';
+		let material = 'wood-varnished';
+
+		this.opts.addHeading('Shapes');
+		this.opts.addRow({label: 'Cube', sampleData: {shape: 'cube', material, dots}});
+		this.opts.addRow({label: 'Cube Filletted', sampleData: {shape: 'cube-fillet', material, dots}});
+		this.opts.addRow({label: 'Cube Clipped', sampleData: {shape: 'cube-clipped', material, dots}});
+		this.opts.addRow({label: 'Cube Rounded', sampleData: {shape: 'cube-rounded', material, dots}});
+
+		this.opts.addHeading('Materials');
+		this.opts.addRow({label: 'Wood', sampleData: {shape, material: 'wood', dots}});
+		this.opts.addRow({label: 'Varnished Wood', sampleData: {shape, material: 'wood-varnished', dots}});
+		this.opts.addRow({label: 'Black Metal', sampleData: {shape, material: 'metal-black', dots}});
+		this.opts.addRow({label: 'Gold Metal', sampleData: {shape, material: 'metal-gold', dots}});
+		this.opts.addRow({label: 'Silver Metal', sampleData: {shape, material: 'metal-silver', dots}});
+		this.opts.addRow({label: 'White Plastic', sampleData: {shape, material: 'plastic-white', dots}});
+		this.opts.addRow({label: 'Red Plastic', sampleData: {shape, material: 'plastic-red', dots}});
+
+		material = 'plastic-white';
+
+		this.opts.addHeading('Faces');
+		this.opts.addRow({label: 'European', sampleData: {shape, material, dots: 'european'}});
+		this.opts.addRow({label: 'Asian', sampleData: {shape, material, dots: 'asian'}});
+		this.opts.addRow({label: 'Numeric', sampleData: {shape, material, dots: 'numeric'}});
+		this.opts.addRow({label: 'Written', sampleData: {shape, material, dots: 'written'}});
+
 		this.updateButtons();
 	}
 
@@ -38,6 +68,10 @@ export default class Dice {
 		return (
 			'Tap or shake to roll the dice'
 		);
+	}
+
+	options() {
+		return this.opts;
 	}
 
 	addDie() {

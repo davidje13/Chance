@@ -144,6 +144,10 @@ export default class Contortion {
 		);
 	}
 
+	options() {
+		return null;
+	}
+
 	step(deltaTm, absTm) {
 		if (this.pointer.velocity() !== 0) {
 			this.pointer.update(absTm);

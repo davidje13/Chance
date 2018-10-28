@@ -1,0 +1,33 @@
+.option-list {
+	padding-bottom: 200px;
+}
+
+.option-list .message {
+	padding: 30px;
+	text-align: center;
+	font-style: italic;
+}
+
+.option-list section {
+}
+
+.option-list h3 {
+	margin: 0;
+	padding: 0 10px;
+	box-sizing: border-box;
+	line-height: 28px;
+	font: bolder 18px helvetica, sans-serif;
+	background: rgba(240, 240, 240, 0.95);
+	border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+
+.option-list .row {
+	border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+	padding: 0 15px;
+}
+
+.option-list .row .label {
+}

@@ -1,4 +1,5 @@
 import Coins3DRenderer from './Coins3DRenderer.js';
+import CoinsOptions from './CoinsOptions.js';
 import Quaternion from '../math/Quaternion.js';
 import {V3} from '../math/Vector.js';
 import {make} from '../dom/Dom.js';
@@ -19,6 +20,14 @@ export default class Coins {
 		this.inner.appendChild(this.renderer.dom());
 
 		this.coin = null;
+
+		this.opts = new CoinsOptions();
+		this.opts.addHeading('Currencies');
+		this.opts.addRow({label: 'GBP (Classic)', sampleData: {currency: 'gbp-old'}});
+		this.opts.addRow({label: 'GBP', sampleData: {currency: 'gbp'}});
+		this.opts.addRow({label: 'EUR (German Style)', sampleData: {currency: 'eur-de'}});
+		this.opts.addRow({label: 'USD', sampleData: {currency: 'usd'}});
+
 	}
 
 	title() {
@@ -29,6 +38,10 @@ export default class Coins {
 		return (
 			'Tap or shake to flip the coin'
 		);
+	}
+
+	options() {
+		return this.opts;
 	}
 
 	stepPhysics(deltaTm) {

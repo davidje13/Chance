@@ -31,7 +31,7 @@ const BLUR_STEPS_HIGH = 16;
 const BLUR_STEPS_LOW = 4;
 
 export default class Coins3DRenderer {
-	constructor({shadow = true} = {}) {
+	constructor({shadow = true, maxOversampleResolution = 3, fov = 0.6} = {}) {
 		this.canvas = new Canvas(1, 1, {
 			alpha: true,
 			antialias: false,
@@ -40,11 +40,12 @@ export default class Coins3DRenderer {
 			premultipliedAlpha: true,
 			preserveDrawingBuffer: false,
 			stencil: false,
-		}, {maxOversampleResolution: 3});
+		}, {maxOversampleResolution});
 		this.canvas.dom().className = 'render';
 
 		const gl = this.canvas.gl;
 		this.shadow = shadow;
+		this.fov = fov;
 
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
@@ -63,7 +64,7 @@ export default class Coins3DRenderer {
 			this.shadowW = 256;
 			this.shadowH = 256;
 			this.shadowBufferTex.set(this.shadowW, this.shadowH);
-			this.shadowBuffer = new Framebuffer(gl, this.shadowBufferTex);
+			this.shadowBuffer = new Framebuffer(this.canvas, this.shadowBufferTex);
 			this.shadowBuffer.viewport = [0, 0, this.shadowW, this.shadowH];
 
 			this.floorProg = new Program(gl, [
@@ -137,9 +138,6 @@ export default class Coins3DRenderer {
 
 	resize(width, height) {
 		this.canvas.resize(width, height);
-		if (this.shadow) {
-			this.shadowBuffer.flushAssumptions();
-		}
 	}
 
 	renderCoinFrame(mProj, mView, currency, prog, position, rotation) {
@@ -168,10 +166,14 @@ export default class Coins3DRenderer {
 			'pos': currency.shape.boundVertices(),
 		}, currency.props));
 
-		const rotationBlur = Quaternion.distance(coin.rotation, coin.blur.rot);
-		const positionBlur = V3.dist(coin.position, coin.blur.pos);
+		let rotationBlur = 0;
+		let positionBlur = 0;
+		if (blur && coin.blur) {
+			rotationBlur = Quaternion.distance(coin.rotation, coin.blur.rot);
+			positionBlur = V3.dist(coin.position, coin.blur.pos);
+		}
 
-		if (blur && (rotationBlur > 0 || positionBlur > 0)) {
+		if (rotationBlur > 0 || positionBlur > 0) {
 			const blurSteps = (positionBlur > 0.3 || rotationBlur > 0.1) ? BLUR_STEPS_HIGH : BLUR_STEPS_LOW;
 
 			gl.enable(gl.BLEND);
@@ -241,16 +243,15 @@ export default class Coins3DRenderer {
 		this.shadowBuffer.unbind();
 	}
 
-	renderScene(coins, shadow) {
+	renderScene(coins, raisedCam) {
 		const gl = this.canvas.gl;
-		gl.clear(gl.COLOR_BUFFER_BIT);
 
 		if (!coins.length) {
 			return {blurred: false};
 		}
 
-		const mProj = M4.perspective(0.6, this.canvas.width() / this.canvas.height(), 1.0, 100.0);
-		const mView = M4.look({x: 0, y: 3.0, z: -3.5}, {x: 0, y: 0, z: -0.5}, {x: 0, y: -1, z: 0});
+		const mProj = M4.perspective(this.fov, this.canvas.viewportDisplayWidth() / this.canvas.viewportDisplayHeight(), 1.0, 100.0);
+		const mView = raisedCam ? M4.look({x: 0, y: 3.0, z: -3.5}, {x: 0, y: 0, z: -0.5}, {x: 0, y: -1, z: 0}) : M4.identity();
 
 		if (this.shadow) {
 			const coinDepth = -coins[0].position.z;
@@ -268,9 +269,16 @@ export default class Coins3DRenderer {
 		return {blurred: anyBlurred};
 	}
 
-	render(coins) {
+	render(coins, {viewport = null, clear = true, raisedCam = true} = {}) {
+		const gl = this.canvas.gl;
+		if (viewport) {
+			this.canvas.setViewport(viewport);
+		}
 		this.renderShadow(coins);
-		return this.renderScene(coins);
+		if (clear) {
+			gl.clear(gl.COLOR_BUFFER_BIT);
+		}
+		return this.renderScene(coins, raisedCam);
 	}
 
 	dom() {
