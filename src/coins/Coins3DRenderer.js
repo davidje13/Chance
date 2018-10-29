@@ -154,6 +154,18 @@ export default class Coins3DRenderer {
 				'normalMap': 'resources/coins/depth-jpy.png',
 			},
 		});
+
+		this.currencies.set('nzd-cook', {
+			shape: new Box({width: 2.1, height: 2.1, depth: 0.14}),
+			prog: baseProg,
+			shadowProg: baseShadowProg,
+			props: {
+				'maxDepth': 0.205,
+				'twoToneRad': 1.1,
+				'punchRad': 0.0,
+				'normalMap': 'resources/coins/depth-nzd-cook.png',
+			},
+		});
 	}
 
 	coinHeight(type) {

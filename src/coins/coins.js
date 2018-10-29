@@ -28,6 +28,7 @@ export default class Coins {
 		this.opts.addRow({label: 'EUR (German Style)', sampleData: {currency: 'eur-de'}});
 		this.opts.addRow({label: 'USD', sampleData: {currency: 'usd'}});
 		this.opts.addRow({label: 'JPY', sampleData: {currency: 'jpy'}});
+		this.opts.addRow({label: 'NZD (Cook Islands Style)', sampleData: {currency: 'nzd-cook'}});
 	}
 
 	title() {
@@ -168,7 +169,7 @@ export default class Coins {
 	}
 
 	start() {
-		const currencies = ['gbp-old', 'gbp', 'eur-de', 'usd', 'jpy'];
+		const currencies = ['gbp-old', 'gbp', 'eur-de', 'usd', 'jpy', 'nzd-cook'];
 		const currency = currencies[this.randomSource.nextInt(currencies.length)];
 		this.coin = {
 			state: STOPPED,

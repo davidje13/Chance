@@ -1,0 +1,192 @@
+<html lang="en">
+<head>
+<meta charset="utf-8">
+
+<title>Coin Profile Generator</title>
+
+<script>window.addEventListener('load', () => {
+
+const texW = 512;
+const texH = 512;
+
+const face = {x: 0, y: 0, w: 256, h: 256};
+const edge = {x: 0, y: 264, w: 512, h: 48}; // active area is y: 272, h: 32
+
+const SQRT3_2 = Math.sqrt(3) / 2;
+const edgeDepthScale = Math.PI / 2;
+
+const fmTruncH = document.getElementById('truncH');
+const fmFoundRad = document.getElementById('roundRad');
+const fmInset = document.getElementById('inset');
+const fmDepth = document.getElementById('depth');
+const fmSuggestedDepth = document.getElementById('suggestedDepth');
+
+fmTruncH.addEventListener('change', renderFromInputs);
+fmFoundRad.addEventListener('change', renderFromInputs);
+fmInset.addEventListener('change', renderFromInputs);
+fmDepth.addEventListener('change', renderFromInputs);
+
+window.devicePixelRatio = 1;
+const canvas = document.createElement('canvas');
+canvas.width = texW;
+canvas.height = texH;
+canvas.style.imageRendering = 'pixelated';
+canvas.style.border = '1px solid #CCCCCC';
+document.body.appendChild(canvas);
+const ctx = canvas.getContext('2d');
+const dat = ctx.createImageData(texW, texH);
+
+function renderFromInputs() {
+	render(ctx, {
+		triangleTruncatedHeight: fmTruncH.value,
+		triangleRoundingRad: fmFoundRad.value,
+		inset: fmInset.value,
+		depth: fmDepth.value,
+	});
+}
+
+function sub(a, b) {
+	return {x: a.x - b.x, y: a.y - b.y};
+}
+
+function normalise(v) {
+	const m = 1 / Math.sqrt(dot(v, v));
+	return {x: v.x * m, y: v.y * m};
+}
+
+function dot(a, b) {
+	return a.x * b.x + a.y * b.y;
+}
+
+function cross(a, b) {
+	return a.x * b.y - a.y * b.x;
+}
+
+function dist(a, b) {
+	return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+}
+
+function lineOffset(p, a, b) {
+	const dir = normalise(sub(b, a));
+	const pp = sub(p, a);
+	const pos = dot(pp, dir);
+	if (pos < 0 || pos > dist(a, b)) {
+		return Number.POSITIVE_INFINITY;
+	}
+	return dot(pp, {x: dir.y, y: -dir.x});
+}
+
+function lineDist(p, a, b) {
+	return Math.abs(lineOffset(p, a, b));
+}
+
+function lineCircIntersectionDist(ray, centre, rad, back = false) {
+	const ee = dot(centre, centre);
+	const er = -dot(centre, ray);
+	const root = er * er - ee + rad * rad;
+	if (root < 0) {
+		return Number.POSITIVE_INFINITY;
+	}
+	return Math.sqrt(root) * (back ? 1 : -1) - er;
+}
+
+function step(v, low, high) {
+	if (high === low) {
+		return v > low ? 1 : 0;
+	}
+	return Math.max(0, Math.min(1, (v - low) / (high - low)));
+}
+
+function fill(dat, {x, y, w, h}, fn) {
+	const pix = 1 / w;
+	for (let Y = 0; Y < h; ++ Y) {
+		for (let X = 0; X < w; ++ X) {
+			const p = {x: (X + 0.5) / w, y: (Y + 0.5) / h};
+			const v = Math.max(0, Math.min(255, Math.floor(fn(p, pix) * 256)));
+			const dp = ((y + Y) * dat.width + x + X) * 4;
+			dat.data[dp  ] = v;
+			dat.data[dp+1] = v;
+			dat.data[dp+2] = v;
+			dat.data[dp+3] = 255;
+		}
+	}
+}
+
+function render(ctx, {triangleTruncatedHeight, triangleRoundingRad, inset, depth}) {
+	const gamma = 3 / (triangleTruncatedHeight * 2 - triangleRoundingRad);
+	const r = triangleRoundingRad * gamma;
+	const edgeDepth = depth * edgeDepthScale;
+
+	const distC = 1 - r;
+	const rad = r - inset;
+	const c1 = {x: 0, y: -distC};
+	const c2 = {x: distC * SQRT3_2, y: distC / 2};
+	const c3 = {x: -distC * SQRT3_2, y: distC / 2};
+
+	function faceLumAt(p, pixel) {
+		p.x = p.x * 2 - 1;
+		p.y = p.y * 2 - 1;
+		const o1 = lineOffset(p, c1, c2);
+		const o2 = lineOffset(p, c2, c3);
+		const o3 = lineOffset(p, c3, c1);
+		if (o1 < 0 && o2 < 0 && o3 < 0) {
+			return step(Math.max(o1, o2, o3), rad - pixel, rad + pixel);
+		}
+		return Math.min(
+			step(dist(p, c1), rad - pixel, rad + pixel),
+			step(dist(p, c2), rad - pixel, rad + pixel),
+			step(dist(p, c3), rad - pixel, rad + pixel),
+			step(Math.abs(o1), rad - pixel, rad + pixel),
+			step(Math.abs(o2), rad - pixel, rad + pixel),
+			step(Math.abs(o3), rad - pixel, rad + pixel)
+		);
+	}
+
+	const edgeCrossAngle = Math.atan((rad * SQRT3_2) / (distC + rad * 0.5));
+	const lineP1 = {x: c1.x + rad * SQRT3_2, y: c1.y - rad * 0.5};
+	const lineP2 = {x: c2.x + rad * SQRT3_2, y: c2.y - rad * 0.5};
+	const lineD = sub(lineP2, lineP1);
+
+	let lowest = 1;
+
+	function edgeLumAt(p) {
+		let theta = p.x;
+		while (theta > 1 / 3) {
+			theta -= 1 / 3;
+		}
+		if (theta > 1 / 6) {
+			theta = 1 / 3 - theta;
+		}
+		theta = theta * Math.PI * 2;
+		const ray = {x: Math.sin(theta), y: -Math.cos(theta)};
+		let dist;
+		if (theta > edgeCrossAngle) {
+			dist = cross(lineP1, lineD) / cross(ray, lineD);
+		} else {
+			dist = lineCircIntersectionDist(ray, c1, rad, true);
+		}
+		lowest = Math.min(lowest, dist);
+		return 1 - (1 - dist) / edgeDepth;
+	}
+
+	fill(dat, face, faceLumAt);
+	fill(dat, edge, edgeLumAt);
+
+	ctx.putImageData(dat, 0, 0);
+
+	fmSuggestedDepth.innerText = ((1 - lowest) / edgeDepthScale).toFixed(3);
+}
+
+renderFromInputs();
+
+});</script>
+</head>
+<body>
+<h1>Coin Profile Generator</h1>
+<h2>Rounded Triangle</h2>
+<p><label>Truncated height: <input id="truncH" type="number" step="any" min="1" value="515" /></label></p>
+<p><label>Rounding radius: <input id="roundRad" type="number" step="any" min="0" value="110" /></label></p>
+<p><label>Inset: <input id="inset" type="number" step="any" min="0" max="1" value="0.0" /></label></p>
+<p><label>Max Depth: <input id="depth" type="number" step="any" min="0" max="1" value="0.5" /></label> (suggested: <span id="suggestedDepth">?</span></p>
+</body>
+</html>

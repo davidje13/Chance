@@ -6,10 +6,11 @@ const SHAPE_FRAG = `
 	varying lowp float thickness;
 
 	const lowp float ipi2 = -0.5 / 3.14159265359;
+	const lowp float edgeStart = 0.75;
 
 	lowp vec2 edgeUvAt(in lowp vec3 pos) {
 		return vec2(
-			0.5 + atan(pos.y, pos.x) * ipi2,
+			edgeStart + atan(pos.y, pos.x) * ipi2,
 			pos.z / thickness * 0.03125 + 0.5625
 		);
 	}
