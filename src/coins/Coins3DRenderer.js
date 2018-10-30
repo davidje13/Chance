@@ -110,8 +110,7 @@ export default class Coins3DRenderer {
 			shadowProg: baseShadowProg,
 			props: {
 				'maxDepth': 0.025,
-				// edge varies from 32--256, and must produce straight edges for a 12-sided shape:
-				'edgeMaxDepth': (1 - Math.cos(Math.PI / 12)) * (8 / 7),
+				'edgeMaxDepth': 0.039,
 				'twoToneRad': 0.6484375,
 				'punchRad': 0.0,
 				'normalMap': 'resources/coins/depth-gbp.png',

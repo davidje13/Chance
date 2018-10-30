@@ -9,21 +9,22 @@
 const texW = 512;
 const texH = 512;
 
-const face = {x: 0, y: 0, w: 256, h: 256};
+const face1 = {x: 0, y: 0, w: 256, h: 256};
+const face2 = {x: 256, y: 0, w: 256, h: 256};
 const edge = {x: 0, y: 264, w: 512, h: 48}; // active area is y: 272, h: 32
 
 const SQRT3_2 = Math.sqrt(3) / 2;
 
-const fmTruncH = document.getElementById('truncH');
-const fmFoundRad = document.getElementById('roundRad');
+const fmSides = document.getElementById('sides');
+const fmRoundRad = document.getElementById('roundRad');
 const fmInset = document.getElementById('inset');
 const fmDepth = document.getElementById('depth');
 const fmSuggestedDepth = document.getElementById('suggestedDepth');
 
-fmTruncH.addEventListener('change', renderFromInputs);
-fmFoundRad.addEventListener('change', renderFromInputs);
-fmInset.addEventListener('change', renderFromInputs);
-fmDepth.addEventListener('change', renderFromInputs);
+fmSides.addEventListener('input', renderFromInputs);
+fmRoundRad.addEventListener('input', renderFromInputs);
+fmInset.addEventListener('input', renderFromInputs);
+fmDepth.addEventListener('input', renderFromInputs);
 
 window.devicePixelRatio = 1;
 const canvas = document.createElement('canvas');
@@ -36,12 +37,19 @@ const ctx = canvas.getContext('2d');
 const dat = ctx.createImageData(texW, texH);
 
 function renderFromInputs() {
+	const sides = Math.max(Math.round(fmSides.value), 3);
+	const roundingRad = Math.max(0, Math.min(1, fmRoundRad.value));
+
 	render(ctx, {
-		triangleTruncatedHeight: fmTruncH.value,
-		triangleRoundingRad: fmFoundRad.value,
+		sides,
+		roundingRad,
 		inset: fmInset.value,
 		depth: fmDepth.value,
 	});
+}
+
+function add(a, b) {
+	return {x: a.x + b.x, y: a.y + b.y};
 }
 
 function sub(a, b) {
@@ -67,12 +75,13 @@ function dist(a, b) {
 
 function lineOffset(p, a, b) {
 	const dir = normalise(sub(b, a));
-	const pp = sub(p, a);
-	const pos = dot(pp, dir);
-	if (pos < 0 || pos > dist(a, b)) {
-		return Number.POSITIVE_INFINITY;
-	}
-	return dot(pp, {x: dir.y, y: -dir.x});
+	return dot(sub(p, a), {x: dir.y, y: -dir.x});
+}
+
+function withinLineBounds(p, a, b) {
+	const dir = normalise(sub(b, a));
+	const pos = dot(sub(p, a), dir);
+	return (pos >= 0 && pos <= dist(a, b));
 }
 
 function lineDist(p, a, b) {
@@ -96,12 +105,16 @@ function step(v, low, high) {
 	return Math.max(0, Math.min(1, (v - low) / (high - low)));
 }
 
+function quantise(v) {
+	return Math.max(0, Math.min(255, Math.floor(v * 256)));
+}
+
 function fill(dat, {x, y, w, h}, fn) {
 	const pix = 1 / w;
 	for (let Y = 0; Y < h; ++ Y) {
 		for (let X = 0; X < w; ++ X) {
 			const p = {x: (X + 0.5) / w, y: (Y + 0.5) / h};
-			const v = Math.max(0, Math.min(255, Math.floor(fn(p, pix) * 256)));
+			const v = quantise(fn(p, pix));
 			const dp = ((y + Y) * dat.width + x + X) * 4;
 			dat.data[dp  ] = v;
 			dat.data[dp+1] = v;
@@ -111,49 +124,56 @@ function fill(dat, {x, y, w, h}, fn) {
 	}
 }
 
-function render(ctx, {triangleTruncatedHeight, triangleRoundingRad, inset, depth}) {
-	const gamma = 3 / (triangleTruncatedHeight * 2 - triangleRoundingRad);
-	const r = triangleRoundingRad * gamma;
+function render(ctx, {sides, roundingRad, inset, depth}) {
+	const distC = 1 - roundingRad;
+	const rad = roundingRad - inset;
+	const centres = [];
 
-	const distC = 1 - r;
-	const rad = r - inset;
-	const c1 = {x: 0, y: -distC};
-	const c2 = {x: distC * SQRT3_2, y: distC / 2};
-	const c3 = {x: -distC * SQRT3_2, y: distC / 2};
+	const sideTheta = Math.PI * 2 / sides;
+
+	for (let i = 0; i < sides; ++ i) {
+		const theta = i * sideTheta;
+		centres.push({x: Math.sin(theta) * distC, y: -Math.cos(theta) * distC});
+	}
 
 	function faceLumAt(p, pixel) {
 		p.x = p.x * 2 - 1;
 		p.y = p.y * 2 - 1;
-		const o1 = lineOffset(p, c1, c2);
-		const o2 = lineOffset(p, c2, c3);
-		const o3 = lineOffset(p, c3, c1);
-		if (o1 < 0 && o2 < 0 && o3 < 0) {
-			return step(Math.max(o1, o2, o3), rad - pixel, rad + pixel);
+		let v = rad + pixel + 1;
+		let maxO = Number.NEGATIVE_INFINITY;
+		for (let i = 0; i < sides; ++ i) {
+			const c1 = centres[i];
+			const c2 = centres[(i + 1) % sides];
+			const o = lineOffset(p, c1, c2);
+			const r = dist(p, c1);
+			maxO = Math.max(maxO, o);
+			v = Math.min(v, r);
+			if (withinLineBounds(p, c1, c2)) {
+				v = Math.min(v, Math.abs(o));
+			}
 		}
-		return Math.min(
-			step(dist(p, c1), rad - pixel, rad + pixel),
-			step(dist(p, c2), rad - pixel, rad + pixel),
-			step(dist(p, c3), rad - pixel, rad + pixel),
-			step(Math.abs(o1), rad - pixel, rad + pixel),
-			step(Math.abs(o2), rad - pixel, rad + pixel),
-			step(Math.abs(o3), rad - pixel, rad + pixel)
-		);
+		if (maxO < 0) {
+			v = maxO;
+		}
+		return step(v, rad - pixel, rad + pixel);
 	}
 
-	const edgeCrossAngle = Math.atan((rad * SQRT3_2) / (distC + rad * 0.5));
-	const lineP1 = {x: c1.x + rad * SQRT3_2, y: c1.y - rad * 0.5};
-	const lineP2 = {x: c2.x + rad * SQRT3_2, y: c2.y - rad * 0.5};
+	const outerTheta = Math.PI - sideTheta;
+	const lineDelta = {x: rad * Math.cos(outerTheta * 0.5), y: -rad * Math.sin(outerTheta * 0.5)};
+	const lineP1 = add(centres[0], lineDelta);
+	const lineP2 = add(centres[1], lineDelta);
+	const edgeCrossAngle = Math.atan(-lineP1.x / lineP1.y);
 	const lineD = sub(lineP2, lineP1);
 
 	let lowest = 1;
 
 	function edgeLumAt(p) {
 		let theta = p.x;
-		while (theta > 1 / 3) {
-			theta -= 1 / 3;
+		while (theta > 1 / sides) {
+			theta -= 1 / sides;
 		}
-		if (theta > 1 / 6) {
-			theta = 1 / 3 - theta;
+		if (theta > 0.5 / sides) {
+			theta = 1 / sides - theta;
 		}
 		theta = theta * Math.PI * 2;
 		const ray = {x: Math.sin(theta), y: -Math.cos(theta)};
@@ -161,14 +181,24 @@ function render(ctx, {triangleTruncatedHeight, triangleRoundingRad, inset, depth
 		if (theta > edgeCrossAngle) {
 			dist = cross(lineP1, lineD) / cross(ray, lineD);
 		} else {
-			dist = lineCircIntersectionDist(ray, c1, rad, true);
+			dist = lineCircIntersectionDist(ray, centres[0], rad, true);
 		}
 		lowest = Math.min(lowest, dist);
 		return 1 - (1 - dist) / depth;
 	}
 
-	fill(dat, face, faceLumAt);
+	function edgeFaceLumAt(p, pixel) {
+		const c = {x: p.x * 2 - 1, y: p.y * 2 - 1};
+		const theta = Math.atan2(c.x, c.y);
+		const x = theta * 0.5 / Math.PI + 0.5;
+		const len = Math.sqrt(dot(c, c));
+		const d = 1 - (1 - quantise(edgeLumAt({x, y: 0.5})) / 255) * depth;
+		return step(len, d - pixel, d + pixel);
+	}
+
+	fill(dat, face1, faceLumAt);
 	fill(dat, edge, edgeLumAt);
+	fill(dat, face2, edgeFaceLumAt);
 
 	ctx.putImageData(dat, 0, 0);
 
@@ -181,10 +211,10 @@ renderFromInputs();
 </head>
 <body>
 <h1>Coin Profile Generator</h1>
-<h2>Rounded Triangle</h2>
-<p><label>Truncated height: <input id="truncH" type="number" step="any" min="1" value="515" /></label></p>
-<p><label>Rounding radius: <input id="roundRad" type="number" step="any" min="0" value="110" /></label></p>
+<h2>Rounded Regular Polygon</h2>
+<p><label>Sides: <input id="sides" type="number" step="1" min="3" value="3" /></label></p>
+<p><label>Rounding radius: <input id="roundRad" type="number" step="any" min="0" max="1" value="0.3587" /></label></p>
 <p><label>Inset: <input id="inset" type="number" step="any" min="0" max="1" value="0.0" /></label></p>
-<p><label>Edge Max Depth: <input id="depth" type="number" step="any" min="0" max="1" value="0.5" /></label> (suggested: <span id="suggestedDepth">?</span></p>
+<p><label>Edge Max Depth: <input id="depth" type="number" step="any" min="0" max="1" value="0.5" /></label> (suggested: <span id="suggestedDepth">?</span>)</p>
 </body>
 </html>
