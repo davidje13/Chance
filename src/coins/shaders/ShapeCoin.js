@@ -2,6 +2,7 @@ import DepthFrag from '../../3d/DepthFrag.js';
 
 const SHAPE_FRAG = `
 	uniform sampler2D normalMap;
+	uniform lowp vec2 normalMapSize; // textureSize(normalMap)
 
 	varying lowp float thickness;
 
@@ -19,12 +20,18 @@ const SHAPE_FRAG = `
 		return texture2D(normalMap, edgeUvAt(pos)).w;
 	}
 
-	lowp vec3 edgeNormalAt(in lowp vec3 pos) {
-		return texture2D(normalMap, edgeUvAt(pos)).xyz * 2.0 - 1.0;
+	lowp vec3 normalAt(in lowp vec2 uv, in lowp vec3 displaySize, in lowp vec2 textureRegion) {
+		lowp vec3 scale = displaySize.yzx * displaySize.zxy; // 1.0 / displaySize
+		scale.xy *= textureRegion * normalMapSize * 0.5; // 0.5 = 1 / scale set by Texture.depthToNormals
+		return normalize(vec3(texture2D(normalMap, uv).xy - (128.0 / 255.0), 1.0) * scale);
 	}
 
-	lowp vec3 normalAt(in lowp vec2 uv) {
-		return texture2D(normalMap, uv).xyz * 2.0 - 1.0;
+	lowp vec3 edgeNormalAt(in lowp vec3 pos, in lowp vec3 displaySize) {
+		return normalAt(edgeUvAt(pos), displaySize, vec2(1.0, 0.0625));
+	}
+
+	lowp vec3 faceNormalAt(in lowp vec2 uv, in lowp vec3 displaySize) {
+		return normalAt(uv, displaySize, vec2(0.5, 0.5));
 	}
 `;
 
@@ -33,13 +40,13 @@ const EDGE_SHAPE_FRAG = `
 		return 1.0 - length(pos.xy);
 	}
 
-	lowp vec3 rotatedEdgeNormalAt(in lowp vec3 pos) {
+	lowp vec3 rotatedEdgeNormalAt(in lowp vec3 pos, in lowp vec3 displaySize) {
 		lowp mat3 faceD;
 		faceD[2] = vec3(normalize(pos.xy), 0.0);
 		faceD[1] = vec3(0.0, 0.0, 1.0);
 		faceD[0] = cross(faceD[2], faceD[1]);
 
-		return faceD * edgeNormalAt(pos);
+		return faceD * edgeNormalAt(pos, displaySize);
 	}
 `;
 
@@ -102,6 +109,8 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 	varying lowp vec3 p;
 	varying lowp vec2 t;
 
+	const lowp float pi2 = 3.14159265359 * 2.0;
+
 	void applyFlatFace(in lowp vec3 ray) {
 		lowp vec3 faceD = vec3(-side, 1.0, side);
 		lowp vec3 texSpaceRay = ray * faceD;
@@ -114,7 +123,8 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 		lowp float depth = depthAt(normalMap, t, duv, maxDepth, depthLimit);
 		lowp vec3 pos = p + ray * depth * zmult * 2.0;
 
-		apply(pos, faceD * normalAt(t + duv * depth), ray);
+		lowp vec3 faceDisplaySize = vec3(2.0, 2.0, maxDepth);
+		apply(pos, faceD * faceNormalAt(t + duv * depth, faceDisplaySize), ray);
 	}
 
 	void main() {
@@ -176,7 +186,8 @@ export default DepthFrag({layerSteps: 8}) + SHAPE_FRAG + EDGE_SHAPE_FRAG + EdgeB
 				if (compare > thickness) {
 					discard;
 				}
-				apply(pos, rotatedEdgeNormalAt(pos), normalize(gaze));
+				lowp vec3 edgeDisplaySize = vec3(pi2, thickness * 2.0, edgeMaxDepth);
+				apply(pos, rotatedEdgeNormalAt(pos, edgeDisplaySize), normalize(gaze));
 				return;
 			}
 		} else if (surfaceRadius2 < punchRad * punchRad) {

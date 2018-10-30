@@ -24,7 +24,7 @@ function createImageData(w, h) {
 	return ctx.createImageData(w, h);
 }
 
-function depthToNormals(data, heightOverWidth) {
+function lumToAlpha(data) {
 	const w = data.width;
 	const h = data.height;
 	const d = data.data;
@@ -33,7 +33,15 @@ function depthToNormals(data, heightOverWidth) {
 		d[i * 4 + 3] = 255 - d[i * 4];
 	}
 
-	const dz = 255.0 * 4.0 / (heightOverWidth * w);
+	return data;
+}
+
+function depthToNormals(data) {
+	const w = data.width;
+	const h = data.height;
+	const d = data.data;
+
+	const gradientScale = 2.0;
 
 	for (let y = 0; y < h; ++ y) {
 		const pN0 = ((y + h - 1) % h) * w;
@@ -52,13 +60,11 @@ function depthToNormals(data, heightOverWidth) {
 			const dSE = d[(pS0 + xE) * 4 + 3];
 			const dSW = d[(pS0 + xW) * 4 + 3];
 
-			const dx = (dE - dW + (dNE - dNW + dSE - dSW) * 0.5);
-			const dy = (dS - dN + (dSE - dNE + dSW - dNW) * 0.5);
-			const m = 127 / Math.sqrt(dx * dx + dy * dy + dz * dz);
+			const dx = (dE - dW) * 2 + dNE - dNW + dSE - dSW;
+			const dy = (dS - dN) * 2 + dSE - dNE + dSW - dNW;
 			const p = (pC0 + x) * 4;
-			d[p    ] = dx * m + 128;
-			d[p + 1] = dy * m + 128;
-			d[p + 2] = dz * m + 128;
+			d[p    ] = dx * gradientScale / 8 + 128;
+			d[p + 1] = dy * gradientScale / 8 + 128;
 		}
 	}
 
@@ -110,6 +116,19 @@ function downsampleData(data) {
 	}
 
 	return d2;
+}
+
+function scaleDownsampledNormalMap(data) {
+	const n = data.width * data.height;
+	const d = data.data;
+
+	for (let i = 0; i < n; ++ i) {
+		const p = i * 4;
+		d[p    ] = ((d[p    ] - 128) * 2) + 128;
+		d[p + 1] = ((d[p + 1] - 128) * 2) + 128;
+	}
+
+	return data;
 }
 
 export default class Texture {
@@ -170,7 +189,7 @@ export default class Texture {
 		this.bind();
 		gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiplyAlpha);
 		gl.texImage2D(this.type, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, data);
-		return this;
+		return {texture: this, width: data.width, height: data.height};
 	}
 
 	loadImage(url, {
@@ -189,11 +208,12 @@ export default class Texture {
 		}
 	}
 
-	generateNormalMap(url, height, {downsample = false} = {}) {
+	generateNormalMap(url, {downsample = false} = {}) {
 		return loadImage(url)
 			.then(imageToData)
-			.then((data) => depthToNormals(data, height))
-			.then((data) => downsample ? downsampleData(data) : data)
+			.then((data) => lumToAlpha(data))
+			.then((data) => depthToNormals(data))
+			.then((data) => downsample ? scaleDownsampledNormalMap(downsampleData(data)) : data)
 			.then((data) => this._uploadData(data, {premultiplyAlpha: false}));
 	}
 

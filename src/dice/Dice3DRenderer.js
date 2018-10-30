@@ -37,7 +37,7 @@ function loadAtlas(gl, url, downsample) {
 	return atlas;
 }
 
-function loadNormalMap(gl, url, depth, downsample) {
+function loadNormalMap(gl, url, downsample, then) {
 	const normalMap = new Texture2D(gl, {
 		[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
 		[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
@@ -45,7 +45,7 @@ function loadNormalMap(gl, url, depth, downsample) {
 		[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
 	});
 	normalMap.setSolid(0.5, 0.5, 1.0, 1.0);
-	normalMap.generateNormalMap(url, depth, {downsample});
+	normalMap.generateNormalMap(url, {downsample}).then(then);
 	return normalMap;
 }
 
@@ -88,6 +88,7 @@ export default class Dice3DRenderer {
 
 		const gl = this.canvas.gl;
 		this.shadow = shadow;
+		this.downsampleTextures = downsampleTextures;
 
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
@@ -112,8 +113,6 @@ export default class Dice3DRenderer {
 		this.fov = fov;
 		this.floorZ = 100;
 
-		const maxDepth = 0.1;
-
 		const texVolumeTransform = M4.fromQuaternion(Quaternion.fromRotation({
 			x: 0.2,
 			y: 0.8,
@@ -126,7 +125,7 @@ export default class Dice3DRenderer {
 		this.worldProps = {
 			'lightDir': normalize([0.0, 0.5, 1.0]),
 			'shineDir': normalize([0.0, 2.0, 1.0]),
-			'maxDepth': maxDepth,
+			'maxDepth': 0.1,
 		};
 
 		this.shapes = new Map();
@@ -225,39 +224,20 @@ export default class Dice3DRenderer {
 			'dotOpacity': 1.0,
 		}});
 
-		const worldFaceWidth = 2.0;
-		const normalMapFaceWidth = 0.25;
-		const normalMapFaceDepth = maxDepth * normalMapFaceWidth / worldFaceWidth;
+		const sources1 = {
+			atlas: 'resources/dice/atlas1.png',
+			normalMap: 'resources/dice/depth1.png',
+		};
 
-		const atlas1 = loadAtlas(gl, 'resources/dice/atlas1.png', downsampleTextures);
-		const normalMap1 = loadNormalMap(gl, 'resources/dice/depth1.png', normalMapFaceDepth, downsampleTextures);
+		const sources2 = {
+			atlas: 'resources/dice/atlas2.png',
+			normalMap: 'resources/dice/depth2.png',
+		};
 
-		const atlas2 = loadAtlas(gl, 'resources/dice/atlas2.png', downsampleTextures);
-		const normalMap2 = loadNormalMap(gl, 'resources/dice/depth2.png', normalMapFaceDepth, downsampleTextures);
-
-		this.textures.set('european', {
-			atlas: atlas1,
-			normalMap: normalMap1,
-			origin: [0, 0],
-		});
-
-		this.textures.set('asian', {
-			atlas: atlas1,
-			normalMap: normalMap1,
-			origin: [0, 0.5],
-		});
-
-		this.textures.set('numeric', {
-			atlas: atlas2,
-			normalMap: normalMap2,
-			origin: [0, 0],
-		});
-
-		this.textures.set('written', {
-			atlas: atlas2,
-			normalMap: normalMap2,
-			origin: [0, 0.5],
-		});
+		this.textures.set('european', {sources: sources1, origin: [0, 0.0]});
+		this.textures.set('asian',    {sources: sources1, origin: [0, 0.5]});
+		this.textures.set('numeric',  {sources: sources2, origin: [0, 0.0]});
+		this.textures.set('written',  {sources: sources2, origin: [0, 0.5]});
 
 		const vertShader = new VertexShader(gl, PROG_SHAPE_VERT);
 
@@ -404,6 +384,21 @@ export default class Dice3DRenderer {
 		this.shadowBuffer.unbind();
 	}
 
+	_prepareTextureSources(sources) {
+		if (typeof sources['atlas'] === 'string') {
+			const gl = this.canvas.gl;
+
+			sources.atlas = loadAtlas(gl, sources.atlas, this.downsampleTextures);
+			sources.normalMapSize = [0, 0];
+			sources.normalMap = loadNormalMap(
+				gl,
+				sources.normalMap,
+				this.downsampleTextures,
+				({width, height}) => sources.normalMapSize = [width, height]
+			);
+		}
+	}
+
 	renderScene(dice) {
 		const gl = this.canvas.gl;
 
@@ -433,6 +428,7 @@ export default class Dice3DRenderer {
 			const shape = this.shapes.get(die.style.shape);
 			const material = this.materials.get(die.style.material);
 			const texture = this.textures.get(die.style.dots);
+			this._prepareTextureSources(texture.sources);
 
 			const prog = this.programs.get(shape.prog + ' ' + material.prog);
 
@@ -444,8 +440,9 @@ export default class Dice3DRenderer {
 				'pos': shape.geom.boundVertices(),
 				'norm': shape.geom.boundNormals(),
 				'uvOrigin': texture.origin,
-				'atlas': texture.atlas,
-				'normalMap': texture.normalMap,
+				'atlas': texture.sources.atlas,
+				'normalMap': texture.sources.normalMap,
+				'normalMapSize': texture.sources.normalMapSize,
 			}, this.worldProps, shape.props, material.props));
 			shape.geom.render(gl);
 		}

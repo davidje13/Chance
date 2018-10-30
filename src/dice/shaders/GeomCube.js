@@ -3,14 +3,21 @@ import DepthFrag from '../../3d/DepthFrag.js';
 export default DepthFrag() + `
 	uniform sampler2D atlas;
 	uniform sampler2D normalMap;
+	uniform lowp vec2 normalMapSize; // textureSize(normalMap)
 	uniform lowp float dotOpacity;
 	uniform lowp float maxDepth;
 	uniform lowp vec2 uvOrigin;
 
 	const lowp vec2 regionSize = vec2(0.25, 0.25);
 
-	lowp vec3 normalAt(in lowp vec2 uv) {
-		return texture2D(normalMap, uv).xyz * 2.0 - 1.0;
+	lowp vec3 normalAt(in lowp vec2 uv, in lowp vec3 displaySize, in lowp vec2 textureRegion) {
+		lowp vec3 scale = displaySize.yzx * displaySize.zxy; // 1.0 / displaySize
+		scale.xy *= textureRegion * normalMapSize * 0.5; // 0.5 = 1 / scale set by Texture.depthToNormals
+		return normalize(vec3(texture2D(normalMap, uv).xy - (128.0 / 255.0), 1.0) * scale);
+	}
+
+	lowp vec3 faceNormalAt(in lowp vec2 uv) {
+		return normalAt(uv, vec3(2.0, 2.0, maxDepth), vec2(0.25, 0.25));
 	}
 
 	lowp vec4 colourAt(in lowp vec2 uv) {
@@ -56,7 +63,7 @@ export default DepthFrag() + `
 		uv.xy += duv * depth;
 
 		faceD[2] = norm;
-		norm = faceD * normalAt(uv.xy);
+		norm = faceD * faceNormalAt(uv.xy);
 
 		return colourAt(uv.xy) * dotOpacity;
 	}

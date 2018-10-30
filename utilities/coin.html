@@ -13,7 +13,6 @@ const face = {x: 0, y: 0, w: 256, h: 256};
 const edge = {x: 0, y: 264, w: 512, h: 48}; // active area is y: 272, h: 32
 
 const SQRT3_2 = Math.sqrt(3) / 2;
-const edgeDepthScale = Math.PI / 2;
 
 const fmTruncH = document.getElementById('truncH');
 const fmFoundRad = document.getElementById('roundRad');
@@ -115,7 +114,6 @@ function fill(dat, {x, y, w, h}, fn) {
 function render(ctx, {triangleTruncatedHeight, triangleRoundingRad, inset, depth}) {
 	const gamma = 3 / (triangleTruncatedHeight * 2 - triangleRoundingRad);
 	const r = triangleRoundingRad * gamma;
-	const edgeDepth = depth * edgeDepthScale;
 
 	const distC = 1 - r;
 	const rad = r - inset;
@@ -166,7 +164,7 @@ function render(ctx, {triangleTruncatedHeight, triangleRoundingRad, inset, depth
 			dist = lineCircIntersectionDist(ray, c1, rad, true);
 		}
 		lowest = Math.min(lowest, dist);
-		return 1 - (1 - dist) / edgeDepth;
+		return 1 - (1 - dist) / depth;
 	}
 
 	fill(dat, face, faceLumAt);
@@ -174,7 +172,7 @@ function render(ctx, {triangleTruncatedHeight, triangleRoundingRad, inset, depth
 
 	ctx.putImageData(dat, 0, 0);
 
-	fmSuggestedDepth.innerText = ((1 - lowest) / edgeDepthScale).toFixed(3);
+	fmSuggestedDepth.innerText = (1 - lowest).toFixed(3);
 }
 
 renderFromInputs();
@@ -187,6 +185,6 @@ renderFromInputs();
 <p><label>Truncated height: <input id="truncH" type="number" step="any" min="1" value="515" /></label></p>
 <p><label>Rounding radius: <input id="roundRad" type="number" step="any" min="0" value="110" /></label></p>
 <p><label>Inset: <input id="inset" type="number" step="any" min="0" max="1" value="0.0" /></label></p>
-<p><label>Max Depth: <input id="depth" type="number" step="any" min="0" max="1" value="0.5" /></label> (suggested: <span id="suggestedDepth">?</span></p>
+<p><label>Edge Max Depth: <input id="depth" type="number" step="any" min="0" max="1" value="0.5" /></label> (suggested: <span id="suggestedDepth">?</span></p>
 </body>
 </html>

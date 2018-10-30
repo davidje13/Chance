@@ -15,7 +15,7 @@ import PROG_SHADOW_FRAG_HELPER from './shaders/TargetShadow.js';
 import PROG_COIN_FRAG from './shaders/ShapeCoin.js';
 import FloorShaders from './shaders/Floor.js';
 
-function loadNormalMap(gl, url, depth, downsample) {
+function loadNormalMap(gl, url, downsample, then) {
 	const normalMap = new Texture2D(gl, {
 		[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
 		[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
@@ -23,7 +23,7 @@ function loadNormalMap(gl, url, depth, downsample) {
 		[gl.TEXTURE_WRAP_T]: gl.REPEAT,
 	});
 	normalMap.setSolid(0.5, 0.5, 1.0, 0.0);
-	normalMap.generateNormalMap(url, depth, {downsample});
+	normalMap.generateNormalMap(url, {downsample}).then(then);
 	return normalMap;
 }
 
@@ -91,15 +91,13 @@ export default class Coins3DRenderer {
 			new FragmentShader(gl, PROG_SHADOW_FRAG_HELPER + PROG_COIN_FRAG),
 		]) : null;
 
-		this.normalScale = 0.5 / 2.0;
-		this.edgeDepthScale = Math.PI / 2.0;
-
 		this.currencies.set('gbp-old', {
 			shape: new Box({width: 2.1, height: 2.1, depth: 0.28}),
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
-				'maxDepth': 0.015,
+				'maxDepth': 0.02,
+				'edgeMaxDepth': 0.03,
 				'twoToneRad': 0.0,
 				'punchRad': 0.0,
 				'normalMap': 'resources/coins/depth-gbp-old.png',
@@ -111,8 +109,9 @@ export default class Coins3DRenderer {
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
+				'maxDepth': 0.025,
 				// edge varies from 32--256, and must produce straight edges for a 12-sided shape:
-				'maxDepth': (1 - Math.cos(Math.PI / 12)) * (8 / 7) / this.edgeDepthScale,
+				'edgeMaxDepth': (1 - Math.cos(Math.PI / 12)) * (8 / 7),
 				'twoToneRad': 0.6484375,
 				'punchRad': 0.0,
 				'normalMap': 'resources/coins/depth-gbp.png',
@@ -125,6 +124,7 @@ export default class Coins3DRenderer {
 			shadowProg: baseShadowProg,
 			props: {
 				'maxDepth': 0.02,
+				'edgeMaxDepth': 0.03,
 				'twoToneRad': 0.71875,
 				'punchRad': 0.0,
 				'normalMap': 'resources/coins/depth-eur-de.png',
@@ -137,6 +137,7 @@ export default class Coins3DRenderer {
 			shadowProg: baseShadowProg,
 			props: {
 				'maxDepth': 0.015,
+				'edgeMaxDepth': 0.02,
 				'twoToneRad': 1.1,
 				'punchRad': 0.0,
 				'normalMap': 'resources/coins/depth-usd.png',
@@ -149,6 +150,7 @@ export default class Coins3DRenderer {
 			shadowProg: baseShadowProg,
 			props: {
 				'maxDepth': 0.02,
+				'edgeMaxDepth': 0.03,
 				'twoToneRad': 0.0,
 				'punchRad': 0.227,
 				'normalMap': 'resources/coins/depth-jpy.png',
@@ -160,7 +162,8 @@ export default class Coins3DRenderer {
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
-				'maxDepth': 0.205,
+				'maxDepth': 0.015,
+				'edgeMaxDepth': 0.322,
 				'twoToneRad': 1.1,
 				'punchRad': 0.0,
 				'normalMap': 'resources/coins/depth-nzd-cook.png',
@@ -194,11 +197,9 @@ export default class Coins3DRenderer {
 			currency.props['normalMap'] = loadNormalMap(
 				this.canvas.gl,
 				currency.props['normalMap'],
-				currency.props['maxDepth'] * this.normalScale,
-				this.downsampleTextures
+				this.downsampleTextures,
+				({width, height}) => currency.props['normalMapSize'] = [width, height]
 			);
-			// edge is stretched relative to face, so scale is different
-			currency.props['edgeMaxDepth'] = currency.props['maxDepth'] * this.edgeDepthScale;
 		}
 	}
 
