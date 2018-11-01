@@ -132,7 +132,7 @@ function scaleDownsampledNormalMap(data) {
 }
 
 export default class Texture {
-	constructor(gl, type, params) {
+	constructor(gl, type, params = {}) {
 		this.gl = gl;
 		this.type = type;
 		this.tex = gl.createTexture();
@@ -211,6 +211,14 @@ export default class Texture {
 	generateNormalMap(url, {downsample = false} = {}) {
 		return loadImage(url)
 			.then(imageToData)
+			.then((data) => lumToAlpha(data))
+			.then((data) => depthToNormals(data))
+			.then((data) => downsample ? scaleDownsampledNormalMap(downsampleData(data)) : data)
+			.then((data) => this._uploadData(data, {premultiplyAlpha: false}));
+	}
+
+	convertNormalMap(data, {downsample = false} = {}) {
+		return Promise.resolve(data)
 			.then((data) => lumToAlpha(data))
 			.then((data) => depthToNormals(data))
 			.then((data) => downsample ? scaleDownsampledNormalMap(downsampleData(data)) : data)

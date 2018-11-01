@@ -13,6 +13,23 @@ export default class Box extends ModelData {
 		this.dirtyVertices = true;
 	}
 
+	resize({width = null, height = null, depth = null}) {
+		let change = false;
+		if (width !== null && width !== this.size.x) {
+			this.size.x = width;
+			change = true;
+		}
+		if (height !== null && height !== this.size.y) {
+			this.size.y = height;
+			change = true;
+		}
+		if (depth !== null && depth !== this.size.z) {
+			this.size.z = depth;
+			change = true;
+		}
+		this.dirtyVertices = this.dirtyVertices || change;
+	}
+
 	writeQuad(target, a, b, c, d) {
 		target[0] = a;
 		target[1] = b;
