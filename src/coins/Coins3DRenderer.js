@@ -91,6 +91,19 @@ export default class Coins3DRenderer {
 			new FragmentShader(gl, PROG_SHADOW_FRAG_HELPER + PROG_COIN_FRAG),
 		]) : null;
 
+		this.currencies.set('void', {
+			shape: new Box({width: 2.1, height: 2.1, depth: 0.4}),
+			prog: baseProg,
+			shadowProg: baseShadowProg,
+			props: {
+				'maxDepth': 0.2,
+				'edgeMaxDepth': 0.2,
+				'twoToneRad': 0.8,
+				'punchRad': 0.25,
+				'normalMap': 'resources/coins/depth-void.png',
+			},
+		});
+
 		this.currencies.set('gbp-old', {
 			shape: new Box({width: 2.1, height: 2.1, depth: 0.28}),
 			prog: baseProg,

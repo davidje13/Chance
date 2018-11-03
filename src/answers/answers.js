@@ -58,22 +58,35 @@ export default class Answers {
 		ball.appendChild(this.renderer.dom());
 		this.inner.appendChild(ball);
 
-		this.allowVertical = true;
 		this.latestGravity = -10;
 		this.simGravityChange = 0;
-		this.gravAssist = this.allowVertical
-			? new GravityAssist(-3, 15)
-			: new GravityAssist(0, 15);
+		this.gravAssistOn = new GravityAssist(-3, 15);
+		this.gravAssistOff = new GravityAssist(0, 15);
 
 		this.clickable = true;
 
 		this.motion = this.motion.bind(this);
 
 		this.opts = new Options();
-		this.opts.addRow({label: 'Gravity assist'});
+		this.opts.addRow({
+			label: 'Answer when vertical',
+			type: 'checkbox',
+			property: 'gravity-assist',
+			def: true,
+		});
 		this.opts.addHeading('Answer Set');
-		this.opts.addRow({label: 'A'});
-		this.opts.addRow({label: 'B'});
+		this.opts.addRow({
+			label: 'Magic',
+			type: 'radio',
+			property: 'answers-a',
+			def: true,
+		});
+		this.opts.addRow({
+			label: 'More Magic',
+			type: 'radio',
+			property: 'answers-b',
+			def: false,
+		});
 	}
 
 	title() {
@@ -100,7 +113,10 @@ export default class Answers {
 
 	motion(e) {
 		this.clickable = false;
-		this.latestGravity = this.gravAssist.apply(e.accelerationIncludingGravity.z);
+		const gravAssist = this.opts.getProperty('gravity-assist')
+			? this.gravAssistOn
+			: this.gravAssistOff;
+		this.latestGravity = gravAssist.apply(e.accelerationIncludingGravity.z);
 		this.simGravityChange = 0;
 
 		if (e.rotationRate) {
@@ -114,6 +130,9 @@ export default class Answers {
 
 	trigger(type) {
 		if (type === 'shake') {
+			return;
+		}
+		if (type === 'options-change') {
 			return;
 		}
 		if (!this.clickable) {

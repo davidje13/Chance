@@ -4,8 +4,8 @@ import Quaternion from '../math/Quaternion.js';
 import {make} from '../dom/Dom.js';
 
 export default class CoinsOptions extends Options {
-	constructor() {
-		super();
+	constructor(properties) {
+		super(properties);
 
 		this.rowHeight = this.sampleWidth;
 

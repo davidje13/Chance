@@ -133,6 +133,13 @@ export default class Dice3DRenderer {
 		this.textures = new Map();
 		this.programs = new Map();
 
+		this.shapes.set('void', {
+			prog: 'shape',
+			geom: new Cube({rounding: 0}),
+			props: {
+				'maxDepth': 0.5,
+			},
+		});
 		this.shapes.set('cube', {
 			prog: 'shape',
 			geom: new Cube({rounding: 0.05, segmentation: 2}),
@@ -160,10 +167,10 @@ export default class Dice3DRenderer {
 			},
 		});
 
-		this.materials.set('unlit', {prog: 'flat', props: {
+		this.materials.set('void', {prog: 'flat', props: {
 			'matt': [1.0, 1.0, 1.0],
-			'ambientCol': [1.0, 1.0, 1.0],
-			'lightCol': [0.0, 0.0, 0.0],
+			'ambientCol': [0.8, 0.8, 0.8],
+			'lightCol': [0.2, 0.2, 0.2],
 			'shineCol': [0.0, 0.0, 0.0, 0.0],
 			'dotOpacity': 1.0,
 		}});
@@ -224,6 +231,11 @@ export default class Dice3DRenderer {
 			'dotOpacity': 1.0,
 		}});
 
+		const sources0 = {
+			atlas: 'resources/dice/atlas0.png',
+			normalMap: 'resources/dice/depth0.png',
+		};
+
 		const sources1 = {
 			atlas: 'resources/dice/atlas1.png',
 			normalMap: 'resources/dice/depth1.png',
@@ -234,6 +246,7 @@ export default class Dice3DRenderer {
 			normalMap: 'resources/dice/depth2.png',
 		};
 
+		this.textures.set('void',     {sources: sources0, origin: [0, 0.0]});
 		this.textures.set('european', {sources: sources1, origin: [0, 0.0]});
 		this.textures.set('asian',    {sources: sources1, origin: [0, 0.5]});
 		this.textures.set('numeric',  {sources: sources2, origin: [0, 0.0]});

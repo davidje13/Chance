@@ -26,10 +26,25 @@
 	z-index: 1;
 }
 
+.option-list .options-render-canvas {
+	position: absolute;
+	top: 0;
+	right: 15px;
+	pointer-events: none;
+}
+
 .option-list .row {
+	display: block;
 	border-bottom: 1px solid rgba(0, 0, 0, 0.2);
 	padding: 0 15px;
 }
 
-.option-list .row .label {
+.option-list .row input[type=checkbox] {
+	margin: 0 10px 0 0;
+	vertical-align: 2px;
+}
+
+.option-list .row input[type=radio] {
+	margin: 0 10px 0 0;
+	vertical-align: 2px;
 }

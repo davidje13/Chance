@@ -46,7 +46,7 @@ class CustomCoins3DRenderer extends Coins3DRenderer {
 
 		const gl = this.canvas.gl;
 
-		this.currencyName = 'gbp';
+		this.currencyName = 'void';
 		this.currency = this.currencies.get(this.currencyName);
 
 		this.normalMap = new Texture2D(gl, {

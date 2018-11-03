@@ -208,6 +208,11 @@ modal.addEventListener('detach', (pane, {options}) => {
 	options.stop();
 	optionScroller.removeChild(optionScroller.firstChild);
 	currentOptions = null;
+	if (options.changed) {
+		if (currentTabRunner !== null) {
+			currentTabRunner.trigger('options-change');
+		}
+	}
 });
 
 if (!setTabFromHash()) {

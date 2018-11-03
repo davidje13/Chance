@@ -77,7 +77,6 @@ function makeBoard() {
 export default class Contortion {
 	constructor(randomSource) {
 		this.randomSource = randomSource;
-		this.skipCurrent = true;
 		this.makeSpinsFair = true;
 		this.autoSpin = false;
 
@@ -113,7 +112,12 @@ export default class Contortion {
 		this.inner.addEventListener('dblclick', this.dblclick.bind(this));
 
 		this.opts = new Options();
-		this.opts.addRow({label: 'Prevent duplicate spins'});
+		this.opts.addRow({
+			label: 'Prevent duplicate spins',
+			type: 'checkbox',
+			property: 'skip-current',
+			def: true,
+		});
 	}
 
 	pointNeedle(angle) {
@@ -186,7 +190,7 @@ export default class Contortion {
 	}
 
 	pickSegment() {
-		if (!this.skipCurrent) {
+		if (!this.opts.getProperty('skip-current')) {
 			return this.randomSource.nextInt(16);
 		}
 		let limit = 16;
@@ -306,6 +310,9 @@ export default class Contortion {
 
 	trigger(type) {
 		if (type === 'click') {
+			return false;
+		}
+		if (type === 'options-change') {
 			return false;
 		}
 		if (this.autoSpin) {

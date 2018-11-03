@@ -10,6 +10,15 @@ const RISING = 2;
 
 const HEIGHT_RANDOM = -7;
 
+const OPT_CURRENCIES = [
+	{label: 'GBP (Classic)', currency: 'gbp-old', def: true},
+	{label: 'GBP', currency: 'gbp', def: true},
+	{label: 'EUR (German Style)', currency: 'eur-de', def: true},
+	{label: 'USD', currency: 'usd', def: true},
+	{label: 'JPY', currency: 'jpy', def: true},
+	{label: 'NZD (Cook Islands Style)', currency: 'nzd-cook', def: true},
+];
+
 export default class Coins {
 	constructor(randomSource) {
 		this.inner = make('div', 'coins');
@@ -23,12 +32,15 @@ export default class Coins {
 
 		this.opts = new CoinsOptions();
 		this.opts.addHeading('Currencies');
-		this.opts.addRow({label: 'GBP (Classic)', sampleData: {currency: 'gbp-old'}});
-		this.opts.addRow({label: 'GBP', sampleData: {currency: 'gbp'}});
-		this.opts.addRow({label: 'EUR (German Style)', sampleData: {currency: 'eur-de'}});
-		this.opts.addRow({label: 'USD', sampleData: {currency: 'usd'}});
-		this.opts.addRow({label: 'JPY', sampleData: {currency: 'jpy'}});
-		this.opts.addRow({label: 'NZD (Cook Islands Style)', sampleData: {currency: 'nzd-cook'}});
+		for (const opt of OPT_CURRENCIES) {
+			this.opts.addRow({
+				label: opt.label,
+				sampleData: {currency: opt.currency},
+				property: 'currency-' + opt.currency,
+				type: 'checkbox',
+				def: opt.def,
+			});
+		}
 	}
 
 	title() {
@@ -54,6 +66,9 @@ export default class Coins {
 			return false;
 		}
 
+		if (!coin.blur) {
+			coin.blur = {};
+		}
 		coin.blur.rot = coin.rotation;
 		coin.blur.pos = coin.position;
 
@@ -65,6 +80,9 @@ export default class Coins {
 				z: 10 * deltaTm,
 			}).mult(coin.rotation);
 			if (coin.position.z <= HEIGHT_RANDOM) {
+				if (this.repick) {
+					this.pickCoin();
+				}
 				this.randomise();
 			}
 			return true;
@@ -166,10 +184,21 @@ export default class Coins {
 	trigger(type) {
 		this.coin.state = RISING,
 		this.coin.velocity.z = -20;
+		if (type === 'options-change') {
+			this.repick = true;
+		}
 	}
 
-	start() {
-		const currencies = ['gbp-old', 'gbp', 'eur-de', 'usd', 'jpy', 'nzd-cook'];
+	pickCoin() {
+		const props = this.opts.getProperties();
+		const currencies = OPT_CURRENCIES
+			.filter((o) => props.get('currency-' + o.currency))
+			.map((o) => o.currency);
+
+		if (currencies.length === 0) {
+			currencies.push('void');
+		}
+
 		const currency = currencies[this.randomSource.nextInt(currencies.length)];
 		this.coin = {
 			state: STOPPED,
@@ -183,11 +212,13 @@ export default class Coins {
 			position: {x: 0, y: 0, z: 0},
 			velocity: new V3(),
 			rotation: Quaternion.identity(),
-			blur: {
-				rot: null,
-				pos: null,
-			},
+			blur: null,
 		};
+		this.repick = false;
+	}
+
+	start() {
+		this.pickCoin();
 		this.randomise();
 	}
 

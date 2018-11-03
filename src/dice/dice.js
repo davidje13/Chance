@@ -6,6 +6,30 @@ import {make, addFastClickListener, setDisabled} from '../dom/Dom.js';
 
 const MAX_DICE = 20;
 
+const OPT_SHAPES = [
+	{label: 'Cube', shape: 'cube', def: true},
+	{label: 'Cube Filletted', shape: 'cube-fillet', def: true},
+	{label: 'Cube Clipped', shape: 'cube-clipped', def: true},
+	{label: 'Cube Rounded', shape: 'cube-rounded', def: true},
+];
+
+const OPT_MATERIALS = [
+	{label: 'Wood', material: 'wood', def: true},
+	{label: 'Varnished Wood', material: 'wood-varnished', def: true},
+	{label: 'Black Metal', material: 'metal-black', def: false},
+	{label: 'Gold Metal', material: 'metal-gold', def: false},
+	{label: 'Silver Metal', material: 'metal-silver', def: false},
+	{label: 'White Plastic', material: 'plastic-white', def: true},
+	{label: 'Red Plastic', material: 'plastic-red', def: true},
+];
+
+const OPT_DOTS = [
+	{label: 'European', dots: 'european', def: true},
+	{label: 'Asian', dots: 'asian', def: true},
+	{label: 'Numeric', dots: 'numeric', def: true},
+	{label: 'Written', dots: 'written', def: true},
+];
+
 export default class Dice {
 	constructor(randomSource) {
 		this.inner = make('div', 'dice');
@@ -30,32 +54,38 @@ export default class Dice {
 
 		this.opts = new DiceOptions();
 
-		const shape = 'cube';
-		const dots = 'european';
-		let material = 'wood-varnished';
-
 		this.opts.addHeading('Shapes');
-		this.opts.addRow({label: 'Cube', sampleData: {shape: 'cube', material, dots}});
-		this.opts.addRow({label: 'Cube Filletted', sampleData: {shape: 'cube-fillet', material, dots}});
-		this.opts.addRow({label: 'Cube Clipped', sampleData: {shape: 'cube-clipped', material, dots}});
-		this.opts.addRow({label: 'Cube Rounded', sampleData: {shape: 'cube-rounded', material, dots}});
+		for (const opt of OPT_SHAPES) {
+			this.opts.addRow({
+				label: opt.label,
+				sampleData: {shape: opt.shape, material: 'wood-varnished', dots: 'european'},
+				property: 'shape-' + opt.shape,
+				type: 'checkbox',
+				def: opt.def,
+			});
+		}
 
 		this.opts.addHeading('Materials');
-		this.opts.addRow({label: 'Wood', sampleData: {shape, material: 'wood', dots}});
-		this.opts.addRow({label: 'Varnished Wood', sampleData: {shape, material: 'wood-varnished', dots}});
-		this.opts.addRow({label: 'Black Metal', sampleData: {shape, material: 'metal-black', dots}});
-		this.opts.addRow({label: 'Gold Metal', sampleData: {shape, material: 'metal-gold', dots}});
-		this.opts.addRow({label: 'Silver Metal', sampleData: {shape, material: 'metal-silver', dots}});
-		this.opts.addRow({label: 'White Plastic', sampleData: {shape, material: 'plastic-white', dots}});
-		this.opts.addRow({label: 'Red Plastic', sampleData: {shape, material: 'plastic-red', dots}});
-
-		material = 'plastic-white';
+		for (const opt of OPT_MATERIALS) {
+			this.opts.addRow({
+				label: opt.label,
+				sampleData: {shape: 'cube', material: opt.material, dots: 'european'},
+				property: 'material-' + opt.material,
+				type: 'checkbox',
+				def: opt.def,
+			});
+		}
 
 		this.opts.addHeading('Faces');
-		this.opts.addRow({label: 'European', sampleData: {shape, material, dots: 'european'}});
-		this.opts.addRow({label: 'Asian', sampleData: {shape, material, dots: 'asian'}});
-		this.opts.addRow({label: 'Numeric', sampleData: {shape, material, dots: 'numeric'}});
-		this.opts.addRow({label: 'Written', sampleData: {shape, material, dots: 'written'}});
+		for (const opt of OPT_DOTS) {
+			this.opts.addRow({
+				label: opt.label,
+				sampleData: {shape: 'cube', material: 'plastic-white', dots: opt.dots},
+				property: 'dots-' + opt.dots,
+				type: 'checkbox',
+				def: opt.def,
+			});
+		}
 
 		this.updateButtons();
 	}
@@ -80,7 +110,7 @@ export default class Dice {
 		}
 
 		++ this.diceCount;
-		this.flickDice();
+		this.trigger('options-change');
 
 		this.updateButtons();
 	}
@@ -91,7 +121,7 @@ export default class Dice {
 		}
 
 		-- this.diceCount;
-		this.flickDice();
+		this.trigger('options-change');
 
 		this.updateButtons();
 	}
@@ -111,16 +141,34 @@ export default class Dice {
 	rebuildDice(quantity) {
 		this.simulator.clearDice();
 
-		const materials = ['wood', 'wood-varnished', 'plastic-white', 'plastic-red'];
-		const shapes = ['cube', 'cube-fillet', 'cube-clipped', 'cube-rounded'];
-		const dots = ['european', 'asian', 'numeric', 'written'];
+		const props = this.opts.getProperties();
+		const materials = OPT_MATERIALS
+			.filter((o) => props.get('material-' + o.material))
+			.map((o) => o.material);
+		const shapes = OPT_SHAPES
+			.filter((o) => props.get('shape-' + o.shape))
+			.map((o) => o.shape);
+		const dots = OPT_DOTS
+			.filter((o) => props.get('dots-' + o.dots))
+			.map((o) => o.dots);
+
+		if (materials.length === 0) {
+			materials.push('void');
+		}
+		if (shapes.length === 0) {
+			shapes.push('void');
+		}
+		if (dots.length === 0) {
+			dots.push('void');
+		}
 
 		for (let i = 0; i < quantity; ++ i) {
-			const x = this.randomSource.nextInt(shapes.length);
-			const y = this.randomSource.nextInt(materials.length);
-			const z = this.randomSource.nextInt(dots.length);
 			this.simulator.addDie({
-				style: {shape: shapes[x], material: materials[y], dots: dots[z]},
+				style: {
+					shape: shapes[this.randomSource.nextInt(shapes.length)],
+					material: materials[this.randomSource.nextInt(materials.length)],
+					dots: dots[this.randomSource.nextInt(dots.length)],
+				},
 			});
 		}
 
@@ -130,18 +178,16 @@ export default class Dice {
 		this.updateRegion();
 	}
 
-	flickDice() {
+	trigger(type) {
+		const changed = (type === 'options-change');
+
 		this.simulator.fireOffscreen()
 			.then(() => {
-				if (this.simulator.getDice().length != this.diceCount) {
+				if (changed || this.simulator.getDice().length != this.diceCount) {
 					this.rebuildDice(this.diceCount);
 				}
 			})
 			.then(() => this.simulator.randomise(this.randomSource));
-	}
-
-	trigger(type) {
-		this.flickDice();
 	}
 
 	start() {

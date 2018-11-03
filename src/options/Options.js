@@ -1,7 +1,7 @@
 import {make} from '../dom/Dom.js';
 
 export default class Options {
-	constructor() {
+	constructor(properties = null) {
 		this.headingHeight = 30;
 		this.rowHeight = 24;
 		this.sampleWidth = 75;
@@ -9,12 +9,16 @@ export default class Options {
 		this.border = 1;
 		this.empty = true;
 		this.samples = [];
+		this.rows = [];
+		this.sectionID = 0;
 		this.y = 0;
 
 		this.hold = make('div', 'option-list');
 		this.renderer = null;
 
 		this.curSection = this.hold;
+		this.properties = properties || new Map();
+		this.readInputs = this.readInputs.bind(this);
 	}
 
 	setRenderer(renderer) {
@@ -29,10 +33,8 @@ export default class Options {
 			return;
 		}
 		const rendererCanvas = this.renderer.dom();
-		this.hold.appendChild(rendererCanvas);
-		rendererCanvas.style.position = 'absolute';
-		rendererCanvas.style.top = '0';
-		rendererCanvas.style.right = '15px';
+		this.hold.insertBefore(rendererCanvas, this.hold.firstChild);
+		rendererCanvas.className = 'options-render-canvas';
 	}
 
 	addHeading(label) {
@@ -43,20 +45,43 @@ export default class Options {
 		this.curSection.appendChild(header);
 		this.hold.appendChild(this.curSection);
 		this.y += this.headingHeight;
+		++ this.sectionID;
 		this.empty = false;
 	}
 
-	addRow({label, height = null, sampleData = null}) {
+	addRow({label, height = null, sampleData = null, type = '', property = null, def = null}) {
 		if (height === null) {
 			height = this.rowHeight;
 		}
-		const row = make('div', 'row');
+		const row = make('label', 'row');
 		row.style.height = height;
 		row.style.paddingTop = this.rowPadding + 'px';
 		row.style.paddingBottom = this.rowPadding + 'px';
 		row.style.borderBottomWidth = this.border + 'px';
 
-		row.appendChild(make('div', 'label', label));
+		let input = null;
+		switch (type) {
+		case 'checkbox':
+			input = make('input');
+			input.setAttribute('type', 'checkbox');
+			input.addEventListener('change', this.readInputs);
+			row.appendChild(input);
+			break;
+		case 'radio':
+			input = make('input');
+			input.setAttribute('type', 'radio');
+			input.setAttribute('name', 'sg' + this.sectionID);
+			input.addEventListener('change', this.readInputs);
+			row.appendChild(input);
+			break;
+		}
+		if (property !== null && def !== null) {
+			if (!this.properties.has(property)) {
+				this.properties.set(property, def);
+			}
+		}
+
+		row.appendChild(make('span', '', label));
 		this.curSection.appendChild(row);
 		if (sampleData) {
 			this.samples.push({
@@ -66,6 +91,47 @@ export default class Options {
 		}
 		this.y += height + this.rowPadding * 2 + this.border;
 		this.empty = false;
+
+		this.rows.push({row, input, type, property});
+	}
+
+	updateRows() {
+		for (const row of this.rows) {
+			if (row.property === null) {
+				continue;
+			}
+			const value = this.properties.get(row.property);
+			switch (row.type) {
+			case 'checkbox':
+				row.input.checked = (value !== false);
+				break;
+			case 'radio':
+				row.input.checked = (value !== false);
+				break;
+			}
+		}
+	}
+
+	readInputs() {
+		for (const row of this.rows) {
+			if (row.property === null || row.input === null) {
+				continue;
+			}
+			const oldValue = this.properties.get(row.property);
+			let value = oldValue;
+			switch (row.type) {
+			case 'checkbox':
+				value = row.input.checked;
+				break;
+			case 'radio':
+				value = row.input.checked;
+				break;
+			}
+			if (value !== oldValue) {
+				this.properties.set(row.property, value);
+				this.changed = true;
+			}
+		}
 	}
 
 	dom() {
@@ -102,6 +168,16 @@ export default class Options {
 			this.hold.appendChild(make('div', 'message', 'No options available'));
 			this.empty = false;
 		}
+		this.updateRows();
+		this.changed = false;
+	}
+
+	getProperties() {
+		return this.properties;
+	}
+
+	getProperty(name) {
+		return this.properties.get(name);
 	}
 
 	step(deltaTm) {
