@@ -96,7 +96,7 @@ export default class Coins3DRenderer {
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
-				'maxDepth': 0.02,
+				'maxDepth': 0.04,
 				'edgeMaxDepth': 0.03,
 				'twoToneRad': 0.0,
 				'punchRad': 0.0,
@@ -109,7 +109,7 @@ export default class Coins3DRenderer {
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
-				'maxDepth': 0.025,
+				'maxDepth': 0.05,
 				'edgeMaxDepth': 0.039,
 				'twoToneRad': 0.6484375,
 				'punchRad': 0.0,
@@ -122,7 +122,7 @@ export default class Coins3DRenderer {
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
-				'maxDepth': 0.02,
+				'maxDepth': 0.04,
 				'edgeMaxDepth': 0.03,
 				'twoToneRad': 0.71875,
 				'punchRad': 0.0,
@@ -135,7 +135,7 @@ export default class Coins3DRenderer {
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
-				'maxDepth': 0.015,
+				'maxDepth': 0.03,
 				'edgeMaxDepth': 0.02,
 				'twoToneRad': 1.1,
 				'punchRad': 0.0,
@@ -148,7 +148,7 @@ export default class Coins3DRenderer {
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
-				'maxDepth': 0.02,
+				'maxDepth': 0.04,
 				'edgeMaxDepth': 0.03,
 				'twoToneRad': 0.0,
 				'punchRad': 0.227,
@@ -161,7 +161,7 @@ export default class Coins3DRenderer {
 			prog: baseProg,
 			shadowProg: baseShadowProg,
 			props: {
-				'maxDepth': 0.015,
+				'maxDepth': 0.03,
 				'edgeMaxDepth': 0.322,
 				'twoToneRad': 1.1,
 				'punchRad': 0.0,

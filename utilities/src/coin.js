@@ -36,29 +36,66 @@ const ctx = canvas.getContext('2d');
 const dat = ctx.createImageData(texW, texH);
 dat.data.fill(255);
 
-const renderer = new Coins3DRenderer({
-	shadow: false,
-	maxOversampleResolution: 1.5,
-	fov: 0.3,
-});
-const gl = renderer.canvas.gl;
-renderer.resize(256, 256);
-document.body.appendChild(renderer.dom());
-renderer.dom().style.position = 'absolute';
-renderer.dom().style.top = '0';
-renderer.dom().style.right = '0';
+class CustomCoins3DRenderer extends Coins3DRenderer {
+	constructor() {
+		super({
+			shadow: false,
+			maxOversampleResolution: 1.5,
+			fov: 0.3,
+		});
 
-const currencyName = 'gbp';
-const rendererCurrency = renderer.currencies.get(currencyName);
-const normalMap = new Texture2D(gl, {
-	[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-	[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
-	[gl.TEXTURE_WRAP_S]: gl.REPEAT,
-	[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
-});
-normalMap.setSolid(0.5, 0.5, 0, 1);
-rendererCurrency.props['normalMap'] = normalMap;
-rendererCurrency.props['normalMapSize'] = [texW, texH];
+		const gl = this.canvas.gl;
+
+		this.currencyName = 'gbp';
+		this.currency = this.currencies.get(this.currencyName);
+
+		this.normalMap = new Texture2D(gl, {
+			[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
+			[gl.TEXTURE_WRAP_S]: gl.REPEAT,
+			[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
+		});
+		this.normalMap.setSolid(0.5, 0.5, 0, 1);
+		this.normalMapSize = [1, 1];
+		this.currency.props['normalMap'] = this.normalMap;
+		this.currency.props['normalMapSize'] = this.normalMapSize;
+	}
+
+	updateDepthMap(data) {
+		this.normalMap.convertNormalMap(data);
+		this.normalMapSize[0] = data.width;
+		this.normalMapSize[1] = data.height;
+	}
+
+	render({
+		thickness,
+		faceDepth,
+		edgeDepth,
+		twoToneRad = 0,
+		punchRad = 0,
+	}, coins) {
+		this.currency.shape.resize({depth: thickness});
+		this.currency.props['maxDepth'] = faceDepth;
+		this.currency.props['edgeMaxDepth'] = edgeDepth;
+		this.currency.props['twoToneRad'] = twoToneRad;
+		this.currency.props['punchRad'] = punchRad;
+
+		super.render(
+			coins.map((coin) => Object.assign({style: {currency: this.currencyName}}, coin)),
+			{raisedCam: false}
+		);
+	}
+}
+
+const renderer = new CustomCoins3DRenderer();
+renderer.resize(256, 256);
+
+const scene = renderer.dom();
+scene.style.position = 'absolute';
+scene.style.top = '0';
+scene.style.right = '0';
+document.body.appendChild(scene);
+
 let tm3d = null;
 
 function renderFromInputs() {
@@ -212,25 +249,22 @@ function render(ctx, {sides, roundingRad, inset, depth}) {
 function update3d() {
 	tm3d = null;
 
-	normalMap.convertNormalMap(ctx.getImageData(0, 0, texW, texH));
+	renderer.updateDepthMap(ctx.getImageData(0, 0, texW, texH));
 }
 
 const coin = {
-	style: {currency: currencyName},
-	position: {x: 0, y: 0, z: 0},
+	position: {x: 0, y: 0, z: -4},
 	rotation: Quaternion.identity(),
 };
 
 function render3d(tm) {
-	coin.rotation = Quaternion.fromRotation({x: 0, y: 0, z: 1, angle: tm * 0.001});
+	coin.rotation = Quaternion.fromRotation({x: 0, y: 1, z: 0, angle: tm * 0.001});
 
-	rendererCurrency.shape.resize({depth: Number(fmThickness.value)});
-	rendererCurrency.props['maxDepth'] = Number(fmFaceDepth.value);
-	rendererCurrency.props['edgeMaxDepth'] = Number(fmEdgeDepth.value);
-	rendererCurrency.props['twoToneRad'] = 0.0;
-	rendererCurrency.props['punchRad'] = 0.0;
-
-	renderer.render([coin]);
+	renderer.render({
+		thickness: Number(fmThickness.value),
+		faceDepth: Number(fmFaceDepth.value),
+		edgeDepth: Number(fmEdgeDepth.value),
+	}, [coin]);
 
 	requestAnimationFrame(render3d);
 }
