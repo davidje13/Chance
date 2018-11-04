@@ -17,12 +17,8 @@ export function addFastClickListener(o, fn) {
 		}
 	};
 	o.addEventListener('click', callback, {passive: false});
-	o.addEventListener('touchend', callback, {passive: false});
 	return {
-		remove: () => {
-			o.removeEventListener('click', callback);
-			o.removeEventListener('touchend', callback);
-		},
+		remove: () => o.removeEventListener('click', callback),
 	};
 };
 
