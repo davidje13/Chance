@@ -191,6 +191,15 @@ export default class Dice3DRenderer {
 			'dotOpacity': 0.9,
 		}});
 
+		this.materials.set('wood-unpainted', {prog: 'grain', props: {
+			'textureVolumeTransform': texVolumeTransform,
+			'ambientCol': [0.5, 0.5, 0.5],
+			'lightCol': [0.5, 0.5, 0.5],
+			'shineCol': [1.0, 1.0, 0.95, 0.1],
+			'dotOpacity': 0.0,
+			'maxDepth': 0.2,
+		}});
+
 		this.materials.set('metal-black', {prog: 'flat', props: {
 			'matt': [0.28, 0.28, 0.3],
 			'ambientCol': [0.1, 0.1, 0.1],

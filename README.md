@@ -19,7 +19,7 @@ dice shapes and reflections.
   for the physics simulation
 * Seeds dice with uniform random rotations to ensure randomness
 * Variety of dice materials, shapes and faces
-  - Wood (varnished and unvarnished)
+  - Wood (varnished, unvarnished and unpainted)
   - Plastic (white and red)
   - Sharp square / Smooth square / Truncated square / Rounded square
   - Dots (European and Asian style) / Numbers / Words

@@ -9,11 +9,6 @@ export default class DiceOptions extends Options {
 
 		this.rowHeight = this.sampleWidth;
 
-		const shape = 'cube';
-		const dots = 'european';
-
-		let material = 'wood-varnished';
-
 		this.spin = 0;
 		this.rotation = Quaternion.fromRotation({x: 1, y: 0, z: 1, angle: Math.atan(Math.sqrt(2))});
 	}

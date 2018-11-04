@@ -16,6 +16,7 @@ const OPT_SHAPES = [
 const OPT_MATERIALS = [
 	{label: 'Wood', material: 'wood', def: true},
 	{label: 'Varnished Wood', material: 'wood-varnished', def: true},
+	{label: 'Unpainted Wood', material: 'wood-unpainted', def: false},
 	{label: 'Black Metal', material: 'metal-black', def: false},
 	{label: 'Gold Metal', material: 'metal-gold', def: false},
 	{label: 'Silver Metal', material: 'metal-silver', def: false},
