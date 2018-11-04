@@ -78,13 +78,15 @@ export default class Answers {
 		this.opts.addRow({
 			label: 'Magic',
 			type: 'radio',
-			property: 'answers-a',
+			property: 'answers',
+			value: 'A',
 			def: true,
 		});
 		this.opts.addRow({
 			label: 'More Magic',
 			type: 'radio',
-			property: 'answers-b',
+			property: 'answers',
+			value: 'B',
 			def: false,
 		});
 	}
@@ -152,6 +154,7 @@ export default class Answers {
 		if (this.simulator.depth() > RAND_DEPTH) {
 			this.simulator.randomise(this.randomSource);
 		}
+		this.renderer.setAnswerset(this.opts.getProperty('answers'));
 		this.renderer.render(
 			this.simulator.rotationMatrix(),
 			this.simulator.depth()

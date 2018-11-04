@@ -7,7 +7,7 @@ import {M4} from '../math/Matrix.js';
 import CoverShaders from './shaders/Cover.js';
 import ShapeShaders from './shaders/Shape.js';
 
-function loadTexture(gl, url) {
+function loadTexture(gl, url, then) {
 	const tex = new Texture2D(gl, {
 		[gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
 		[gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
@@ -15,7 +15,7 @@ function loadTexture(gl, url) {
 		[gl.TEXTURE_WRAP_T]: gl.CLAMP_TO_EDGE,
 	});
 	tex.setSolid(0, 0, 0, 0);
-	tex.loadImage(url);
+	tex.loadImage(url).then(then);
 	return tex;
 }
 
@@ -62,13 +62,37 @@ export default class Answers3DRenderer {
 		}});
 
 		this.atlas = loadTexture(gl, 'resources/answers/atlas.png');
-		this.answers = loadTexture(gl, 'resources/answers/MBA.png');
+		this.answers = new Map();
+		this.answers.set('A', 'resources/answers/depth-a.png');
+		this.answers.set('B', 'resources/answers/depth-b.png');
+		this.answerset = 'A';
 
 		this.blankDepth = blankDepth;
 		this.wasBlank = false;
 		this.lastProjView = M4.identity();
 
 		this.gl = gl;
+	}
+
+	setAnswerset(id) {
+		if (this.answerset !== id) {
+			this.answerset = id;
+			this._forceRender();
+		}
+	}
+
+	_getAnswersTexture() {
+		let tex = this.answers.get(this.answerset);
+		if (typeof tex === 'string') {
+			tex = loadTexture(this.gl, tex, () => this._forceRender());
+			this.answers.set(this.answerset, tex);
+		}
+		return tex;
+	}
+
+	_forceRender() {
+		this.wasBlank = false;
+		this.lastProjView = M4.identity();
 	}
 
 	render(rotationMatrix, depth) {
@@ -96,7 +120,7 @@ export default class Answers3DRenderer {
 			this.shapeProg.use({
 				'projview': projview,
 				'atlas': this.atlas,
-				'tiles': this.answers,
+				'tiles': this._getAnswersTexture(),
 				'fogDepth': this.fogDepth,
 				'bumpSteps': Math.max(this.shapeSlices.length - 1, 0),
 			});

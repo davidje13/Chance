@@ -10,7 +10,6 @@ export default class Options {
 		this.empty = true;
 		this.samples = [];
 		this.rows = [];
-		this.sectionID = 0;
 		this.y = 0;
 
 		this.hold = make('div', 'option-list');
@@ -45,11 +44,18 @@ export default class Options {
 		this.curSection.appendChild(header);
 		this.hold.appendChild(this.curSection);
 		this.y += this.headingHeight;
-		++ this.sectionID;
 		this.empty = false;
 	}
 
-	addRow({label, height = null, sampleData = null, type = '', property = null, def = null}) {
+	addRow({
+		label,
+		height = null,
+		sampleData = null,
+		type = '',
+		property = null,
+		value = null,
+		def = null,
+	}) {
 		if (height === null) {
 			height = this.rowHeight;
 		}
@@ -70,14 +76,20 @@ export default class Options {
 		case 'radio':
 			input = make('input');
 			input.setAttribute('type', 'radio');
-			input.setAttribute('name', 'sg' + this.sectionID);
+			input.setAttribute('name', 'sg-' + property);
 			input.addEventListener('change', this.readInputs);
 			row.appendChild(input);
 			break;
 		}
 		if (property !== null && def !== null) {
 			if (!this.properties.has(property)) {
-				this.properties.set(property, def);
+				if (type === 'radio') {
+					if (def === true) {
+						this.properties.set(property, value);
+					}
+				} else {
+					this.properties.set(property, def);
+				}
 			}
 		}
 
@@ -92,7 +104,7 @@ export default class Options {
 		this.y += height + this.rowPadding * 2 + this.border;
 		this.empty = false;
 
-		this.rows.push({row, input, type, property});
+		this.rows.push({row, input, type, property, value});
 	}
 
 	updateRows() {
@@ -106,7 +118,7 @@ export default class Options {
 				row.input.checked = (value !== false);
 				break;
 			case 'radio':
-				row.input.checked = (value !== false);
+				row.input.checked = (value === row.value);
 				break;
 			}
 		}
@@ -124,7 +136,9 @@ export default class Options {
 				value = row.input.checked;
 				break;
 			case 'radio':
-				value = row.input.checked;
+				if (row.input.checked) {
+					value = row.value;
+				}
 				break;
 			}
 			if (value !== oldValue) {
