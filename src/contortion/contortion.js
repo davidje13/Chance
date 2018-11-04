@@ -15,7 +15,6 @@ const NEEDLE_COUNT = 64;
 const NEEDLE_SIZE = 210;
 const PIN_SIZE = 8;
 
-const DELAY_AUTO_RESPIN = 5000;
 const IMPULSE_WINDOW_MILLIS = 100;
 const MAX_IMPULSE = 10 * Math.PI;
 
@@ -77,7 +76,7 @@ function makeBoard() {
 export default class Contortion {
 	constructor(randomSource) {
 		this.randomSource = randomSource;
-		this.makeSpinsFair = true;
+		this.autoSpinDelay = 5000;
 		this.autoSpin = false;
 
 		this.inner = make('div', 'contortion');
@@ -112,6 +111,12 @@ export default class Contortion {
 		this.inner.addEventListener('dblclick', this.dblclick.bind(this));
 
 		this.opts = new Options();
+		this.opts.addRow({
+			label: 'Randomise manual spins',
+			type: 'checkbox',
+			property: 'intercept',
+			def: true,
+		});
 		this.opts.addRow({
 			label: 'Prevent duplicate spins',
 			type: 'checkbox',
@@ -185,7 +190,7 @@ export default class Contortion {
 
 		this.latest[Math.floor(segment / 4)] = segment % 4;
 		if (this.autoSpin) {
-			this.spinRandomlyAfterDelay(DELAY_AUTO_RESPIN);
+			this.spinRandomlyAfterDelay(this.autoSpinDelay);
 		}
 	}
 
@@ -297,7 +302,7 @@ export default class Contortion {
 		if (Math.abs(impulse) > Math.PI * 0.2) {
 			this.spinWithImpulse(
 				Math.max(-MAX_IMPULSE, Math.min(MAX_IMPULSE, impulse)),
-				this.makeSpinsFair
+				this.opts.getProperty('intercept')
 			);
 		} else if (!this.wasAutoSpin) {
 			this.spinRandomly();
