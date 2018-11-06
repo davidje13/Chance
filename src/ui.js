@@ -9,7 +9,6 @@ import RandomSource from './RandomSource.js';
 import ShakeGesture from './gestures/ShakeGesture.js';
 import Dice from './dice/dice.js';
 import Coins from './coins/coins.js';
-import Numbers from './numbers/numbers.js';
 import Contortion from './contortion/contortion.js';
 import Answers from './answers/answers.js';
 import {make, addFastClickListener} from './dom/Dom.js';
@@ -150,7 +149,6 @@ const random = new RandomSource();
 
 addTab('dice', 'Dice', new Dice(random));
 addTab('coins', 'Coins', new Coins(random));
-addTab('numbers', 'Numbers', new Numbers(random));
 addTab('contortion', 'Contortion', new Contortion(random));
 addTab('answers', 'Answers', new Answers(random));
 
