@@ -76,7 +76,6 @@ function makeBoard() {
 export default class Contortion {
 	constructor(randomSource) {
 		this.randomSource = randomSource;
-		this.autoSpinDelay = 5000;
 		this.autoSpin = false;
 
 		this.inner = make('div', 'contortion');
@@ -122,6 +121,36 @@ export default class Contortion {
 			type: 'checkbox',
 			property: 'skip-current',
 			def: true,
+		});
+
+		this.opts.addHeading('Autospin');
+		this.opts.addRow({
+			label: 'Wait 3 seconds',
+			type: 'radio',
+			property: 'autospin-delay',
+			value: 3000,
+			def: false,
+		});
+		this.opts.addRow({
+			label: 'Wait 5 seconds',
+			type: 'radio',
+			property: 'autospin-delay',
+			value: 5000,
+			def: true,
+		});
+		this.opts.addRow({
+			label: 'Wait 10 seconds',
+			type: 'radio',
+			property: 'autospin-delay',
+			value: 10000,
+			def: false,
+		});
+		this.opts.addRow({
+			label: 'Wait 15 seconds',
+			type: 'radio',
+			property: 'autospin-delay',
+			value: 15000,
+			def: false,
 		});
 	}
 
@@ -190,7 +219,7 @@ export default class Contortion {
 
 		this.latest[Math.floor(segment / 4)] = segment % 4;
 		if (this.autoSpin) {
-			this.spinRandomlyAfterDelay(this.autoSpinDelay);
+			this.spinRandomlyAfterDelay(this.opts.getProperty('autospin-delay'));
 		}
 	}
 
