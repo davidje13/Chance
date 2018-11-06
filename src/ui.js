@@ -122,6 +122,12 @@ tabs.addEventListener('enter', (tabs, id, {runner}) => {
 	container.appendChild(runner.dom());
 	currentTabRunner = runner;
 	currentTabId = id;
+
+	const options = currentTabRunner.options();
+	if (options) {
+		options.load(tabLocalStorage().get());
+	}
+
 	shakeGesture.reset();
 	start(performance.now());
 
@@ -202,7 +208,6 @@ addFastClickListener(configBtn, () => {
 
 modal.addEventListener('attach', (pane, {options}) => {
 	optionScroller.appendChild(options.dom());
-	options.load(tabLocalStorage().get());
 	options.start();
 	currentOptions = options;
 	optionsFrame = 0;
