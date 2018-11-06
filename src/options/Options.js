@@ -20,6 +20,22 @@ export default class Options {
 		this.readInputs = this.readInputs.bind(this);
 	}
 
+	save() {
+		return JSON.stringify([...this.properties]);
+	}
+
+	load(json) {
+		if (!json) {
+			return;
+		}
+		const values = new Map(JSON.parse(json));
+		for (const [key, value] of values) {
+			if (this.properties.has(key)) {
+				this.properties.set(key, value);
+			}
+		}
+	}
+
 	setRenderer(renderer) {
 		if (this.renderer === renderer) {
 			return;

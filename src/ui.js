@@ -14,6 +14,7 @@ import Answers from './answers/answers.js';
 import {make, addFastClickListener} from './dom/Dom.js';
 import Options from './options/Options.js';
 import Modal from './dom/Modal.js';
+import LocalStorage from './LocalStorage.js';
 
 const nav = document.getElementById('tabs');
 const container = document.getElementById('content');
@@ -27,6 +28,7 @@ const shakeGesture = new ShakeGesture(shake);
 container.appendChild(configBtn);
 
 let currentTabRunner = null;
+let currentTabId = null;
 let currentOptions = null;
 let currentInfoLabel = '';
 let currentTitle = '';
@@ -37,6 +39,10 @@ let lastOptionsTime = 0;
 let optionsFrame = 0;
 
 const OPTIONS_FRAMERATE = 2;
+
+function tabLocalStorage() {
+	return new LocalStorage(currentTabId);
+}
 
 function updateLabels() {
 	const title = currentTabRunner.title();
@@ -115,6 +121,7 @@ tabs.addEventListener('enter', (tabs, id, {runner}) => {
 	faviconLink.setAttribute('href', 'resources/' + id + '/favicon.png');
 	container.appendChild(runner.dom());
 	currentTabRunner = runner;
+	currentTabId = id;
 	shakeGesture.reset();
 	start(performance.now());
 
@@ -195,6 +202,7 @@ addFastClickListener(configBtn, () => {
 
 modal.addEventListener('attach', (pane, {options}) => {
 	optionScroller.appendChild(options.dom());
+	options.load(tabLocalStorage().get());
 	options.start();
 	currentOptions = options;
 	optionsFrame = 0;
@@ -204,6 +212,7 @@ modal.addEventListener('attach', (pane, {options}) => {
 
 modal.addEventListener('detach', (pane, {options}) => {
 	options.stop();
+	tabLocalStorage().set(options.save());
 	optionScroller.removeChild(optionScroller.firstChild);
 	currentOptions = null;
 	if (options.changed) {
