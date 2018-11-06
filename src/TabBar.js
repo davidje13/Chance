@@ -33,6 +33,11 @@ export default class TabBar extends EventObject {
 		const li = buildButton(id, label, iconUrl, (id) => this.set(id, true));
 		this.ul.appendChild(li);
 		this.tabs.set(id, {id, data, li});
+
+		const width = (100 / this.tabs.size) + '%';
+		for (const tab of this.tabs) {
+			tab[1].li.style.width = width;
+		}
 	}
 
 	set(id, reenter = false) {

@@ -166,8 +166,9 @@ h1 {
 	position: absolute;
 	bottom: 5px;
 	right: 5px;
-	width: 30px;
-	height: 30px;
+	width: 36px;
+	height: 36px;
+	border: 3px solid transparent;
 	font-size: 24px;
 	padding-top: 1px;
 	border-radius: 100%;
@@ -181,7 +182,7 @@ h1 {
 }
 
 .config:focus {
-	box-shadow: 0 0 0 3px #80C0FF;
+	border: 3px solid #80C0FF;
 }
 
 nav {
