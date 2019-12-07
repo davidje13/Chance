@@ -58,6 +58,11 @@ export default class ShakeGesture {
 	}
 
 	_devicemotion(e) {
+		const force = e.accelerationIncludingGravity;
+		if (!force || force.z === null) {
+			return; // dummy event (e.g. user blocked access)
+		}
+
 		const g = parseAcceleration(e);
 		this.recentGs.push_head(g);
 

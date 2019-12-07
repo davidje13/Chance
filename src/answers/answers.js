@@ -114,11 +114,16 @@ export default class Answers {
 	}
 
 	motion(e) {
+		const force = e.accelerationIncludingGravity;
+		if (!force || force.z === null) {
+			return; // dummy event (e.g. user blocked access)
+		}
+
 		this.clickable = false;
 		const gravAssist = this.opts.getProperty('gravity-assist')
 			? this.gravAssistOn
 			: this.gravAssistOff;
-		this.latestGravity = gravAssist.apply(e.accelerationIncludingGravity.z);
+		this.latestGravity = gravAssist.apply(force.z);
 		this.simGravityChange = 0;
 
 		if (e.rotationRate) {
