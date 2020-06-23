@@ -41,7 +41,7 @@ export default class Coins3DRenderer {
 			alpha: true,
 			antialias: false,
 			depth: false,
-			powerPreference: 'low-power',
+			powerPreference: 'high-performance',
 			premultipliedAlpha: true,
 			preserveDrawingBuffer: false,
 			stencil: false,

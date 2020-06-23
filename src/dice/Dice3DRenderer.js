@@ -79,7 +79,7 @@ export default class Dice3DRenderer {
 			alpha: true,
 			antialias: false,
 			depth: true,
-			powerPreference: 'low-power',
+			powerPreference: 'default',
 			premultipliedAlpha: true,
 			preserveDrawingBuffer: false,
 			stencil: false,
