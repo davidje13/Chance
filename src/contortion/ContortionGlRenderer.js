@@ -30,6 +30,9 @@ export default class ContortionGlRenderer {
 		gl.clearColor(0, 0, 0, 0);
 		gl.enable(gl.BLEND);
 
+		const floatPrecision = Framebuffer.bestSupportedTargetPrecision(gl);
+		const canBlendFloat = Boolean(gl.getExtension('EXT_float_blend'));
+
 		const texFragShader = new FragmentShader(gl, NeedleFrag.frag);
 		this.needleProg = new Program(gl, [
 			new VertexShader(gl, NeedleFrag.needleVert),
@@ -74,7 +77,7 @@ export default class ContortionGlRenderer {
 		});
 
 		this.bufferTex.set(canvas.bufferWidth(), canvas.bufferHeight(), {
-			type: Framebuffer.bestSupportedTargetPrecision(gl),
+			type: canBlendFloat ? floatPrecision : gl.UNSIGNED_BYTE,
 		});
 		this.buffer = new Framebuffer(canvas, this.bufferTex);
 
@@ -93,19 +96,21 @@ export default class ContortionGlRenderer {
 		this.buffer.bind();
 		gl.clear(gl.COLOR_BUFFER_BIT);
 		this.needle.bind(gl);
+		const smoothRadius = 50;
+		const needleCount = Math.max(1, Math.min(this.needleCount, Math.round(Math.abs(sweepAngle) * smoothRadius)));
 		this.needleProg.use({
 			'startAngle': startAngle,
-			'sweepAngle': sweepAngle,
+			'sweepAngle': sweepAngle * this.needleCount / needleCount,
 			'centre': centre,
 			'size': [this.needleSize / 8, this.needleSize],
 			'texTL': texTL,
 			'texSize': [0.25, 1.0],
-			'opacity': 1 / this.needleCount,
+			'opacity': 1 / needleCount,
 			'atlas': this.atlas,
 			'pos': this.needle.boundVertices(),
 		});
 		gl.blendFunc(gl.ONE, gl.ONE);
-		this.needle.render(gl);
+		this.needle.render(gl, null, needleCount);
 		this.buffer.unbind();
 
 		this.cover.bind(gl);

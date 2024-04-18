@@ -5,6 +5,7 @@ import MouseDrag from '../gestures/MouseDrag.js';
 import ContortionGlRenderer from './ContortionGlRenderer.js';
 import Options from '../options/Options.js';
 import {make} from '../dom/Dom.js';
+import {hasAccelerometerAccess} from '../gestures/ShakeGesture.js';
 
 const BOARD_WIDTH = 310;
 const BOARD_HEIGHT = 310;
@@ -168,8 +169,11 @@ export default class Contortion {
 
 	info() {
 		if (!this.autoSpin) {
-			return (
+			return hasAccelerometerAccess() ? (
 				'Flick or shake to spin\n' +
+				'Double-tap to spin repeatedly'
+			) : (
+				'Flick to spin\n' +
 				'Double-tap to spin repeatedly'
 			);
 		}

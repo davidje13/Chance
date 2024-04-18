@@ -6,6 +6,26 @@ function parseAcceleration(e) {
 	return {x: g.x, y: g.y, z: g.z, tm};
 }
 
+let active = null;
+
+export function hasAccelerometerAccess() {
+	return active;
+}
+
+export function requestAccelerometerAccess() {
+	if (active !== null) {
+		return;
+	}
+	try {
+		// enable accelerometer on iOS Safari (requires user interaction, so try each time user changes tab)
+		DeviceMotionEvent?.requestPermission?.().then((state) => {
+			if (state === 'denied' && active === null) {
+				active = false;
+			}
+		}, console.warn);
+	} catch {}
+}
+
 export default class ShakeGesture {
 	constructor(callbackFn) {
 		this.smoothingIntervalMillis = 200;
@@ -63,6 +83,7 @@ export default class ShakeGesture {
 			return; // dummy event (e.g. user blocked access)
 		}
 
+		active = true;
 		const g = parseAcceleration(e);
 		this.recentGs.push_head(g);
 

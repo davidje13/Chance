@@ -6,7 +6,7 @@ ul.tabbar {
 	overflow-x: auto;
 	overflow-y: hidden;
 	white-space: nowrap;
-	height: 50px;
+	height: 54px;
 	user-select: none;
 	-webkit-user-select: none;
 }

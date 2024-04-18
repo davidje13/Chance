@@ -5,24 +5,26 @@ export function addFavicon() {
 	return faviconLink;
 }
 
-export function isPortrait() {
-	if (!window.orientation) {
-		return true;
-	} else {
-		return (window.orientation % 180 === 0);
-	}
-}
-
-export function supportsOrientation() {
-	return window.orientation !== undefined;
-}
-
-const ORIENTATION_CLASSNAMES = ['', 'orient-90', '', 'orient-270'];
 const CLICK_RAD = 20;
 
-function updateOrientation() {
+function legacyUpdateOrientation() {
 	const angle = Math.round(((window.orientation + 360) % 360) / 90);
-	document.body.className = ORIENTATION_CLASSNAMES[angle];
+	document.body.className = ['', 'orient-90', '', 'orient-270'][angle];
+}
+
+function updateOrientation() {
+	switch (screen.orientation.type) {
+		case 'portrait-primary':
+		case 'portrait-secondary':
+			document.body.className = '';
+			break;
+		case 'landscape-primary':
+			document.body.className = 'orient-90';
+			break;
+		case 'landscape-secondary':
+			document.body.className = 'orient-270';
+			break;
+		}
 }
 
 function anyParentScrollable(target) {
@@ -97,24 +99,22 @@ export function lockPortrait(resizeFn = null) {
 		clickStart = null;
 	}, {passive: false, capture: true});
 
-	if (supportsOrientation()) {
-		window.addEventListener('orientationchange', updateOrientation);
+	if (screen.orientation) {
+		Promise.resolve().then(() => screen.orientation.lock('natural')).catch(() => {
+			window.addEventListener('orientationchange', updateOrientation);
+			if (resizeFn !== null) {
+				window.addEventListener('orientationchange', resizeFn);
+			}
+			updateOrientation();
+		});
+	} else if (window.orientation !== undefined) {
+		window.addEventListener('orientationchange', legacyUpdateOrientation);
 		if (resizeFn !== null) {
 			window.addEventListener('orientationchange', resizeFn);
 		}
-		updateOrientation();
-	} else {
-		document.body.className = 'nonrotating';
+		legacyUpdateOrientation();
 	}
 	if (resizeFn !== null) {
 		window.addEventListener('resize', resizeFn);
 	}
-
-	// Lock portrait on devices which support it
-	(
-		screen.lockOrientation ||
-		screen.mozLockOrientation ||
-		screen.msLockOrientation ||
-		(() => null)
-	)('portrait');
 }

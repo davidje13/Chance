@@ -76,7 +76,7 @@ export default class Options {
 			height = this.rowHeight;
 		}
 		const row = make('label', 'row');
-		row.style.height = height;
+		row.style.height = height + 'px';
 		row.style.paddingTop = this.rowPadding + 'px';
 		row.style.paddingBottom = this.rowPadding + 'px';
 		row.style.borderBottomWidth = this.border + 'px';

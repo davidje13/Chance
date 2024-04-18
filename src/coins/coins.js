@@ -3,6 +3,7 @@ import CoinsOptions from './CoinsOptions.js';
 import Quaternion from '../math/Quaternion.js';
 import {V3} from '../math/Vector.js';
 import {make} from '../dom/Dom.js';
+import {hasAccelerometerAccess} from '../gestures/ShakeGesture.js';
 
 const STOPPED = 0;
 const FALLING = 1;
@@ -48,9 +49,7 @@ export default class Coins {
 	}
 
 	info() {
-		return (
-			'Tap or shake to flip the coin'
-		);
+		return hasAccelerometerAccess() ? 'Tap or shake to flip the coin' : 'Tap to flip the coin';
 	}
 
 	options() {

@@ -1,8 +1,8 @@
 import Dice3DRenderer from './Dice3DRenderer.js';
 import DiceSimulator from './DiceSimulator.js';
 import DiceOptions from './DiceOptions.js';
-import Quaternion from '../math/Quaternion.js';
 import {make, addFastClickListener, setDisabled} from '../dom/Dom.js';
+import {hasAccelerometerAccess} from '../gestures/ShakeGesture.js';
 
 const MAX_DICE = 20;
 
@@ -96,9 +96,7 @@ export default class Dice {
 	}
 
 	info() {
-		return (
-			'Tap or shake to roll the dice'
-		);
+		return hasAccelerometerAccess() ? 'Tap or shake to roll the dice' : 'Tap to roll the dice';
 	}
 
 	options() {

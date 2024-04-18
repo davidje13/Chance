@@ -1,4 +1,5 @@
 import {make} from '../dom/Dom.js';
+import {hasAccelerometerAccess} from '../gestures/ShakeGesture.js';
 
 export default class Numbers {
 	constructor(randomSource) {
@@ -10,8 +11,11 @@ export default class Numbers {
 	}
 
 	info() {
-		return (
+		return hasAccelerometerAccess() ? (
 			'Tap or shake to generate\n' +
+			'another random number'
+		) : (
+			'Tap to generate\n' +
 			'another random number'
 		);
 	}

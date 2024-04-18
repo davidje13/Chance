@@ -1,7 +1,6 @@
 import Dice3DRenderer from './Dice3DRenderer.js';
 import Options from '../options/Options.js';
 import Quaternion from '../math/Quaternion.js';
-import {make} from '../dom/Dom.js';
 
 export default class DiceOptions extends Options {
 	constructor(properties) {

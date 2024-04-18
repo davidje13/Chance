@@ -1,7 +1,6 @@
 import Coins3DRenderer from './Coins3DRenderer.js';
 import Options from '../options/Options.js';
 import Quaternion from '../math/Quaternion.js';
-import {make} from '../dom/Dom.js';
 
 export default class CoinsOptions extends Options {
 	constructor(properties) {

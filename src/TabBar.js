@@ -30,7 +30,10 @@ export default class TabBar extends EventObject {
 	}
 
 	add(id, label, iconUrl, data) {
-		const li = buildButton(id, label, iconUrl, (id) => this.set(id, true));
+		const li = buildButton(id, label, iconUrl, (id) => {
+			this.trigger('interact', [this]);
+			this.set(id, true);
+		});
 		this.ul.appendChild(li);
 		this.tabs.set(id, {id, data, li});
 

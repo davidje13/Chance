@@ -3,12 +3,18 @@ html, body {
 	padding: 0;
 	-webkit-text-size-adjust: 100%;
 	overscroll-behavior: none;
+	touch-action: none;
 
 	/* disable whole-page elastic scrolling in iOS */
 	width: 100%;
 	height: 100%;
 	position: fixed;
 	overflow: hidden;
+
+	--pad-t: env(safe-area-inset-top, 0px);
+	--pad-r: env(safe-area-inset-right, 0px);
+	--pad-b: env(safe-area-inset-bottom, 0px);
+	--pad-l: env(safe-area-inset-left, 0px);
 }
 
 body {
@@ -43,6 +49,10 @@ body.orient-270 #holder2 {
 	height: 100vw;
 	transform-origin: 0 0;
 	transform: rotate(90deg) translateY(-100%);
+	--pad-t: env(safe-area-inset-right, 0px);
+	--pad-r: env(safe-area-inset-bottom, 0px);
+	--pad-b: env(safe-area-inset-left, 0px);
+	--pad-l: env(safe-area-inset-top, 0px);
 }
 
 body.orient-90 #holder2 {
@@ -50,9 +60,10 @@ body.orient-90 #holder2 {
 	height: 100vw;
 	transform-origin: 0 0;
 	transform: rotate(-90deg) translateX(-100%);
-}
-
-body.nonrotating #holder2 {
+	--pad-t: env(safe-area-inset-left, 0px);
+	--pad-r: env(safe-area-inset-top, 0px);
+	--pad-b: env(safe-area-inset-right, 0px);
+	--pad-l: env(safe-area-inset-bottom, 0px);
 }
 
 @media screen and (min-width: 600px) and (min-height: 600px) {
@@ -68,6 +79,11 @@ body.nonrotating #holder2 {
 		overflow: hidden;
 		border-radius: 2px;
 		box-shadow: 0 0 0 5px #000000, 0 10px 50px 10px rgba(0, 0, 0, 0.5);
+
+		--pad-t: 0px;
+		--pad-r: 0px;
+		--pad-b: 0px;
+		--pad-l: 0px;
 	}
 }
 
@@ -76,7 +92,8 @@ body.nonrotating #holder2 {
 	top: 0;
 	left: 0;
 	right: 0;
-	bottom: 50px;
+	padding: var(--pad-t) var(--pad-r) var(--pad-l) 0;
+	bottom: calc(54px + var(--pad-b));
 	overflow: hidden;
 	background: #666666;
 }
@@ -84,9 +101,9 @@ body.nonrotating #holder2 {
 h1 {
 	display: block;
 	position: absolute;
-	top: 20px;
-	left: 30px;
-	right: 30px;
+	top: calc(20px + var(--pad-t));
+	left: max(30px, var(--pad-l), var(--pad-r));
+	right: max(30px, var(--pad-l), var(--pad-r));
 	text-align: center;
 	font: bold 36px Georgia, serif;
 	color: #FFFFFF;
@@ -99,8 +116,8 @@ h1 {
 #info {
 	display: block;
 	position: absolute;
-	left: 40px;
-	right: 40px;
+	left: max(40px, var(--pad-l), var(--pad-r));
+	right: max(40px, var(--pad-l), var(--pad-r));
 	bottom: 20px;
 	text-align: center;
 	font: 16px helvetica, sans-serif;
@@ -153,19 +170,19 @@ h1 {
 }
 
 .optbtn.left {
-	top: 20px;
-	left: 20px;
+	top: calc(20px + var(--pad-t));
+	left: calc(20px + var(--pad-l));
 }
 
 .optbtn.right {
-	top: 20px;
-	right: 20px;
+	top: calc(20px + var(--pad-t));
+	right: calc(20px + var(--pad-r));
 }
 
 .config {
 	position: absolute;
 	bottom: 5px;
-	right: 5px;
+	right: calc(5px + var(--pad-r));
 	width: 36px;
 	height: 36px;
 	border: 3px solid transparent;
@@ -178,7 +195,7 @@ h1 {
 }
 
 .config:before {
-	content: "\2699";
+	content: "\2699\FE0F";
 }
 
 .config:focus {
@@ -190,7 +207,8 @@ nav {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	height: 50px;
+	height: 54px;
+	padding-bottom: var(--pad-b);
 	background: #000000;
 }
 

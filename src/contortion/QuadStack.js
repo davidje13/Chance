@@ -51,4 +51,12 @@ export default class QuadStack extends ModelData {
 	boundVertices() {
 		return this.boundData(this.gl.FLOAT, 0 * SIZEOF_FLOAT, 3);
 	}
+
+	render(gl, mode = null, limit = -1) {
+		if (limit < 0 || limit >= this.count) {
+			limit = this.count;
+		}
+		this.indexCount = limit * INDICES.length;
+		super.render(gl, mode);
+	}
 };

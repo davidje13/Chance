@@ -1,12 +1,7 @@
-import {
-	addFavicon,
-	isPortrait,
-	supportsOrientation,
-	lockPortrait,
-} from './deviceManagement.js';
+import {addFavicon, lockPortrait} from './deviceManagement.js';
 import TabBar from './TabBar.js';
 import RandomSource from './RandomSource.js';
-import ShakeGesture from './gestures/ShakeGesture.js';
+import ShakeGesture, {requestAccelerometerAccess} from './gestures/ShakeGesture.js';
 import Dice from './dice/dice.js';
 import Coins from './coins/coins.js';
 import Contortion from './contortion/contortion.js';
@@ -22,6 +17,7 @@ const titleSpan = document.getElementById('title');
 const infoSpan = document.getElementById('info');
 const holder2 = document.getElementById('holder2');
 const configBtn = make('button', 'config');
+configBtn.setAttribute('title', 'Configuration');
 const faviconLink = addFavicon();
 const shakeGesture = new ShakeGesture(shake);
 
@@ -112,6 +108,8 @@ function frame(tm) {
 
 const tabs = new TabBar();
 
+tabs.addEventListener('interact', requestAccelerometerAccess);
+
 tabs.addEventListener('leave', (tabs, id, {runner}) => {
 	runner.stop();
 	container.removeChild(runner.dom());
@@ -131,10 +129,7 @@ tabs.addEventListener('enter', (tabs, id, {runner}) => {
 	shakeGesture.reset();
 	start(performance.now());
 
-	// Do not change URL if landscape (else Safari covers content with URL bar)
-	if (isPortrait()) {
-		window.location.hash = 'tab-' + id;
-	}
+	window.location.hash = 'tab-' + id;
 });
 
 tabs.addEventListener('reenter', () => {
@@ -150,7 +145,7 @@ addFastClickListener(container, () => {
 });
 
 function setTabFromHash() {
-	const hashID = window.location.hash.substr(5);
+	const hashID = window.location.hash.substring(5);
 	return tabs.set(hashID);
 }
 
