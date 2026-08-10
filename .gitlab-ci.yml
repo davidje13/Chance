@@ -12,6 +12,9 @@ sign:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
   environment: sign # grant access to SIGNING_KEY and SIGNING_KEY_PASS project variables
+  variables:
+    GIT_SUBMODULE_STRATEGY: normal
+    GIT_SUBMODULE_DEPTH: 1
   script:
     - apk add --update --no-cache openssl zip
     - zip -8Xr -n .png - config.json static > web-bundle.zip
