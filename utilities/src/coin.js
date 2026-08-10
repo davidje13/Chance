@@ -1,7 +1,7 @@
-import {V2} from '../../src/math/Vector.js';
-import Quaternion from '../../src/math/Quaternion.js';
-import {Texture2D} from '../../src/3d/Texture.js';
-import Coins3DRenderer from '../../src/coins/Coins3DRenderer.js';
+import {V2} from '../../static/src/math/Vector.js';
+import Quaternion from '../../static/src/math/Quaternion.js';
+import {Texture2D} from '../../static/src/3d/Texture.js';
+import Coins3DRenderer from '../../static/src/coins/Coins3DRenderer.js';
 
 const texW = 512;
 const texH = 512;

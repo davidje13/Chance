@@ -1,0 +1,23 @@
+{
+  "name": "webgl-wrapper",
+  "version": "1.0.0",
+  "description": "simple helpers for WebGL",
+  "files": [
+    "**/*.js"
+  ],
+  "main": "index.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidje13/webgl-wrapper.git"
+  },
+  "keywords": [
+    "webgl"
+  ],
+  "author": "David Evans",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/davidje13/webgl-wrapper/issues"
+  },
+  "homepage": "https://github.com/davidje13/webgl-wrapper#readme"
+}

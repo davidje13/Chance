@@ -1,8 +1,7 @@
 let callbacks = [];
 let lib = null;
 
-const url = 'https://cdn.jsdelivr.net/npm/goblinphysics@0.9.2/build/goblin.min.js';
-const integrity = 'sha256-Nhdvzf9P2US1k0oIoEBMSeAQJelGFLyEEbgwMblfh1I=';
+const url = '/external/goblin.0.9.2.js';
 const windowObject = 'Goblin';
 
 export function load() {
@@ -18,8 +17,6 @@ export function load() {
 			}
 			callbacks = null;
 		}, {once: true});
-		script.setAttribute('integrity', integrity);
-		script.setAttribute('crossorigin', 'anonymous');
 		script.src = url;
 		document.head.appendChild(script);
 	}
